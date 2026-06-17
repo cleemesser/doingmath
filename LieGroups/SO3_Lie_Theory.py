@@ -27,7 +27,10 @@
 # 3. The Lie bracket (**ad**) — equals the **cross product**: $[\hat a, \hat b] = \widehat{a\times b}$
 # 4. The adjoint representation (**Ad**) — with the beautiful identity $\text{Ad}_R = R$
 # 5. The relationship $\text{Ad}_{e^X} = e^{\text{ad}_X}$
-# 6. Geometric visualizations in 3D
+# 6. Non-commutativity: the bracket as the gap between rotating in two orders
+# 7. The double cover $SU(2) \to SO(3)$ — unit quaternions and the $4\pi$ spinor periodicity
+#
+# 3D visualizations run throughout.
 
 # %%
 import numpy as np
@@ -402,6 +405,203 @@ ax.plot(*np.array([path1[-1], path2[-1]]).T, color=GREEN, lw=3, label="gap ∝ [
 ax.scatter(*p0, color="white", s=50, zorder=5)
 ax.set_box_aspect((1, 1, 1))
 ax.legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# ## 7. SU(2) → SO(3): the Double Cover (Unit Quaternions)
+#
+# Just as SO(2) *is* the unit complex numbers U(1), SO(3) has a complex-number cousin one
+# dimension up: **SU(2)**, the group of $2\times2$ unitary matrices with $\det = 1$, equivalently
+# the **unit quaternions** $\{q : \|q\| = 1\} = S^3$. But the relationship is subtler than an
+# isomorphism — it is a **2-to-1 covering map**
+#
+# $$\rho : SU(2) \longrightarrow SO(3), \qquad \rho(q) = \rho(-q).$$
+#
+# Every rotation has **two** unit-quaternion preimages, $q$ and $-q$. A quaternion encodes a
+# rotation by angle $\theta$ about axis $n$ using the **half-angle**
+# $q = \cos(\tfrac{\theta}{2}) + \sin(\tfrac{\theta}{2})(n_x i + n_y j + n_z k)$, which is exactly
+# why a full $2\pi$ turn sends $q \to -q$ (the famous *spinor sign flip*) and you need $4\pi$ to
+# return. At the **algebra** level the cover is a local isomorphism: $\mathfrak{su}(2) \cong
+# \mathfrak{so}(3)$, with generators $-i\sigma_k/2$ obeying the *same* cross-product bracket.
+
+
+# %%
+def quat_mul(p, q):
+    """Hamilton product of quaternions p, q given as (w, x, y, z)."""
+    pw, px, py, pz = p
+    qw, qx, qy, qz = q
+    return np.array(
+        [
+            pw * qw - px * qx - py * qy - pz * qz,
+            pw * qx + px * qw + py * qz - pz * qy,
+            pw * qy - px * qz + py * qw + pz * qx,
+            pw * qz + px * qy - py * qx + pz * qw,
+        ]
+    )
+
+
+def axis_angle_to_quat(axis, angle):
+    """Unit quaternion for rotation by `angle` about `axis` — note the HALF angle."""
+    n = np.asarray(axis, dtype=float)
+    n = n / np.linalg.norm(n)
+    return np.concatenate([[np.cos(angle / 2)], np.sin(angle / 2) * n])
+
+
+def quat_to_rot(q):
+    """Map a unit quaternion (w,x,y,z) to its 3x3 rotation matrix ρ(q)."""
+    w, x, y, z = q
+    return np.array(
+        [
+            [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+            [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+            [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)],
+        ]
+    )
+
+
+# (a) ρ reproduces Rodrigues: quaternion rotation == matrix exponential
+n, theta = np.array([0.3, -0.7, 1.1]), 1.4
+n_hat = n / np.linalg.norm(n)
+q = axis_angle_to_quat(n, theta)
+print(
+    "ρ(q) == exp_so3(θ·n̂) (quaternion agrees with Rodrigues):",
+    np.allclose(quat_to_rot(q), exp_so3(theta * n_hat)),
+)
+print(
+    "  (angle θ =",
+    round(theta, 2),
+    ") encoded with half-angle cos(θ/2) =",
+    round(q[0], 4),
+)
+
+# (b) homomorphism: quaternion multiplication ↔ rotation composition
+p = axis_angle_to_quat([1, 0, 0], 0.9)
+r = axis_angle_to_quat([0, 1, 1], 1.3)
+print(
+    "\nρ(p·q) == ρ(p)·ρ(q) (covering map is a homomorphism):",
+    np.allclose(quat_to_rot(quat_mul(p, r)), quat_to_rot(p) @ quat_to_rot(r)),
+)
+
+# (c) the 2-to-1 cover: q and −q map to the SAME rotation
+print(
+    "\nρ(q) == ρ(−q) (two preimages per rotation → 2:1 cover):",
+    np.allclose(quat_to_rot(q), quat_to_rot(-q)),
+)
+
+# %% [markdown]
+# ### SU(2) as $2\times2$ matrices, and $\mathfrak{su}(2) \cong \mathfrak{so}(3)$
+#
+# Writing $q = w + xi + yj + zk$ as $U(q) = w\,I - i(x\sigma_1 + y\sigma_2 + z\sigma_3)$ (with the
+# Pauli matrices $\sigma_k$) realizes the unit quaternions as genuine **SU(2)** matrices —
+# unitary, $\det = 1$. Quaternion multiplication becomes matrix multiplication, and the algebra
+# generators $E_k = -i\sigma_k/2$ satisfy $[E_j, E_k] = \varepsilon_{jkl}E_l$ — identical to the
+# $\mathfrak{so}(3)$ structure constants.
+
+# %%
+s1 = np.array([[0, 1], [1, 0]], dtype=complex)
+s2 = np.array([[0, -1j], [1j, 0]], dtype=complex)
+s3 = np.array([[1, 0], [0, -1]], dtype=complex)
+
+
+def quat_to_su2(q):
+    """Map a unit quaternion to its SU(2) matrix U = wI − i(xσ1 + yσ2 + zσ3)."""
+    w, x, y, z = q
+    return w * np.eye(2) - 1j * (x * s1 + y * s2 + z * s3)
+
+
+U = quat_to_su2(q)
+print("U is unitary (U U† = I):", np.allclose(U @ U.conj().T, np.eye(2)))
+print("det U = 1 (so U ∈ SU(2)):", np.isclose(np.linalg.det(U), 1.0))
+print(
+    "quaternion product ↔ SU(2) product:",
+    np.allclose(quat_to_su2(quat_mul(p, r)), quat_to_su2(p) @ quat_to_su2(r)),
+)
+
+# su(2) generators E_k = −iσ_k/2 share so(3)'s structure constants
+E1, E2, E3 = -1j * s1 / 2, -1j * s2 / 2, -1j * s3 / 2
+print(
+    "\nsu(2) ≅ so(3):  [E1,E2]=E3:",
+    np.allclose(E1 @ E2 - E2 @ E1, E3),
+    " [E2,E3]=E1:",
+    np.allclose(E2 @ E3 - E3 @ E2, E1),
+    " [E3,E1]=E2:",
+    np.allclose(E3 @ E1 - E1 @ E3, E2),
+)
+
+# %% [markdown]
+# ### Visualizing the double cover: the $4\pi$ spinor periodicity
+#
+# Rotate continuously about a fixed axis by an angle $\theta$ growing from $0$ to $4\pi$. The
+# rotation $\rho(q)$ returns to the identity every $2\pi$, but the quaternion's scalar part
+# $\cos(\theta/2)$ has period $4\pi$: at $\theta = 2\pi$ the rotation is the identity yet the
+# quaternion is $-1$. You must turn through $720°$ to bring the quaternion home — the geometric
+# heart of why electrons are spin-$\tfrac12$.
+
+# %%
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+fig.suptitle(
+    "SU(2) double-covers SO(3): 360° flips the quaternion's sign, 720° restores it",
+    color="white",
+    fontsize=12,
+)
+
+thetas = np.linspace(0, 4 * np.pi, 400)
+qw = np.cos(thetas / 2)  # quaternion scalar part along the path q(θ) about z
+# "how far the rotation is from identity": ρ returns every 2π
+rot_dist = np.array(
+    [
+        np.linalg.norm(quat_to_rot(axis_angle_to_quat([0, 0, 1], th)) - np.eye(3))
+        for th in thetas
+    ]
+)
+
+ax = axes[0]
+ax.set_title(
+    "Quaternion scalar cos(θ/2): period 4π (the spinor)", color="#ccc", fontsize=10
+)
+ax.plot(thetas, qw, color=BLUE, lw=2.5)
+ax.axhline(0, color="#555", lw=0.8)
+for th, lab, col in [
+    (0, "q=+1", GREEN),
+    (2 * np.pi, "q=−1\n(R=I!)", RED),
+    (4 * np.pi, "q=+1", GREEN),
+]:
+    ax.plot(th, np.cos(th / 2), "o", color=col, ms=10, zorder=5)
+    ax.annotate(
+        lab,
+        xy=(th, np.cos(th / 2)),
+        xytext=(th, np.cos(th / 2) + 0.25),
+        color=col,
+        fontsize=9,
+        ha="center",
+    )
+ax.set_xticks([0, np.pi, 2 * np.pi, 3 * np.pi, 4 * np.pi])
+ax.set_xticklabels(["0", "π", "2π\n(360°)", "3π", "4π\n(720°)"])
+ax.set_xlabel("rotation angle θ")
+ax.grid(True)
+
+ax = axes[1]
+ax.set_title(
+    "The rotation ρ(q) itself: period 2π (returns twice as fast)",
+    color="#ccc",
+    fontsize=10,
+)
+ax.plot(thetas, rot_dist, color=ORANGE, lw=2.5)
+for th in [0, 2 * np.pi, 4 * np.pi]:
+    ax.axvline(th, color="#555", ls="--", lw=1)
+ax.annotate(
+    "R = I at 0, 2π, 4π →\nbut q differs by sign at 2π",
+    xy=(2 * np.pi, 0.1),
+    xytext=(0.6 * np.pi, 1.5),
+    color="#ccc",
+    fontsize=9,
+)
+ax.set_xticks([0, np.pi, 2 * np.pi, 3 * np.pi, 4 * np.pi])
+ax.set_xticklabels(["0", "π", "2π", "3π", "4π"])
+ax.set_xlabel("rotation angle θ")
+ax.set_ylabel("‖ρ(q) − I‖")
+ax.grid(True)
 plt.tight_layout()
 plt.show()
 

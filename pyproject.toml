@@ -8,6 +8,7 @@ dependencies = [
     "clifford>=1.5.1",
     "ipykernel>=7.3.0",
     "jupyter>=1.1.1",
+    "jupytext>=1.19.1",
     "matplotlib>=3.11.0",
     "numpy>=2.4.6",
     "scipy>=1.17.1",

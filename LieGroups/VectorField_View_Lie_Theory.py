@@ -203,6 +203,13 @@ plt.show()
 # to the Jacobi–Lie bracket $[\xi_X, \xi_Y]$; and (ii) for fundamental fields of an action this
 # bracket equals $-\,\xi_{[X,Y]}$ — the field map $X \mapsto \xi_X$ is an **anti-homomorphism**
 # (a sign flip relative to the algebra bracket, because the action multiplies on the left).
+#
+# > **Same idea, two faces.** The SE(2), SO(3), and SE(3) notebooks each have a "Non-commutativity
+# > and the Bracket" section showing the **group commutator** — the gap between $e^{sX}e^{tY}$ and
+# > $e^{tY}e^{sX}$ — closing to $st\,[X,Y]$ at the algebra level (a clean $+[X,Y]$). That is the same
+# > bracket seen *on the group*; here we see it *on the acted-on space* as the **flow commutator**
+# > (the non-closing quadrilateral below). Group commutator and flow commutator are two faces of the
+# > one coin — they differ only by which side the group multiplies on, hence the sign in (ii).
 
 # %%
 X, Y = e1, e2  # rotation and x-translation;  algebra bracket [e1,e2] = e3

@@ -42,12 +42,13 @@ The notebooks form a deliberate ladder — coordinate-free geometry first, coord
 ## Workflow
 
 ```bash
-make sync              # set up the env (Python ≥ 3.14) and regenerate every paired .ipynb
-uv run jupyter lab     # open and run interactively (k3d needs a live frontend)
+uv run meson setup build              # once: configure the meson build directory (./build)
+uv run meson compile -C build sync    # regenerate every paired .ipynb from its .py source
+uv run jupyter lab                    # open and run interactively (k3d needs a live frontend)
 ```
 
-`make sync` runs `uv sync && uv run jupytext --sync GeometricLinearAlgebra/*.py`. To regenerate a
-single notebook, run that `jupytext --sync` on its `.py` directly.
+The `sync` target runs `uv sync && uv run jupytext --sync GeometricLinearAlgebra/*.py`. To
+regenerate a single notebook, run that `jupytext --sync` on its `.py` directly.
 
 k3d figures are interactive widgets and only render in a live Jupyter frontend (Lab/Notebook). Drag to
 orbit, scroll to zoom.

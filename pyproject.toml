@@ -22,3 +22,8 @@ dependencies = [
     "vedo>=2026.6.1",
     "xarray>=2026.4.0",
 ]
+
+[dependency-groups]
+dev = [
+    "meson>=1.11.1",
+]

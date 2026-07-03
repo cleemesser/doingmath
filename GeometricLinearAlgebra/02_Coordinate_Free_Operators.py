@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -38,6 +38,9 @@
 # %%
 import numpy as np
 import k3d
+import sympy
+sympy.init_printing()
+import sympy as sp
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -244,7 +247,14 @@ print("directional scale ×2 along x — horizontal stretches, vertical untouche
 
 # %%
 def project(v, a):
-    """Orthogonal projection of v onto the line spanned by a."""
+    """Orthogonal projection of v onto the line spanned by a.
+    $$ P_a(v) = \frac{<\vec{v},\vec{a}>}{|a|^2} \vec{a} $$
+
+    the the standard, orthonormal basis, this matrix looks like:
+    $$ \left( a_1 \vec(a) , a_2 \vec(a) \right)$$
+    The two columns are multiples of $\vec{a}$ weighted by their projection on to the basis
+    
+    """
     v = np.asarray(v, float)
     a = np.asarray(a, float)
     return (dot(v, a) / dot(a, a))[..., None] * a
@@ -433,6 +443,49 @@ print("   shear(rotate v) =", np.round(sr, 3))
 show_operator(rotate_then_scale, GREEN).display()
 print("scale ×1.5 then rotate 50° — a 'scale-and-twist'; this composite is a complex number (nb 5)")
 
+
+# %%
+
+e1= np.array([-1,3])
+n1 = e1/norm(e1)
+e2= np.array([-2,1])
+n2 = e2/norm(e2)
+v = np.array([1,1])
+
+# %%
+n1, n2
+
+# %%
+vp = dot(n1,v) * n1 + dot(n2,v) * n2 # show that this does not work (becuase they are not orthonormal)
+vp
+
+# %%
+Nm_t = [[xx for xx in n1], [yy for yy in n2]]
+sympy.pprint(Nm)
+Nm = np.array(Nm).T
+
+# %%
+
+# %%
+sympy.Matrix(Nm).evalf(2)
+
+# %% jupyter={"source_hidden": true}
+Ninv = np.linalg.inv(Nm)
+sp.Matrix(Ninv).evalf(2)
+
+# %%
+Ninv @ v
+
+# %%
+a,b = Ninv @ v
+a,b
+
+# %%
+a * n1 + b * n2
+sp.pprint(_)
+
+# %%
+norm(n1), norm(n2)
 
 # %% [markdown]
 # ## Summary

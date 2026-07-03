@@ -28,6 +28,15 @@ The notebooks form a deliberate ladder — coordinate-free geometry first, coord
 | 3 | [`03_Dot_and_Wedge`](03_Dot_and_Wedge.py) | Two bilinear measures of a pair of arrows: the **dot product** (length & angle, the symmetric part — law of cosines, Cauchy–Schwarz) and the **wedge product** (signed area, the antisymmetric part). The identity $\langle u,v\rangle^2+(u\wedge v)^2=\|u\|^2\|v\|^2$, the shoelace formula as a sum of wedges, the 3D wedge as a bivector/cross product, and the determinant previewed as $T(u)\wedge T(v)=(\det T)(u\wedge v)$. |
 | 4 | [`04_Volume_Determinant_Trace`](04_Volume_Determinant_Trace.py) | The **volume element** as the top-degree wedge (area in 2D, scalar triple product in 3D); the **determinant** as the factor by which an operator scales signed volume (multiplicative, sign = orientation, zero = collapse — checked against `numpy`); and a **coordinate-free trace** as $\frac{d}{dt}\big\|_0\det(I+tT)$ = divergence of the flow $x\mapsto Tx$, closing with $\det e^{tT}=e^{t\operatorname{tr}T}$. |
 | 5 | [`05_Bases_Coordinates_Complex`](05_Bases_Coordinates_Complex.py) | *Now* introduce **basis vectors**, **coordinates** of a vector, and the **matrix** of an operator (columns = images of the basis). Recover $\det=ad-bc$ and $\operatorname{tr}=a+d$ and verify they are **basis-independent** ($A\mapsto P^{-1}AP$). Capstone: **discover ℂ** — the "scale × pure rotation" maps are exactly $xI+yJ$, closed and commutative under composition because $J^2=-I$; that algebra *is* the complex numbers, with $|z|^2=\det$, $\arg z$ = rotation, $e^{i\phi}=e^{\phi J}$. |
+| 6 | [`06_Gaussian_Elimination`](06_Gaussian_Elimination.py) | The computational engine: solve, invert, and find the determinant by **elimination**, watched one step at a time with SymPy's `elementary_row_op`. Forward sweep → echelon → RREF (vs `rref()`); the three outcomes (unique / none / infinite) via `linsolve`, with the **row picture** (lines crossing, parallel, or coincident) drawn in vedo; row ops as elementary matrices ⇒ $[A\,|\,I]\to[I\,|\,A^{-1}]$; and $\det$ = signed product of pivots. |
+| 7 | [`07_Eigenvectors_Geometrically`](07_Eigenvectors_Geometrically.py) | The directions a map **doesn't turn**: eigenvectors as the arrows that stay on their own line (the circle → ellipse picture), eigenvalue = stretch factor. Exact `charpoly`/`eigenvals`/`eigenvects`, diagonalization $A=PDP^{-1}$, and the three regimes — symmetric ⇒ **orthogonal** axes, shear ⇒ **defective** (one eigenvector), rotation ⇒ **complex** eigenvalues $e^{\pm i\theta}$ (the $J^2=-I$ thread, one last time). |
+
+**Companion — [`00_SymPy_Symbolic_LinearAlgebra`](00_SymPy_Symbolic_LinearAlgebra.py):** a symbolic tour
+of the whole series with SymPy. Every headline result of notebooks 2–5 re-proven *exactly* — `J²=−I`,
+the dot/wedge Pythagorean identity, $\det(AB)=\det A\det B$, $\operatorname{tr}T=\frac{d}{dt}\big|_0\det(I+tT)$,
+$\det e^{tT}=e^{t\operatorname{tr}T}$, and $xI+yJ\cong\mathbb{C}$ — using symbols inside the matrices so a
+`simplify(...) == 0` is a proof for *all* inputs, where `np.allclose` checks only one sample. Read it
+alongside the series: `numpy` to see and compute, SymPy to prove.
 
 ## The thread running through the set
 
@@ -50,5 +59,8 @@ uv run jupyter lab                    # open and run interactively (k3d needs a 
 The `sync` target runs `uv sync && uv run jupytext --sync GeometricLinearAlgebra/*.py`. To
 regenerate a single notebook, run that `jupytext --sync` on its `.py` directly.
 
-k3d figures are interactive widgets and only render in a live Jupyter frontend (Lab/Notebook). Drag to
-orbit, scroll to zoom.
+Notebooks **01–05** draw with **k3d**: interactive WebGL widgets that only render in a live Jupyter
+frontend (Lab/Notebook) — drag to orbit, scroll to zoom. The newer notebooks **00, 06, 07** draw with
+**vedo** (VTK), as in the `Geometry/` notebooks, rendered **offscreen to static PNGs** embedded in the
+`.ipynb` — so their figures show up after a headless `jupytext --execute` and on GitHub, no live
+frontend needed.

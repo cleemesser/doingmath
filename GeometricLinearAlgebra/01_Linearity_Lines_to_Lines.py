@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -428,3 +428,18 @@ check_linearity(bend, "bend  (nonlinear)")
 # **Next (notebook 2):** we stop *manufacturing* linear maps and start *defining the important ones
 # geometrically* — projection onto a vector, rotation, scaling, and shear — entirely without
 # coordinates, using only lengths and the right-angle relationship between arrows.
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#

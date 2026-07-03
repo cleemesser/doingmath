@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -33,6 +33,10 @@
 #    the infinitesimal (trace) to the finite (determinant) that the `LieGroups/` notebooks lean on.
 #
 # k3d throughout; the 3D scenes are free to orbit.
+
+# %% [markdown]
+# May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram. 
+# Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
 
 # %%
 import numpy as np

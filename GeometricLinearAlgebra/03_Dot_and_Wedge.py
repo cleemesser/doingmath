@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -156,7 +156,7 @@ print("  equality iff parallel:", np.allclose(abs(dot(u, 3.0 * u)), norm(u) * no
 # %% [markdown]
 # ## 2. The wedge product: signed area
 #
-# Now the antisymmetric partner. The **wedge** $u \wedge v$ is the **signed area** of the
+# Now the antisymmetric partner. In 2D, the **wedge** $u \wedge v$ can be defined as the **signed area** of the
 # parallelogram spanned by $u$ and $v$:
 #
 # $$u \wedge v = |u|\,|v|\,\sin\theta.$$
@@ -173,6 +173,8 @@ print("  equality iff parallel:", np.allclose(abs(dot(u, 3.0 * u)), norm(u) * no
 # In the plane the wedge is a single signed number; concretely $u\wedge v = u_x v_y - u_y v_x$ (the
 # 2D cross product we used for collinearity in notebook 1 — there, "lies on a line" meant "spans zero
 # area").
+#
+# [Note, there are some fancier defintions of the $\wedge$ product involving turning two vectors in to a different type of vector. See below.]
 
 
 # %%

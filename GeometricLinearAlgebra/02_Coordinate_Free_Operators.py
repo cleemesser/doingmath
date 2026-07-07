@@ -39,6 +39,7 @@
 import numpy as np
 import k3d
 import sympy
+
 sympy.init_printing()
 import sympy as sp
 
@@ -74,8 +75,12 @@ def _to3(pts):
 
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
     plot = k3d.plot(
-        background_color=BG, grid_color=GRIDC, label_color=LABELC,
-        grid_visible=grid, camera_auto_fit=not top_down, menu_visibility=False,
+        background_color=BG,
+        grid_color=GRIDC,
+        label_color=LABELC,
+        grid_visible=grid,
+        camera_auto_fit=not top_down,
+        menu_visibility=False,
     )
     if top_down:
         plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
@@ -92,20 +97,35 @@ def add_line(plot, pts, color, width=0.02, alpha=1.0):
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
     tail3 = _to3(np.atleast_2d(tail))
     head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(origins=tail3, vectors=(head3 - tail3), color=color, head_size=1.5, line_width=0.03)
+    plot += k3d.vectors(
+        origins=tail3,
+        vectors=(head3 - tail3),
+        color=color,
+        head_size=1.5,
+        line_width=0.03,
+    )
     if label:
         pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(label, position=pos, color=color, size=label_size, label_box=False)
+        plot += k3d.text(
+            label, position=pos, color=color, size=label_size, label_box=False
+        )
 
 
 def add_points(plot, pts, color, size=0.18):
-    plot += k3d.points(_to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d")
+    plot += k3d.points(
+        _to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d"
+    )
 
 
 # An asymmetric closed polygon ("flag on a pole") used to make each transform visible.
 FLAG = np.array(
     [
-        [0.0, 0.0], [0.0, 2.0], [1.2, 1.6], [0.6, 1.2], [0.0, 1.2], [0.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 2.0],
+        [1.2, 1.6],
+        [0.6, 1.2],
+        [0.0, 1.2],
+        [0.0, 0.0],
     ]
 )
 
@@ -181,7 +201,9 @@ def J(v):
 a = np.array([2.0, 0.7])
 print("J is a 90° turn :", np.allclose(angle_between(a, J(a)), np.pi / 2))
 print("J preserves len :", np.allclose(norm(J(a)), norm(a)))
-print("J∘J = −I        :", np.allclose(J(J(a)), -a), "   ← the geometric seed of i² = −1")
+print(
+    "J∘J = −I        :", np.allclose(J(J(a)), -a), "   ← the geometric seed of i² = −1"
+)
 
 
 # %% [markdown]
@@ -253,7 +275,7 @@ def project(v, a):
     the the standard, orthonormal basis, this matrix looks like:
     $$ \left( a_1 \vec(a) , a_2 \vec(a) \right)$$
     The two columns are multiples of $\vec{a}$ weighted by their projection on to the basis
-    
+
     """
     v = np.asarray(v, float)
     a = np.asarray(a, float)
@@ -322,13 +344,24 @@ th, ph = 0.7, 1.1
 u_, w_ = np.array([1.3, -0.4]), np.array([0.2, 1.7])
 
 print("preserves length      :", np.allclose(norm(rotate(u_, th)), norm(u_)))
-print("preserves dot/angle    :", np.allclose(dot(rotate(u_, th), rotate(w_, th)), dot(u_, w_)))
+print(
+    "preserves dot/angle    :",
+    np.allclose(dot(rotate(u_, th), rotate(w_, th)), dot(u_, w_)),
+)
 print("turns by exactly θ     :", np.allclose(angle_between(u_, rotate(u_, th)), th))
-print("R(α)R(β)=R(α+β)        :", np.allclose(rotate(rotate(u_, ph), th), rotate(u_, th + ph)))
-print("rotations commute      :", np.allclose(rotate(rotate(u_, ph), th), rotate(rotate(u_, th), ph)))
+print(
+    "R(α)R(β)=R(α+β)        :",
+    np.allclose(rotate(rotate(u_, ph), th), rotate(u_, th + ph)),
+)
+print(
+    "rotations commute      :",
+    np.allclose(rotate(rotate(u_, ph), th), rotate(rotate(u_, th), ph)),
+)
 
 show_operator(lambda v: rotate(v, np.pi / 5), BLUE).display()
-print("rotation by 36° — lengths and angles preserved, orientation preserved, origin fixed")
+print(
+    "rotation by 36° — lengths and angles preserved, orientation preserved, origin fixed"
+)
 
 
 # %% [markdown]
@@ -363,10 +396,14 @@ d = np.array([1.0, 0.0])
 e1, e2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
 He1, He2 = shear(e1, d, 0.8), shear(e2, d, 0.8)
 print("fixes the shear line  :", np.allclose(shear(d, d, 0.8), d))
-print("preserves area (det=1):", np.allclose(signed_area(He1, He2), signed_area(e1, e2)))
+print(
+    "preserves area (det=1):", np.allclose(signed_area(He1, He2), signed_area(e1, e2))
+)
 
 show_operator(lambda v: shear(v, d, 0.8), ORANGE).display()
-print("horizontal shear k=0.8 — vertical lines tilt, the x-axis stays fixed, areas unchanged")
+print(
+    "horizontal shear k=0.8 — vertical lines tilt, the x-axis stays fixed, areas unchanged"
+)
 
 
 # %% [markdown]
@@ -419,13 +456,16 @@ for name, f in OPERATORS.items():
         u1, u2, c = rng.normal(size=2), rng.normal(size=2), rng.normal()
         add_ok &= np.allclose(f(u1 + u2), f(u1) + f(u2))
         hom_ok &= np.allclose(f(c * u1), c * f(u1))
-    print(f"{name:<20} linear: additivity={add_ok}  homogeneity={hom_ok}  fixes_origin={np.allclose(f(np.zeros(2)), 0)}")
+    print(
+        f"{name:<20} linear: additivity={add_ok}  homogeneity={hom_ok}  fixes_origin={np.allclose(f(np.zeros(2)), 0)}"
+    )
 
 # %% [markdown]
 # Now composition. Operators are maps, so $\,(g\circ f)(v) = g(f(v))$ is again linear — but reversing
 # the order generally changes the result. We show two things at once: a **scale-then-rotate** (the
 # "scale-and-twist" that becomes a complex number in notebook 5), and the fact that **rotate-then-shear
 # $\neq$ shear-then-rotate**.
+
 
 # %%
 def rotate_then_scale(v):  # first scale by 1.5, then rotate by 50°
@@ -435,28 +475,34 @@ def rotate_then_scale(v):  # first scale by 1.5, then rotate by 50°
 vtest = np.array([1.0, 0.3])
 rs = rotate(shear(vtest, d, 0.8), np.pi / 5)
 sr = shear(rotate(vtest, np.pi / 5), d, 0.8)
-print("scale∘rotate is linear   :", np.allclose(rotate_then_scale(2 * vtest), 2 * rotate_then_scale(vtest)))
+print(
+    "scale∘rotate is linear   :",
+    np.allclose(rotate_then_scale(2 * vtest), 2 * rotate_then_scale(vtest)),
+)
 print("rotate∘shear == shear∘rotate ?", np.allclose(rs, sr), "  ← order matters!")
 print("   rotate(shear v) =", np.round(rs, 3))
 print("   shear(rotate v) =", np.round(sr, 3))
 
 show_operator(rotate_then_scale, GREEN).display()
-print("scale ×1.5 then rotate 50° — a 'scale-and-twist'; this composite is a complex number (nb 5)")
+print(
+    "scale ×1.5 then rotate 50° — a 'scale-and-twist'; this composite is a complex number (nb 5)"
+)
 
 
 # %%
-
-e1= np.array([-1,3])
-n1 = e1/norm(e1)
-e2= np.array([-2,1])
-n2 = e2/norm(e2)
-v = np.array([1,1])
+e1 = np.array([-1, 3])
+n1 = e1 / norm(e1)
+e2 = np.array([-2, 1])
+n2 = e2 / norm(e2)
+v = np.array([1, 1])
 
 # %%
 n1, n2
 
 # %%
-vp = dot(n1,v) * n1 + dot(n2,v) * n2 # show that this does not work (becuase they are not orthonormal)
+vp = (
+    dot(n1, v) * n1 + dot(n2, v) * n2
+)  # show that this does not work (becuase they are not orthonormal)
 vp
 
 # %%
@@ -477,8 +523,8 @@ sp.Matrix(Ninv).evalf(2)
 Ninv @ v
 
 # %%
-a,b = Ninv @ v
-a,b
+a, b = Ninv @ v
+a, b
 
 # %%
 a * n1 + b * n2

@@ -35,7 +35,7 @@
 # k3d throughout; the 3D scenes are free to orbit.
 
 # %% [markdown]
-# May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram. 
+# May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram.
 # Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
 
 # %%
@@ -71,8 +71,12 @@ def _to3(pts):
 
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
     plot = k3d.plot(
-        background_color=BG, grid_color=GRIDC, label_color=LABELC,
-        grid_visible=grid, camera_auto_fit=not top_down, menu_visibility=False,
+        background_color=BG,
+        grid_color=GRIDC,
+        label_color=LABELC,
+        grid_visible=grid,
+        camera_auto_fit=not top_down,
+        menu_visibility=False,
     )
     if top_down:
         plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
@@ -89,10 +93,18 @@ def add_line(plot, pts, color, width=0.02, alpha=1.0):
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
     tail3 = _to3(np.atleast_2d(tail))
     head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(origins=tail3, vectors=(head3 - tail3), color=color, head_size=1.5, line_width=0.03)
+    plot += k3d.vectors(
+        origins=tail3,
+        vectors=(head3 - tail3),
+        color=color,
+        head_size=1.5,
+        line_width=0.03,
+    )
     if label:
         pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(label, position=pos, color=color, size=label_size, label_box=False)
+        plot += k3d.text(
+            label, position=pos, color=color, size=label_size, label_box=False
+        )
 
 
 def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
@@ -106,7 +118,14 @@ def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
 
 # corner bit-patterns (a,b,c) ∈ {0,1}³  →  o + a u + b v + c w
 _BITS = np.array([[a, b, c] for c in (0, 1) for b in (0, 1) for a in (0, 1)], float)
-_FACES = [(0, 1, 3, 2), (4, 5, 7, 6), (0, 1, 5, 4), (2, 3, 7, 6), (0, 2, 6, 4), (1, 3, 7, 5)]
+_FACES = [
+    (0, 1, 3, 2),
+    (4, 5, 7, 6),
+    (0, 1, 5, 4),
+    (2, 3, 7, 6),
+    (0, 2, 6, 4),
+    (1, 3, 7, 5),
+]
 
 
 def add_parallelepiped(plot, o, u, v, w, color, opacity=0.18):
@@ -116,9 +135,28 @@ def add_parallelepiped(plot, o, u, v, w, color, opacity=0.18):
     tris = []
     for p, q, r, s in _FACES:
         tris += [[p, q, r], [q, s, r]]
-    plot += k3d.mesh(corners.astype(np.float32), np.array(tris, np.uint32), color=color, opacity=opacity, side="double")
+    plot += k3d.mesh(
+        corners.astype(np.float32),
+        np.array(tris, np.uint32),
+        color=color,
+        opacity=opacity,
+        side="double",
+    )
     # 12 edges
-    edges = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
+    edges = [
+        (0, 1),
+        (0, 2),
+        (0, 4),
+        (1, 3),
+        (1, 5),
+        (2, 3),
+        (2, 6),
+        (3, 7),
+        (4, 5),
+        (4, 6),
+        (5, 7),
+        (6, 7),
+    ]
     for i, j in edges:
         add_line(plot, np.array([corners[i], corners[j]]), color, width=0.02)
 
@@ -141,7 +179,13 @@ def add_parallelepiped(plot, o, u, v, w, color, opacity=0.18):
 # %%
 def cross3(u, v):
     u, v = np.asarray(u, float), np.asarray(v, float)
-    return np.array([u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]])
+    return np.array(
+        [
+            u[1] * v[2] - u[2] * v[1],
+            u[2] * v[0] - u[0] * v[2],
+            u[0] * v[1] - u[1] * v[0],
+        ]
+    )
 
 
 def wedge3(u, v, w):
@@ -156,7 +200,9 @@ w = np.array([0.2, 0.5, 1.6])
 print("signed volume u∧v∧w        :", round(wedge3(u, v, w), 6))
 print("alternating  u∧u∧w = 0     :", np.isclose(wedge3(u, u, w), 0.0))
 print("swap flips sign            :", np.isclose(wedge3(u, v, w), -wedge3(v, u, w)))
-print("multilinear (scale u by 3) :", np.isclose(wedge3(3 * u, v, w), 3 * wedge3(u, v, w)))
+print(
+    "multilinear (scale u by 3) :", np.isclose(wedge3(3 * u, v, w), 3 * wedge3(u, v, w))
+)
 
 p = new_plot(lim=3.0, top_down=False, axes=False)
 add_parallelepiped(p, [0, 0, 0], u, v, w, BLUE)
@@ -197,25 +243,38 @@ def det_by_volume(A):
     A = np.asarray(A, float)
     cols = [A[:, i] for i in range(A.shape[0])]
     if A.shape[0] == 2:
-        return cols[0][0] * cols[1][1] - cols[0][1] * cols[1][0]  # the 2D wedge of the columns
+        return (
+            cols[0][0] * cols[1][1] - cols[0][1] * cols[1][0]
+        )  # the 2D wedge of the columns
     return wedge3(*cols)  # the 3D wedge of the columns
 
 
 rng = np.random.default_rng(4)
 for n in (2, 3):
     M = rng.normal(size=(n, n))
-    print(f"{n}D: det_by_volume = {det_by_volume(M): .6f}   np.linalg.det = {np.linalg.det(M): .6f}",
-          "  match:", np.allclose(det_by_volume(M), np.linalg.det(M)))
+    print(
+        f"{n}D: det_by_volume = {det_by_volume(M): .6f}   np.linalg.det = {np.linalg.det(M): .6f}",
+        "  match:",
+        np.allclose(det_by_volume(M), np.linalg.det(M)),
+    )
 
 # Multiplicativity det(AB)=det(A)det(B), and that the volume factor is independent of the chosen edges.
 A, B = rng.normal(size=(3, 3)), rng.normal(size=(3, 3))
-print("det(AB) = det(A)·det(B):", np.allclose(det_by_volume(A @ B), det_by_volume(A) * det_by_volume(B)))
+print(
+    "det(AB) = det(A)·det(B):",
+    np.allclose(det_by_volume(A @ B), det_by_volume(A) * det_by_volume(B)),
+)
 factors = []
 for _ in range(5):  # T(u)∧T(v)∧T(w) / (u∧v∧w) is the same for any non-degenerate u,v,w
     uu, vv, ww = rng.normal(size=3), rng.normal(size=3), rng.normal(size=3)
     factors.append(wedge3(A @ uu, A @ vv, A @ ww) / wedge3(uu, vv, ww))
-print("volume factor independent of edges:", np.allclose(factors, det_by_volume(A)),
-      "  (=", round(det_by_volume(A), 4), ")")
+print(
+    "volume factor independent of edges:",
+    np.allclose(factors, det_by_volume(A)),
+    "  (=",
+    round(det_by_volume(A), 4),
+    ")",
+)
 
 # %%
 # A unit cube ↦ a parallelepiped; its volume equals det T.
@@ -245,7 +304,11 @@ ops2d = {
 }
 for name, M in ops2d.items():
     d = det_by_volume(M)
-    tag = {1: "preserves area & orientation", -1: "flips orientation", 0: "collapses to a line"}.get(round(d), "scales area")
+    tag = {
+        1: "preserves area & orientation",
+        -1: "flips orientation",
+        0: "collapses to a line",
+    }.get(round(d), "scales area")
     print(f"  {name:<20} det = {d:+.3f}   ({tag})")
 
 
@@ -287,8 +350,11 @@ M = rng.normal(size=(3, 3))
 print("tr by derivative of det :", round(trace_by_derivative(M), 5))
 print("tr by wedge formula     :", round(trace_by_wedge(M), 5))
 print("np.trace (sum diagonal) :", round(np.trace(M), 5))
-print("all three agree         :", np.allclose(trace_by_derivative(M), np.trace(M)) and
-      np.allclose(trace_by_wedge(M), np.trace(M)))
+print(
+    "all three agree         :",
+    np.allclose(trace_by_derivative(M), np.trace(M))
+    and np.allclose(trace_by_wedge(M), np.trace(M)),
+)
 
 
 # %% [markdown]
@@ -337,11 +403,16 @@ print("all equal tr M =", round(np.trace(M), 4), ":", np.allclose(divs, np.trace
 
 # %%
 A, B = rng.normal(size=(3, 3)), rng.normal(size=(3, 3))
-print("trace is linear      :", np.allclose(np.trace(2 * A - 3 * B), 2 * np.trace(A) - 3 * np.trace(B)))
+print(
+    "trace is linear      :",
+    np.allclose(np.trace(2 * A - 3 * B), 2 * np.trace(A) - 3 * np.trace(B)),
+)
 print("cyclic tr(AB)=tr(BA) :", np.allclose(np.trace(A @ B), np.trace(B @ A)))
 for t in (0.3, 1.0, 2.5):
     lhs, rhs = np.linalg.det(expm(t * A)), np.exp(t * np.trace(A))
-    print(f"  t={t}:  det(exp(tA)) = {lhs:.5f}   exp(t·trA) = {rhs:.5f}   match: {np.allclose(lhs, rhs)}")
+    print(
+        f"  t={t}:  det(exp(tA)) = {lhs:.5f}   exp(t·trA) = {rhs:.5f}   match: {np.allclose(lhs, rhs)}"
+    )
 
 
 # %% [markdown]

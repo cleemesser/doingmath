@@ -67,8 +67,12 @@ def _to3(pts):
 
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
     plot = k3d.plot(
-        background_color=BG, grid_color=GRIDC, label_color=LABELC,
-        grid_visible=grid, camera_auto_fit=not top_down, menu_visibility=False,
+        background_color=BG,
+        grid_color=GRIDC,
+        label_color=LABELC,
+        grid_visible=grid,
+        camera_auto_fit=not top_down,
+        menu_visibility=False,
     )
     if top_down:
         plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
@@ -85,14 +89,24 @@ def add_line(plot, pts, color, width=0.02, alpha=1.0):
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
     tail3 = _to3(np.atleast_2d(tail))
     head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(origins=tail3, vectors=(head3 - tail3), color=color, head_size=1.5, line_width=0.03)
+    plot += k3d.vectors(
+        origins=tail3,
+        vectors=(head3 - tail3),
+        color=color,
+        head_size=1.5,
+        line_width=0.03,
+    )
     if label:
         pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(label, position=pos, color=color, size=label_size, label_box=False)
+        plot += k3d.text(
+            label, position=pos, color=color, size=label_size, label_box=False
+        )
 
 
 def add_points(plot, pts, color, size=0.18):
-    plot += k3d.points(_to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d")
+    plot += k3d.points(
+        _to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d"
+    )
 
 
 def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
@@ -145,12 +159,21 @@ for _ in range(2000):
     bilin &= np.allclose(dot(a * p + b * r, q), a * dot(p, q) + b * dot(r, q))
 print("symmetric            :", sym)
 print("bilinear (1st slot)  :", bilin)
-print("positive-definite    :", dot(u, u) > 0 and np.isclose(dot(np.zeros(2), np.zeros(2)), 0))
+print(
+    "positive-definite    :",
+    dot(u, u) > 0 and np.isclose(dot(np.zeros(2), np.zeros(2)), 0),
+)
 
 # Law of cosines and Cauchy–Schwarz.
-print("law of cosines       :", np.allclose(norm(u - v) ** 2, dot(u, u) + dot(v, v) - 2 * dot(u, v)))
+print(
+    "law of cosines       :",
+    np.allclose(norm(u - v) ** 2, dot(u, u) + dot(v, v) - 2 * dot(u, v)),
+)
 print("Cauchy–Schwarz       :", abs(dot(u, v)) <= norm(u) * norm(v) + 1e-12)
-print("  equality iff parallel:", np.allclose(abs(dot(u, 3.0 * u)), norm(u) * norm(3.0 * u)))
+print(
+    "  equality iff parallel:",
+    np.allclose(abs(dot(u, 3.0 * u)), norm(u) * norm(3.0 * u)),
+)
 
 
 # %% [markdown]
@@ -196,7 +219,10 @@ theta = np.arccos(np.clip(dot(u, v) / (norm(u) * norm(v)), -1, 1))
 print("antisymmetric        :", anti)
 print("alternating u∧u=0    :", alt)
 print("bilinear             :", bil)
-print("u∧v = |u||v|sinθ     :", np.allclose(wedge2(u, v), norm(u) * norm(v) * np.sin(theta)))
+print(
+    "u∧v = |u||v|sinθ     :",
+    np.allclose(wedge2(u, v), norm(u) * norm(v) * np.sin(theta)),
+)
 
 # The sign is orientation: u∧v > 0 means v is counter-clockwise from u.
 p = new_plot(lim=3.0)
@@ -204,7 +230,9 @@ add_parallelogram(p, [0, 0], u, v, GREEN if wedge2(u, v) > 0 else RED)
 add_vector(p, [0, 0], u, BLUE, "u")
 add_vector(p, [0, 0], v, ORANGE, "v")
 p.display()
-print(f"signed area u∧v = {wedge2(u, v):+.3f}  (green = positive/counter-clockwise orientation)")
+print(
+    f"signed area u∧v = {wedge2(u, v):+.3f}  (green = positive/counter-clockwise orientation)"
+)
 
 # %%
 # Swapping the order flips the sign — same parallelogram, opposite orientation (drawn red).
@@ -213,7 +241,9 @@ add_parallelogram(p, [0, 0], v, u, GREEN if wedge2(v, u) > 0 else RED)
 add_vector(p, [0, 0], v, ORANGE, "v")
 add_vector(p, [0, 0], u, BLUE, "u")
 p.display()
-print(f"signed area v∧u = {wedge2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)")
+print(
+    f"signed area v∧u = {wedge2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)"
+)
 
 
 # %% [markdown]
@@ -263,13 +293,25 @@ poly = np.array([[0.0, 0.0], [2.0, 0.3], [2.6, 1.8], [1.0, 2.6], [-0.5, 1.4]])
 tri = np.array([[0.0, 0.0], [3.0, 0.0], [1.0, 2.0]])
 print("triangle area (wedge)        :", polygon_area(tri))
 print("triangle area (½ base·height):", 0.5 * 3.0 * 2.0)
-print("pentagon signed area         :", polygon_area(poly), "(positive ⇒ counter-clockwise)")
+print(
+    "pentagon signed area         :",
+    polygon_area(poly),
+    "(positive ⇒ counter-clockwise)",
+)
 
 p = new_plot(lim=3.2)
 add_line(p, np.vstack([poly, poly[0]]), BLUE, width=0.03)
 # Fan of signed triangles from the first vertex shows the cancellation visually.
 for i in range(1, len(poly) - 1):
-    add_parallelogram(p, poly[0], poly[i] - poly[0], poly[i + 1] - poly[0], GREEN, opacity=0.12, outline=False)
+    add_parallelogram(
+        p,
+        poly[0],
+        poly[i] - poly[0],
+        poly[i + 1] - poly[0],
+        GREEN,
+        opacity=0.12,
+        outline=False,
+    )
 add_points(p, poly, ORANGE, size=0.12)
 p.display()
 
@@ -292,11 +334,13 @@ p.display()
 # %%
 def cross3(u, v):
     u, v = np.asarray(u, float), np.asarray(v, float)
-    return np.array([
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-    ])
+    return np.array(
+        [
+            u[1] * v[2] - u[2] * v[1],
+            u[2] * v[0] - u[0] * v[2],
+            u[0] * v[1] - u[1] * v[0],
+        ]
+    )
 
 
 u3 = np.array([2.0, 0.4, 0.3])
@@ -304,8 +348,15 @@ v3 = np.array([0.5, 1.8, 0.2])
 n3 = cross3(u3, v3)
 area = np.linalg.norm(n3)
 print("area |u×v|                 :", area)
-print("u×v ⟂ u and ⟂ v            :", np.allclose(dot(n3, u3), 0), np.allclose(dot(n3, v3), 0))
-print("|u×v|² + ⟨u,v⟩² = |u|²|v|² :", np.allclose(area**2 + dot(u3, v3) ** 2, dot(u3, u3) * dot(v3, v3)))
+print(
+    "u×v ⟂ u and ⟂ v            :",
+    np.allclose(dot(n3, u3), 0),
+    np.allclose(dot(n3, v3), 0),
+)
+print(
+    "|u×v|² + ⟨u,v⟩² = |u|²|v|² :",
+    np.allclose(area**2 + dot(u3, v3) ** 2, dot(u3, u3) * dot(v3, v3)),
+)
 
 p = new_plot(lim=3.0, top_down=False, axes=False)
 add_vector(p, [0, 0, 0], u3, BLUE, "u")

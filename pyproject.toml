@@ -38,4 +38,4 @@ dev = [
 ]
 
 [tool.uv.sources]
-mathviz = { path = "ComplexAnalysis/mathviz", editable = true }
+mathviz = { path = "mathviz", editable = true }

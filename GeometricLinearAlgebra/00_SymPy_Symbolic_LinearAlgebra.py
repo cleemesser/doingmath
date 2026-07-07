@@ -67,7 +67,7 @@ BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
 PURPLE = 0xCE93D8
 # BG = 0x0F0F0F # green background
-BG = 0x000000 # white background?
+BG = 0x000000  # white background?
 
 
 def _hex(c):
@@ -126,7 +126,6 @@ class Plane2D:
 
     def seg(self, p, q, color=GREY, lw=2, alpha=1.0):
         self.objects.append(
-            
             Line(_pad(p)[0], _pad(q)[0], c=_hex(color), lw=lw).alpha(alpha)
         )
         return self

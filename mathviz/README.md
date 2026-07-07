@@ -66,7 +66,8 @@ field as arrows. By default arrows are **uniform length with magnitude shown by 
   backend. ✓
 - **Phase 4** — 3D scene (`Space3D`, on vedo + mplot3d): analytic landscapes (`landscape`), 3D vector
   fields (`field`), and Riemann surfaces (`riemann_root`, `riemann_log`). ✓
-- **Phase 5** — migrate the `GeometricLinearAlgebra/` and `Geometry/` notebooks onto `mathviz` (started:
-  `07_Eigenvectors_Geometrically`). 🚧
+- **Phase 5** — migrate the `GeometricLinearAlgebra/` and `Geometry/` notebooks onto `mathviz`. 🚧
+  Done: GLA `00, 01, 02, 05, 06, 07`. Pending: GLA `03, 04` (need 2D/3D filled polygon/mesh primitives)
+  and `Geometry/`.
 
 See [`docs/plans/`](docs/plans/) for the full roadmap, architecture notes, and backlog.

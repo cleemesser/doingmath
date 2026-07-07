@@ -25,6 +25,10 @@ class VedoBackend(Backend):
         import vedo.settings
 
         vedo.settings.default_backend = "vtk"
+
+        if isinstance(scene.view, P.View3D):
+            return self._render3d(scene, save=save)
+
         from vedo import Arrow, Grid, Line, Plotter, Points, Text3D, utils
 
         view = scene.view
@@ -119,12 +123,67 @@ class VedoBackend(Backend):
         arr = plt.screenshot(asarray=True)
         plt.close()
 
-        if save is not None:
-            from PIL import Image
+        return self._emit(arr, save)
 
+    # ── 3D scenes ─────────────────────────────────────────────
+    def _render3d(self, scene, *, save=None):
+        from vedo import Arrow, Line, Mesh, Plotter, Points
+
+        view = scene.view
+        objects = []
+        for prim in scene.primitives:
+            if isinstance(prim, P.Arrow3D):
+                objects.append(
+                    Arrow(prim.tail, prim.head, c=hexstr(prim.color)).alpha(prim.alpha)
+                )
+            elif isinstance(prim, P.Line3D):
+                objects.append(
+                    Line(prim.pts, c=hexstr(prim.color), lw=prim.width).alpha(
+                        prim.alpha
+                    )
+                )
+            elif isinstance(prim, P.Points3D):
+                objects.append(
+                    Points(prim.pts, r=prim.size, c=hexstr(prim.color)).alpha(
+                        prim.alpha
+                    )
+                )
+            elif isinstance(prim, P.Surface):
+                objects.append(self._surface_mesh(prim, Mesh))
+
+        plt = Plotter(offscreen=True, size=view.size, bg=hexstr(view.bg))
+        plt.show(objects, elevation=view.elev, azimuth=view.azim, axes=1, resetcam=True)
+        arr = plt.screenshot(asarray=True)
+        plt.close()
+        return self._emit(arr, save)
+
+    @staticmethod
+    def _surface_mesh(prim, Mesh):
+        m, n = prim.Z.shape
+        verts = np.column_stack([prim.X.ravel(), prim.Y.ravel(), prim.Z.ravel()])
+        faces = []
+        for i in range(m - 1):
+            for j in range(n - 1):
+                a = i * n + j
+                faces.append([a, a + 1, a + n + 1, a + n])  # quad, CCW
+        mesh = Mesh([verts, faces]).alpha(prim.alpha).lighting("plastic")
+        if prim.colors is not None:
+            rgba = (np.clip(prim.colors.reshape(-1, 3), 0, 1) * 255).astype(np.uint8)
+            rgba = np.column_stack([rgba, np.full(len(rgba), 255, np.uint8)])
+            mesh.pointcolors = rgba
+        else:
+            mesh.c(hexstr(prim.color))
+        if prim.wireframe:
+            mesh.wireframe(True)
+        return mesh
+
+    @staticmethod
+    def _emit(arr, save):
+        from PIL import Image
+
+        if save is not None:
             Image.fromarray(arr).save(save)
             return save
         from IPython.display import display
-        from PIL import Image
 
         display(Image.fromarray(arr))

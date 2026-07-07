@@ -114,6 +114,66 @@ class Raster:
     alpha: float = 1.0
 
 
+# ── 3D primitives (rendered by a Space3D scene) ───────────────────────────────────
+@dataclass
+class View3D:
+    """A perspective 3D frame, roughly bounding [-bounds, bounds]³, viewed from (elev, azim)."""
+
+    bounds: float = 3.0
+    bg: int = palette.BG
+    size: tuple[int, int] = (720, 720)
+    elev: float = 22.0
+    azim: float = -60.0
+
+
+@dataclass
+class Arrow3D:
+    tail: np.ndarray
+    head: np.ndarray
+    color: int = palette.RED
+    width: float = 2.5
+    alpha: float = 1.0
+
+    def __post_init__(self):
+        self.tail = np.asarray(self.tail, float).reshape(3)
+        self.head = np.asarray(self.head, float).reshape(3)
+
+
+@dataclass
+class Line3D:
+    pts: np.ndarray
+    color: int = palette.BLUE
+    width: float = 3.0
+    alpha: float = 1.0
+
+    def __post_init__(self):
+        self.pts = np.asarray(self.pts, float).reshape(-1, 3)
+
+
+@dataclass
+class Points3D:
+    pts: np.ndarray
+    color: int = palette.ORANGE
+    size: float = 8.0
+    alpha: float = 1.0
+
+    def __post_init__(self):
+        self.pts = np.asarray(self.pts, float).reshape(-1, 3)
+
+
+@dataclass
+class Surface:
+    """A gridded surface: X, Y, Z are (m, n) arrays; optional per-vertex ``colors`` (m, n, 3)."""
+
+    X: np.ndarray
+    Y: np.ndarray
+    Z: np.ndarray
+    colors: np.ndarray | None = None
+    color: int = palette.BLUE
+    alpha: float = 1.0
+    wireframe: bool = False
+
+
 @dataclass
 class Scene:
     view: View

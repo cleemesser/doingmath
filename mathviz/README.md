@@ -64,7 +64,8 @@ field as arrows. By default arrows are **uniform length with magnitude shown by 
   (conformal), unified as one push-forward, with clean pole/branch handling. ✓
 - **Phase 3** — Wegert phase portraits (`plain`/`phase`/`modulus`/`enhanced`) + `Raster` in the vedo
   backend. ✓
-- **Phase 4** — 3D scene (`Space3D`): analytic landscapes, 3D vector fields, Riemann surfaces (vedo).
+- **Phase 4** — 3D scene (`Space3D`, on vedo + mplot3d): analytic landscapes (`landscape`) and 3D
+  vector fields (`field`) done; Riemann surfaces remaining. 🚧
 - **Phase 5** — migrate the `GeometricLinearAlgebra/` and `Geometry/` notebooks onto `mathviz`.
 
 See [`docs/plans/`](docs/plans/) for the full roadmap, architecture notes, and backlog.

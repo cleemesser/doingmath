@@ -13,9 +13,11 @@ from .maps import FLAG, UNIT_SQUARE, unit_circle
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
 from .phase import phase_portrait
 from .plane import Plane
+from .space3d import Space3D
 
 __all__ = [
     "Plane",
+    "Space3D",
     "set_backend",
     "get_backend",
     "maps",

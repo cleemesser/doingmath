@@ -1,0 +1,168 @@
+"""``Space3D`` — a perspective 3D scene, the 3D sibling of ``Plane``.
+
+Same idea as ``Plane``: chainable calls record backend-neutral 3D primitives (``Arrow3D``, ``Line3D``,
+``Points3D``, ``Surface``); a backend renders them. Two headline builders:
+
+* :meth:`Space3D.field` — a **3D vector field** ``f: ℝ³→ℝ³`` as a lattice of arrows (uniform length,
+  magnitude by color, matching the 2D convention).
+* :meth:`Space3D.landscape` — the **analytic landscape** of a complex ``f``: the surface ``|f(z)|``
+  colored by ``arg f(z)`` (reusing :func:`mathviz.phase.colorize`), the 3D form of a phase portrait.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+from . import palette, primitives as P
+from .backends import get_backend
+
+
+def _as_field3(f):
+    """Accept a 3×3 matrix (linear field x ↦ Mx) or a callable ``(N,3)->(N,3)``."""
+    if isinstance(f, np.ndarray) or np.ndim(f) == 2:
+        M = np.asarray(f, float).reshape(3, 3)
+        return lambda pts: np.asarray(pts, float).reshape(-1, 3) @ M.T
+    return f
+
+
+def _cmap_colors(mag, cmap):
+    import matplotlib as mpl
+    import matplotlib.cm as cm
+
+    fn = cm.get_cmap(cmap) if hasattr(cm, "get_cmap") else mpl.colormaps[cmap]
+    lo, hi = float(np.nanmin(mag)), float(np.nanmax(mag))
+    norm = mpl.colors.Normalize(vmin=lo, vmax=hi if hi > lo else lo + 1e-9)
+    rgb = (np.asarray(fn(norm(mag)))[:, :3] * 255).astype(int)
+    return [(int(r) << 16) | (int(g) << 8) | int(b) for r, g, b in rgb]
+
+
+class Space3D:
+    def __init__(
+        self,
+        bounds=3.0,
+        *,
+        backend="vedo",
+        bg=palette.BG,
+        size=(720, 720),
+        elev=22.0,
+        azim=-60.0,
+    ):
+        self.view = P.View3D(
+            bounds=float(bounds), bg=bg, size=size, elev=elev, azim=azim
+        )
+        self.primitives: list = []
+        self._backend = backend
+
+    # ── primitives ───────────────────────────────────────────
+    def arrow(self, tail, head, color=palette.RED, width=2.5, alpha=1.0):
+        self.primitives.append(P.Arrow3D(tail, head, color, width, alpha))
+        return self
+
+    def line(self, pts, color=palette.BLUE, width=3.0, alpha=1.0):
+        self.primitives.append(P.Line3D(pts, color, width, alpha))
+        return self
+
+    def points(self, pts, color=palette.ORANGE, size=8.0, alpha=1.0):
+        self.primitives.append(P.Points3D(pts, color, size, alpha))
+        return self
+
+    def surface(
+        self, X, Y, Z, colors=None, color=palette.BLUE, alpha=1.0, wireframe=False
+    ):
+        self.primitives.append(
+            P.Surface(
+                np.asarray(X),
+                np.asarray(Y),
+                np.asarray(Z),
+                colors,
+                color,
+                alpha,
+                wireframe,
+            )
+        )
+        return self
+
+    # ── 3D vector field ──────────────────────────────────────
+    def field(
+        self,
+        f,
+        *,
+        n=7,
+        color=palette.BLUE,
+        width=2.0,
+        scale=None,
+        normalize=True,
+        cmap="viridis",
+    ):
+        """Draw a 3D vector field ``f`` (a 3×3 matrix or ``(N,3)->(N,3)``) as a lattice of arrows.
+
+        Like the 2D :meth:`Plane.field`, arrows default to **uniform length with magnitude by color**.
+        """
+        fmap = _as_field3(f)
+        B = self.view.bounds
+        xs = np.linspace(-B, B, n)
+        pts = np.stack(np.meshgrid(xs, xs, xs, indexing="ij"), axis=-1).reshape(-1, 3)
+        vec = np.asarray(fmap(pts), float).reshape(-1, 3)
+        mag = np.linalg.norm(vec, axis=1)
+        ok = np.isfinite(mag) & (mag > 0)
+        cell = (2 * B) / (n - 1)
+
+        if normalize:
+            disp = np.zeros_like(vec)
+            disp[ok] = vec[ok] / mag[ok, None] * (cell * 0.4)
+        else:
+            peak = np.nanmax(mag[ok]) if ok.any() else 1.0
+            disp = vec * (scale if scale is not None else (cell * 0.85) / peak)
+
+        cols = _cmap_colors(mag, cmap) if cmap is not None else None
+        for i in range(len(pts)):
+            if not ok[i]:
+                continue
+            self.arrow(
+                pts[i],
+                pts[i] + disp[i],
+                color=(cols[i] if cols else color),
+                width=width,
+            )
+        return self
+
+    # ── analytic landscape (3D phase portrait) ───────────────
+    def landscape(
+        self, f, *, extent=None, res=140, scheme="enhanced", zmax=None, log=False, **kw
+    ):
+        """Surface ``|f(z)|`` over the complex plane, colored by ``arg f(z)`` — a 3D phase portrait.
+
+        ``extent`` defaults to the scene ``bounds``; the height is clipped to ``zmax`` (default =
+        ``bounds``), or set ``log=True`` to plot ``log(1+|f|)`` when the modulus range is large.
+        """
+        from .phase import colorize, domain
+
+        E = self.view.bounds if extent is None else extent
+        z = domain(E, res)
+        with np.errstate(all="ignore"):
+            w = np.asarray(f(z), dtype=complex)
+        mod = np.abs(w)
+        height = np.log1p(mod) if log else mod
+        cap = self.view.bounds if zmax is None else zmax
+        height = np.clip(np.nan_to_num(height, nan=cap, posinf=cap), 0, cap)
+        colors = (
+            colorize(w, **kw)
+            if kw
+            else colorize(
+                w,
+                phase_contours=(scheme in ("phase", "enhanced")),
+                modulus_contours=(scheme in ("modulus", "enhanced")),
+            )
+        )
+        return self.surface(z.real, z.imag, height, colors=colors)
+
+    # ── output ───────────────────────────────────────────────
+    def display(self):
+        return get_backend(self._backend).render(
+            P.Scene(self.view, list(self.primitives))
+        )
+
+    def save(self, path):
+        return get_backend(self._backend).render(
+            P.Scene(self.view, list(self.primitives)), save=path
+        )

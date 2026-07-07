@@ -34,12 +34,11 @@
 #
 # Figures use the shared `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
 
-# %% [markdown]
-# May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram.
-# Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
 
 # %%
 import numpy as np
+import sympy as sp
+sp.init_printing()
 from scipy.linalg import expm
 import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
@@ -292,7 +291,12 @@ def trace_by_wedge(A):
     return (wedge3(A @ u, v, w) + wedge3(u, A @ v, w) + wedge3(u, v, A @ w)) / base
 
 
-M = rng.normal(size=(3, 3))
+M = rng.normal(size=(3, 3)).round(2) # generate a random 3x3 matrix.  substitute your own to play with it.
+print("For matrix, M:")
+sp.Matrix(M)
+
+
+# %%
 print("tr by derivative of det :", round(trace_by_derivative(M), 5))
 print("tr by wedge formula     :", round(trace_by_wedge(M), 5))
 print("np.trace (sum diagonal) :", round(np.trace(M), 5))
@@ -301,7 +305,6 @@ print(
     np.allclose(trace_by_derivative(M), np.trace(M))
     and np.allclose(trace_by_wedge(M), np.trace(M)),
 )
-
 
 # %% [markdown]
 # ### The trace is the divergence of the linear flow
@@ -380,3 +383,11 @@ for t in (0.3, 1.0, 2.5):
 # the **matrix** of an operator — recovering all of the above as familiar formulas — and discover that
 # the operators which are "a scaling combined with a pure rotation" form a copy of the **complex
 # numbers**.
+
+# %% [markdown]
+#
+# %% [markdown]
+# Future to do: For $\frac{d}{dt} det(I + t A) = tr(A)$ may want to draw Arnold's picture for parallelogram.
+# Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
+
+# %%

@@ -37,7 +37,7 @@
 # %%
 import numpy as np
 from scipy.linalg import expm
-import k3d
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -57,56 +57,27 @@ LABELC = 0xCCCCCC
 
 
 # %%
-def _to3(pts):
-    pts = np.asarray(pts, dtype=np.float32)
-    if pts.shape[-1] == 3:
-        return pts
-    zeros = np.zeros(pts.shape[:-1] + (1,), dtype=np.float32)
-    return np.concatenate([pts, zeros], axis=-1)
-
-
+# Thin adapters over the shared `mathviz` library, keeping this notebook's original drawing
+# calls (new_plot / add_line / add_vector / add_points / show_operator) intact.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
-    plot = k3d.plot(
-        background_color=BG,
-        grid_color=GRIDC,
-        label_color=LABELC,
-        grid_visible=grid,
-        camera_auto_fit=not top_down,
-        menu_visibility=False,
-    )
-    if top_down:
-        plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
-    if axes:
-        add_line(plot, np.array([[-lim, 0], [lim, 0]]), GREY, width=0.012)
-        add_line(plot, np.array([[0, -lim], [0, lim]]), GREY, width=0.012)
-    return plot
+    return mv.Plane(extent=lim, grid=grid, axes=axes)
 
 
 def add_line(plot, pts, color, width=0.02, alpha=1.0):
-    plot += k3d.line(_to3(pts), color=color, width=width, shader="thick", opacity=alpha)
+    plot.curve(pts, color=color, width=max(1.0, width * 130), alpha=alpha)
+    return plot
 
 
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
-    tail3 = _to3(np.atleast_2d(tail))
-    head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(
-        origins=tail3,
-        vectors=(head3 - tail3),
-        color=color,
-        head_size=1.5,
-        line_width=0.03,
-    )
-    if label:
-        pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(
-            label, position=pos, color=color, size=label_size, label_box=False
-        )
+    tail = np.asarray(tail, float).reshape(-1)
+    head = np.asarray(head, float).reshape(-1)
+    plot.vector(head - tail, origin=tail, color=color, label=label)
+    return plot
 
 
 def add_points(plot, pts, color, size=0.18):
-    plot += k3d.points(
-        _to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d"
-    )
+    plot.points(np.atleast_2d(pts), color=color, size=max(5.0, size * 45))
+    return plot
 
 
 FLAG = np.array(
@@ -116,7 +87,7 @@ FLAG = np.array(
 
 def show_operator(matfunc, color, lim=2.0):
     """Overlay a unit grid (faint) with its image under a 2x2 matrix action (bold) + the flag."""
-    p = new_plot(lim=2.6 * lim, axes=True)
+    p = mv.Plane(extent=lim, grid=False, axes=True)
     ticks = np.linspace(-lim, lim, 9)
     s = np.linspace(-lim, lim, 30)
     for tk in ticks:
@@ -124,10 +95,10 @@ def show_operator(matfunc, color, lim=2.0):
             np.stack([s, np.full_like(s, tk)], 1),
             np.stack([np.full_like(s, tk), s], 1),
         ):
-            add_line(p, ln, FAINT, width=0.01)
+            add_line(p, ln, FAINT, width=0.008)
             add_line(p, ln @ matfunc.T, color, width=0.018)
-    add_line(p, FLAG, FAINT, width=0.02)
-    add_line(p, FLAG @ matfunc.T, color, width=0.04)
+    add_line(p, FLAG, FAINT, width=0.014)
+    add_line(p, FLAG @ matfunc.T, color, width=0.03)
     add_points(p, [0, 0], GREEN, size=0.16)
     return p
 

@@ -47,7 +47,7 @@
 
 # %%
 import numpy as np
-import k3d
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 # Color palette shared across the whole series (k3d wants integer hex colors).
 BLUE = 0x4FC3F7
@@ -72,61 +72,28 @@ LABELC = 0xCCCCCC
 
 
 # %%
-def _to3(pts):
-    """Lift (...,2) plane points into (...,3) by appending z=0; pass (...,3) through."""
-    pts = np.asarray(pts, dtype=np.float32)
-    if pts.shape[-1] == 3:
-        return pts
-    zeros = np.zeros(pts.shape[:-1] + (1,), dtype=np.float32)
-    return np.concatenate([pts, zeros], axis=-1)
-
-
+# Thin adapters over the shared `mathviz` library, keeping this notebook's original drawing
+# calls (new_plot / add_line / add_vector / add_points) intact. mv.Plane is a top-down view;
+# k3d line/point sizes (world units) map to matplotlib widths / marker sizes.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
-    """A dark k3d scene. top_down parks the camera overhead for plane (2D) geometry."""
-    plot = k3d.plot(
-        background_color=BG,
-        grid_color=GRIDC,
-        label_color=LABELC,
-        grid_visible=grid,
-        camera_auto_fit=not top_down,
-        menu_visibility=False,
-    )
-    if top_down:
-        # camera = [eye_xyz, target_xyz, up_xyz]; look straight down the +z axis.
-        plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
-    if axes:
-        add_line(plot, np.array([[-lim, 0], [lim, 0]]), GREY, width=0.012)
-        add_line(plot, np.array([[0, -lim], [0, lim]]), GREY, width=0.012)
-    return plot
+    return mv.Plane(extent=lim, grid=grid, axes=axes)
 
 
 def add_line(plot, pts, color, width=0.02, alpha=1.0):
-    """Add a polyline through the (N,2 or 3) points."""
-    plot += k3d.line(_to3(pts), color=color, width=width, shader="thick", opacity=alpha)
+    plot.curve(pts, color=color, width=max(1.0, width * 130), alpha=alpha)
+    return plot
 
 
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
-    """Draw an arrow from tail to head (2D or 3D), optionally labeled near its tip."""
-    tail3 = _to3(np.atleast_2d(tail))
-    head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(
-        origins=tail3,
-        vectors=(head3 - tail3),
-        color=color,
-        head_size=1.5,
-        line_width=0.03,
-    )
-    if label:
-        pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(
-            label, position=pos, color=color, size=label_size, label_box=False
-        )
+    tail = np.asarray(tail, float).reshape(-1)
+    head = np.asarray(head, float).reshape(-1)
+    plot.vector(head - tail, origin=tail, color=color, label=label)
+    return plot
 
 
 def add_points(plot, pts, color, size=0.18):
-    plot += k3d.points(
-        _to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d"
-    )
+    plot.points(np.atleast_2d(pts), color=color, size=max(5.0, size * 45))
+    return plot
 
 
 # %% [markdown]

@@ -38,8 +38,9 @@ on **both** backends (vedo VTK meshes, matplotlib mplot3d):
 ### 🚧 Phase 5 — migrate existing notebooks & polish
 - **`GeometricLinearAlgebra/`**: ✅ migrated `00, 01, 02, 05, 06, 07` — the inline `Plane2D` (vedo)
   and `new_plot`/k3d toolkits replaced by `mathviz` (thin adapters keep the original call sites in the
-  k3d ones). ⬜ `03, 04` are pending — they draw 3D **filled** parallelograms/parallelepipeds
-  (`k3d.mesh`), so they need mathviz to grow 2D/3D **polygon/mesh** primitives first.
+  k3d ones). ⬜ `03, 04` are now **unblocked** — mathviz gained filled **`Polygon`** (2D) and
+  **`Mesh3D`** (3D) primitives, with `Plane.parallelogram` and `Space3D.parallelogram`/`parallelepiped`
+  builders (the wedge area and the scalar-triple-product volume). Migration is the next step.
 - ⬜ **`Geometry/`** notebooks.
 - Surfaced a library fix along the way: the matplotlib backend is now **pyplot-free** (Figure + Agg
   canvas), so it emits static PNGs even when a notebook's kernel has the ipympl widget backend active.

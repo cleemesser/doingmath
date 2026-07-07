@@ -85,6 +85,35 @@ def test_riemann_log_is_a_rising_helicoid():
     assert np.isclose(surf.Z.min(), 0.0) and surf.Z.max() > 2 * np.pi  # ~2 full turns
 
 
+def test_parallelepiped_is_a_six_face_mesh():
+    m = (
+        Space3D(bounds=2)
+        .parallelepiped([0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1])
+        .primitives[-1]
+    )
+    assert isinstance(m, P.Mesh3D)
+    assert m.verts.shape == (8, 3) and len(m.faces) == 6
+    assert np.allclose(m.verts.min(0), [0, 0, 0]) and np.allclose(
+        m.verts.max(0), [1, 1, 1]
+    )
+
+
+def test_parallelogram3d_single_quad_face():
+    m = Space3D(bounds=2).parallelogram([0, 0, 0], [1, 0, 0], [0, 1, 0]).primitives[-1]
+    assert isinstance(m, P.Mesh3D)
+    assert m.verts.shape == (4, 3) and m.faces == [[0, 1, 2, 3]]
+
+
+@pytest.mark.parametrize("be", ["vedo", "mpl"])
+def test_render_parallelepiped_nonblank(tmp_path, be):
+    out = tmp_path / f"pp_{be}.png"
+    Space3D(bounds=2, backend=be).parallelepiped(
+        [0, 0, 0], [1.2, 0.2, 0], [0.3, 1.3, 0], [0.2, 0.4, 1.1]
+    ).save(str(out))
+    arr = np.asarray(Image.open(out).convert("RGB"))
+    assert int((arr > 20).sum()) > 500
+
+
 @pytest.mark.parametrize("be", ["vedo", "mpl"])
 def test_render_3d_nonblank(tmp_path, be):
     out = tmp_path / f"s3_{be}.png"

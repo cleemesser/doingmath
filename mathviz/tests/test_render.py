@@ -39,6 +39,14 @@ def test_render_apply_complex(tmp_path, backend):
     assert _content_pixels(out) > 500
 
 
+def test_render_polygon(tmp_path, backend):
+    out = tmp_path / f"poly_{backend}.png"
+    Plane(extent=2, backend=backend).parallelogram(
+        [0, 0], [1.5, 0.3], [0.4, 1.4], edgecolor=BLUE
+    ).save(str(out))
+    assert _content_pixels(out) > 800
+
+
 def test_save_returns_path(tmp_path):
     out = tmp_path / "r.png"
     assert Plane(extent=1).save(str(out)) == str(out)

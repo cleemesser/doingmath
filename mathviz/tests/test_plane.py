@@ -72,6 +72,22 @@ def test_raster_adds_raster_primitive():
     assert p.primitives[-1].extent == (-1, 1, -1, 1)
 
 
+def test_polygon_adds_filled_polygon():
+    p = Plane(grid=False, axes=False)
+    p.polygon([[0, 0], [1, 0], [1, 1], [0, 1]])
+    assert isinstance(p.primitives[-1], P.Polygon)
+
+
+def test_parallelogram_vertices():
+    poly = (
+        Plane(grid=False, axes=False)
+        .parallelogram([0, 0], [2, 0], [0, 1])
+        .primitives[-1]
+    )
+    assert isinstance(poly, P.Polygon)
+    assert np.allclose(poly.pts, [[0, 0], [2, 0], [2, 1], [0, 1]])  # o, o+u, o+u+v, o+v
+
+
 def test_field_draws_one_arrow_per_nonzero_sample():
     p = Plane(grid=False, axes=False, extent=2)
     p.field([[0, -1], [1, 0]], n=5)  # rotational field: zero only at the origin

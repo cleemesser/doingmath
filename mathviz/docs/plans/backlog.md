@@ -12,6 +12,17 @@ multi-sheeted **Riemann surfaces**. Requested by the user 2026-07-07; delivered 
 
 ## Other deferred items
 
+- **Interactive vedo rendering** *(user-requested)*: today the vedo backend only renders **offscreen →
+  static PNG**. Add an interactive path:
+  - **Detect the environment** — are we in an IPython/Jupyter notebook (`get_ipython()` exists and has a
+    kernel) vs. a plain script/headless run? Default to static PNG when headless, offer interactive when
+    in a notebook.
+  - **Let the caller choose** — e.g. `Plane(..., interactive=True)` / `Space3D(..., interactive=True)` or
+    a `display(interactive=...)` flag, so a user can force static or live regardless of detection.
+  - **Let the caller choose the vedo display backend** — vedo supports several (`k3d`, `trame`,
+    `ipyvtklink`, `2d`, `vtk`); expose it (e.g. `vedo_backend="k3d"`), since the repo already pins the
+    trame/vue2 stack for this. Wire it through `vedo.settings.default_backend` and a live `Plotter.show`
+    (not offscreen) on the interactive path. Note interactive 3D is where vedo shines over matplotlib.
 - **`animate.py`** (Phase 5): parameter sweeps → GIF / inline scrubber; generalize the
   `Geometry/2dplaneVedo.py` shear animation. Pre-render frames offscreen; drive with an ipywidgets
   Play/slider.

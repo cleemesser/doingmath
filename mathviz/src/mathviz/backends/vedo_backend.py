@@ -94,6 +94,25 @@ class VedoBackend(Backend):
                         prim.text, pos=_pad(prim.pos)[0], s=0.24, c=hexstr(prim.color)
                     )
                 )
+            elif isinstance(prim, P.Polygon):
+                from vedo import Mesh
+
+                v = _pad(prim.pts)
+                mesh = (
+                    Mesh([v, [list(range(len(prim.pts)))]])
+                    .c(hexstr(prim.facecolor))
+                    .alpha(prim.alpha)
+                    .lighting("off")
+                )
+                objects.append(mesh)
+                if prim.edgecolor is not None:
+                    objects.append(
+                        Line(
+                            np.vstack([v, v[0]]),
+                            c=hexstr(prim.edgecolor),
+                            lw=prim.edgewidth,
+                        )
+                    )
             elif isinstance(prim, P.Raster):
                 from vedo import Image
 
@@ -150,6 +169,21 @@ class VedoBackend(Backend):
                 )
             elif isinstance(prim, P.Surface):
                 objects.append(self._surface_mesh(prim, Mesh))
+            elif isinstance(prim, P.Mesh3D):
+                m = Mesh([prim.verts, prim.faces]).alpha(prim.alpha).lighting("plastic")
+                if prim.colors is not None:
+                    rgba = (np.clip(np.asarray(prim.colors), 0, 1) * 255).astype(
+                        np.uint8
+                    )
+                    rgba = np.column_stack(
+                        [rgba[:, :3], np.full(len(rgba), 255, np.uint8)]
+                    )
+                    m.cellcolors = rgba
+                else:
+                    m.c(hexstr(prim.facecolor))
+                if prim.edgecolor is not None:
+                    m.linewidth(prim.edgewidth).linecolor(hexstr(prim.edgecolor))
+                objects.append(m)
 
         plt = Plotter(offscreen=True, size=view.size, bg=hexstr(view.bg))
         plt.show(objects, elevation=view.elev, azimuth=view.azim, axes=1, resetcam=True)

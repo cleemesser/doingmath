@@ -93,6 +93,77 @@ class Space3D:
         )
         return self
 
+    def mesh(
+        self,
+        verts,
+        faces,
+        facecolor=palette.BLUE,
+        alpha=0.5,
+        colors=None,
+        edgecolor=None,
+        edgewidth=1.0,
+    ):
+        """A filled 3D mesh from ``verts`` (N,3) and ``faces`` (list of index lists)."""
+        self.primitives.append(
+            P.Mesh3D(verts, list(faces), facecolor, alpha, colors, edgecolor, edgewidth)
+        )
+        return self
+
+    def polygon(
+        self, verts, facecolor=palette.BLUE, alpha=0.5, edgecolor=None, edgewidth=1.0
+    ):
+        """A single filled flat polygon face in 3D (e.g. a bivector parallelogram)."""
+        verts = np.asarray(verts, float).reshape(-1, 3)
+        return self.mesh(
+            verts,
+            [list(range(len(verts)))],
+            facecolor,
+            alpha,
+            None,
+            edgecolor,
+            edgewidth,
+        )
+
+    def parallelogram(
+        self,
+        origin,
+        u,
+        v,
+        facecolor=palette.BLUE,
+        alpha=0.5,
+        edgecolor=None,
+        edgewidth=1.0,
+    ):
+        """The filled 3D parallelogram spanned by ``u`` and ``v`` at ``origin`` (a bivector)."""
+        o, u, v = (np.asarray(x, float).reshape(3) for x in (origin, u, v))
+        return self.polygon(
+            [o, o + u, o + u + v, o + v], facecolor, alpha, edgecolor, edgewidth
+        )
+
+    def parallelepiped(
+        self,
+        origin,
+        a,
+        b,
+        c,
+        facecolor=palette.BLUE,
+        alpha=0.35,
+        edgecolor=palette.GREY,
+        edgewidth=1.5,
+    ):
+        """The filled parallelepiped spanned by ``a, b, c`` at ``origin`` (volume = |det[a b c]|)."""
+        o, a, b, c = (np.asarray(x, float).reshape(3) for x in (origin, a, b, c))
+        verts = [o, o + a, o + a + b, o + b, o + c, o + a + c, o + a + b + c, o + b + c]
+        faces = [
+            [0, 1, 2, 3],
+            [4, 5, 6, 7],
+            [0, 1, 5, 4],
+            [1, 2, 6, 5],
+            [2, 3, 7, 6],
+            [3, 0, 4, 7],
+        ]
+        return self.mesh(verts, faces, facecolor, alpha, None, edgecolor, edgewidth)
+
     # ── 3D vector field ──────────────────────────────────────
     def field(
         self,

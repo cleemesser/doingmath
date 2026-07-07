@@ -75,12 +75,13 @@ class MatplotlibBackend(Backend):
         ax.set_facecolor(bg)
         ax.view_init(elev=view.elev, azim=view.azim)
 
-        tails, dirs, cols = [], [], []
+        tails, dirs, cols, pts3 = [], [], [], []
         for prim in scene.primitives:
             if isinstance(prim, P.Arrow3D):
                 tails.append(prim.tail)
                 dirs.append(prim.head - prim.tail)
                 cols.append(rgb01(prim.color))
+                pts3.extend([prim.tail, prim.head])
             elif isinstance(prim, P.Line3D):
                 ax.plot(
                     prim.pts[:, 0],
@@ -99,6 +100,26 @@ class MatplotlibBackend(Backend):
                     c=[rgb01(prim.color)],
                     alpha=prim.alpha,
                 )
+            elif isinstance(prim, P.Mesh3D):
+                from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+                polys = [prim.verts[f] for f in prim.faces]
+                if prim.colors is not None:
+                    fc = [
+                        (*rgb01(int(c)), prim.alpha)
+                        if np.isscalar(c)
+                        else (*np.clip(c, 0, 1)[:3], prim.alpha)
+                        for c in prim.colors
+                    ]
+                else:
+                    fc = (*rgb01(prim.facecolor), prim.alpha)
+                ec = rgb01(prim.edgecolor) if prim.edgecolor is not None else "none"
+                ax.add_collection3d(
+                    Poly3DCollection(
+                        polys, facecolors=fc, edgecolors=ec, linewidths=prim.edgewidth
+                    )
+                )
+                pts3.extend(prim.verts)
             elif isinstance(prim, P.Surface):
                 if prim.colors is not None:
                     fc = np.clip(np.asarray(prim.colors, float), 0, 1)
@@ -145,6 +166,17 @@ class MatplotlibBackend(Backend):
                 linewidth=1.5,
             )
 
+        if pts3 and any(isinstance(p, P.Mesh3D) for p in scene.primitives):
+            # mplot3d does not autoscale to Poly3DCollection — frame from the mesh vertices
+            arr = np.asarray(pts3, float)
+            lo, hi = arr.min(0), arr.max(0)
+            c = (lo + hi) / 2
+            r = max((hi - lo).max() / 2, 1e-6) * 1.15
+            ax.set_xlim(c[0] - r, c[0] + r)
+            ax.set_ylim(c[1] - r, c[1] + r)
+            ax.set_zlim(c[2] - r, c[2] + r)
+            ax.set_box_aspect((1, 1, 1))
+
         for pane in (ax.xaxis, ax.yaxis, ax.zaxis):
             pane.set_pane_color((0, 0, 0, 0))
         ax.grid(False)
@@ -171,6 +203,22 @@ class MatplotlibBackend(Backend):
                     alpha=prim.alpha,
                     zorder=1,
                 )
+        elif isinstance(prim, P.Polygon):
+            from matplotlib.patches import Polygon as _MplPolygon
+
+            ax.add_patch(
+                _MplPolygon(
+                    prim.pts,
+                    closed=True,
+                    facecolor=rgb01(prim.facecolor),
+                    alpha=prim.alpha,
+                    edgecolor=(
+                        rgb01(prim.edgecolor) if prim.edgecolor is not None else "none"
+                    ),
+                    linewidth=prim.edgewidth,
+                    zorder=2.5,
+                )
+            )
         elif isinstance(prim, P.Raster):
             ax.imshow(
                 prim.rgb,

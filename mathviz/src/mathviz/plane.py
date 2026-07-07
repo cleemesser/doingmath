@@ -88,6 +88,29 @@ class Plane:
         self.primitives.append(P.Raster(np.asarray(rgb), tuple(extent), alpha))
         return self
 
+    def polygon(
+        self, pts, facecolor=palette.BLUE, alpha=0.3, edgecolor=None, edgewidth=2.0
+    ):
+        """A filled polygon (e.g. a parallelogram for a signed area)."""
+        self.primitives.append(P.Polygon(pts, facecolor, alpha, edgecolor, edgewidth))
+        return self
+
+    def parallelogram(
+        self,
+        origin,
+        u,
+        v,
+        facecolor=palette.BLUE,
+        alpha=0.3,
+        edgecolor=None,
+        edgewidth=2.0,
+    ):
+        """The filled parallelogram spanned by ``u`` and ``v`` at ``origin`` (area = |u ∧ v|)."""
+        o, u, v = (np.asarray(x, float).reshape(2) for x in (origin, u, v))
+        return self.polygon(
+            [o, o + u, o + u + v, o + v], facecolor, alpha, edgecolor, edgewidth
+        )
+
     # ── maps: push the plane through a transform (see maps.py) ─
     def apply_matrix(self, M, **kw):
         """Warp the coordinate grid by a 2×2 matrix and draw its column images."""

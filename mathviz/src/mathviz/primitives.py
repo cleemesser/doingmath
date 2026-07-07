@@ -114,6 +114,20 @@ class Raster:
     alpha: float = 1.0
 
 
+@dataclass
+class Polygon:
+    """A filled 2D polygon (e.g. a parallelogram / area). ``edgecolor=None`` → no outline."""
+
+    pts: np.ndarray
+    facecolor: int = palette.BLUE
+    alpha: float = 0.3
+    edgecolor: int | None = None
+    edgewidth: float = 2.0
+
+    def __post_init__(self):
+        self.pts = _pts(self.pts)
+
+
 # ── 3D primitives (rendered by a Space3D scene) ───────────────────────────────────
 @dataclass
 class View3D:
@@ -172,6 +186,26 @@ class Surface:
     color: int = palette.BLUE
     alpha: float = 1.0
     wireframe: bool = False
+
+
+@dataclass
+class Mesh3D:
+    """A filled 3D mesh: ``verts`` (N, 3) and ``faces`` (list of index lists, any polygon degree).
+
+    Builds solids (parallelepipeds) and flat faces (a bivector parallelogram). ``edgecolor=None`` →
+    no wireframe; optional per-face ``colors`` (F, 3) overrides the flat ``facecolor``.
+    """
+
+    verts: np.ndarray
+    faces: list
+    facecolor: int = palette.BLUE
+    alpha: float = 0.5
+    colors: np.ndarray | None = None
+    edgecolor: int | None = None
+    edgewidth: float = 1.0
+
+    def __post_init__(self):
+        self.verts = np.asarray(self.verts, float).reshape(-1, 3)
 
 
 @dataclass

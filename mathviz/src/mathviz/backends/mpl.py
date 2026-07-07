@@ -13,19 +13,25 @@ from .base import Backend
 class MatplotlibBackend(Backend):
     name = "mpl"
 
+    @staticmethod
+    def _figure(w, h):
+        """A pyplot-free figure with an Agg canvas — never touches the kernel's active backend
+        (so it can't turn into an ipympl/inline widget). Renders to a static PNG every time."""
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        from matplotlib.figure import Figure
+
+        fig = Figure(figsize=(w / 100, h / 100), dpi=100)
+        FigureCanvasAgg(fig)
+        return fig
+
     def render(self, scene: P.Scene, *, save: str | None = None):
-        import matplotlib
-
-        if save is not None:
-            matplotlib.use("Agg", force=False)
-        import matplotlib.pyplot as plt
-
         if isinstance(scene.view, P.View3D):
-            return self._render3d(scene, plt, save=save)
+            return self._render3d(scene, save=save)
 
         view = scene.view
         w, h = view.size
-        fig, ax = plt.subplots(figsize=(w / 100, h / 100), dpi=100)
+        fig = self._figure(w, h)
+        ax = fig.add_subplot(111)
         bg = rgb01(view.bg)
         fig.patch.set_facecolor(bg)
         ax.set_facecolor(bg)
@@ -39,27 +45,31 @@ class MatplotlibBackend(Backend):
             self._draw(ax, prim)
 
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        return self._emit(fig, plt, save)
+        return self._emit(fig, save)
 
-    def _emit(self, fig, plt, save):
+    def _emit(self, fig, save):
         if save is not None:
             fig.savefig(save, facecolor=fig.get_facecolor(), dpi=100)
-            plt.close(fig)
             return save
-        try:  # explicit display so it works regardless of position in a cell
-            from IPython.display import display
+        try:  # display the rendered PNG bytes — a static image regardless of the active
+            import io  # matplotlib backend (inline / ipympl-widget / Agg) or cell position
 
-            display(fig)
-            plt.close(fig)
+            from IPython.display import Image, display
+
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), dpi=100)
+            display(Image(data=buf.getvalue()))
         except Exception:
             return fig
 
     # ── 3D scenes (mplot3d) ──────────────────────────────────
-    def _render3d(self, scene, plt, *, save=None):
+    def _render3d(self, scene, *, save=None):
+        import mpl_toolkits.mplot3d  # noqa: F401  (registers the '3d' projection)
+
         view = scene.view
         w, h = view.size
         bg = rgb01(view.bg)
-        fig = plt.figure(figsize=(w / 100, h / 100), dpi=100)
+        fig = self._figure(w, h)
         ax = fig.add_subplot(111, projection="3d")
         fig.patch.set_facecolor(bg)
         ax.set_facecolor(bg)
@@ -138,7 +148,7 @@ class MatplotlibBackend(Backend):
         for pane in (ax.xaxis, ax.yaxis, ax.zaxis):
             pane.set_pane_color((0, 0, 0, 0))
         ax.grid(False)
-        return self._emit(fig, plt, save)
+        return self._emit(fig, save)
 
     def _draw(self, ax, prim):
         if isinstance(prim, P.Grid):

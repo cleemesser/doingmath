@@ -35,7 +35,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "meson>=1.11.1",
+    "pytest>=8.0",
 ]
 
 [tool.uv.sources]
 mathviz = { path = "mathviz", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["mathviz/tests"]
+addopts = "-q"

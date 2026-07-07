@@ -7,17 +7,25 @@ GeometricLinearAlgebra and Geometry notebooks.
 
 from __future__ import annotations
 
-from . import palette, primitives
+from . import maps, palette, phase, primitives
 from .backends import get_backend, set_backend
+from .maps import FLAG, UNIT_SQUARE, unit_circle
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
+from .phase import phase_portrait
 from .plane import Plane
 
 __all__ = [
     "Plane",
     "set_backend",
     "get_backend",
+    "maps",
+    "phase",
+    "phase_portrait",
     "palette",
     "primitives",
+    "FLAG",
+    "UNIT_SQUARE",
+    "unit_circle",
     "BLUE",
     "ORANGE",
     "GREEN",

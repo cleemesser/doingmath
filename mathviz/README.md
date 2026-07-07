@@ -21,12 +21,50 @@ Drawing is backend-neutral. A `Plane` records primitives; a backend renders them
 
 ```python
 import mathviz as mv
-mv.set_backend("mpl")          # or "vedo"; or Plane(backend="vedo")
-mv.Plane(extent=3).grid().basis().curve(circle).display()
+mv.set_backend("mpl")                       # or "vedo"; or Plane(backend="vedo")
+mv.Plane(extent=3).basis().curve(circle).display()          # primitives
+mv.Plane(extent=3, grid=False).apply_matrix([[1, 1], [0, 1]]).display()   # linear map
+mv.Plane(extent=2, grid=False).apply_complex(lambda z: z**2).display()    # conformal map
+mv.Plane(extent=3).field([[0, -1], [1, 0]]).display()                     # vector field
+mv.Plane(extent=2, grid=False, axes=False).phase_portrait(lambda z: z**2).display()  # phase portrait
 ```
+
+**Vector fields.** `Plane.field(f)` (a 2×2 matrix or a point-map) and `Plane.field_complex(g)` draw a
+field as arrows. By default arrows are **uniform length with magnitude shown by color** (`normalize=True`,
+`cmap="viridis"`); pass `normalize=False` for length-encodes-magnitude, or `cmap=None` for one color.
+(2D only for now — 3D fields await the Phase-4 3D scene.)
+
+## Tests and examples
+
+- **Unit + render tests** live in `tests/` and run with pytest **from the repo root** (the root
+  project has the jupyter/test toolchain; this sub-package's own env is deliberately minimal):
+
+  ```bash
+  uv run pytest            # 45 tests: palette, primitives, maps, plane, backends, and render
+  ```
+
+  The `test_render.py` cases are parametrized over both backends and assert a non-blank PNG is
+  produced headlessly.
+
+- **Example notebooks** in `examples/` double as executable docs *and* feature tests — every cell
+  draws something and asserts a property (determinant = image area, idempotent projection, orthogonal
+  rotation, `z²` conformality, `1/z` pole splitting, Möbius invertibility). Regenerate them **from the
+  repo root** so the full toolchain is on the path:
+
+  ```bash
+  uv run jupytext --to notebook --execute mathviz/examples/01_plane_and_primitives.py
+  uv run jupytext --to notebook --execute mathviz/examples/02_maps.py
+  ```
 
 ## Status
 
-Phase 1 (this commit): package skeleton, palette, primitives, the backend seam, matplotlib + vedo
-backends for the base primitives (grid/axes/vector/basis/segment/curve/points/text), and the `Plane`
-facade. Maps, phase portraits, and 3D landscapes follow.
+- **Phase 1** — package skeleton, palette, primitives, the backend seam, matplotlib + vedo backends,
+  and the `Plane` facade (grid/axes/vector/basis/segment/line/curve/points/text/raster). ✓
+- **Phase 2** — `maps.py`: `apply_matrix` (linear), `show_operator` (operators), `apply_complex`
+  (conformal), unified as one push-forward, with clean pole/branch handling. ✓
+- **Phase 3** — Wegert phase portraits (`plain`/`phase`/`modulus`/`enhanced`) + `Raster` in the vedo
+  backend. ✓
+- **Phase 4** — 3D scene (`Space3D`): analytic landscapes, 3D vector fields, Riemann surfaces (vedo).
+- **Phase 5** — migrate the `GeometricLinearAlgebra/` and `Geometry/` notebooks onto `mathviz`.
+
+See [`docs/plans/`](docs/plans/) for the full roadmap, architecture notes, and backlog.

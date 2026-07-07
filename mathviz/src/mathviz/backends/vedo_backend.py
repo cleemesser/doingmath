@@ -91,9 +91,19 @@ class VedoBackend(Backend):
                     )
                 )
             elif isinstance(prim, P.Raster):
-                # Phase-3: render as a textured plane / vedo.Image. For now the matplotlib backend
-                # is the raster path; skip here so vector scenes still render under vedo.
-                continue
+                from vedo import Image
+
+                rgb = np.asarray(prim.rgb)
+                if rgb.dtype != np.uint8:
+                    rgb = (np.clip(rgb, 0.0, 1.0) * 255).astype(np.uint8)
+                xmin, xmax, ymin, ymax = prim.extent
+                ny, nx = rgb.shape[:2]
+                im = Image(np.flipud(rgb))  # array row 0 is the top; keep it up-top
+                im.scale([(xmax - xmin) / nx, (ymax - ymin) / ny, 1.0])
+                im.pos(xmin, ymin, -0.05)  # sit just behind the z=0 vector layer
+                if prim.alpha < 1.0:
+                    im.alpha(prim.alpha)
+                objects.insert(0, im)
 
         camera = {
             "pos": (0, 0, 2 * E),

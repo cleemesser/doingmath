@@ -88,6 +88,52 @@ class Plane:
         self.primitives.append(P.Raster(np.asarray(rgb), tuple(extent), alpha))
         return self
 
+    # ── maps: push the plane through a transform (see maps.py) ─
+    def apply_matrix(self, M, **kw):
+        """Warp the coordinate grid by a 2×2 matrix and draw its column images."""
+        from . import maps
+
+        return maps.apply_matrix(self, M, **kw)
+
+    def apply_complex(self, g, **kw):
+        """Draw the conformal image of the grid under a complex function g: ℂ→ℂ."""
+        from . import maps
+
+        return maps.apply_complex(self, g, **kw)
+
+    def show_operator(self, f, **kw):
+        """Overlay a faint domain grid + probe shape with their bold image under ``f``."""
+        from . import maps
+
+        return maps.show_operator(self, f, **kw)
+
+    def push(self, f, **kw):
+        """Draw the image of the domain under any map (2×2 matrix or point-map)."""
+        from . import maps
+
+        return maps.push(self, f, **kw)
+
+    def field(self, f, **kw):
+        """Draw a 2D vector field ``f`` (a 2×2 matrix or a point-map) as a grid of arrows."""
+        from . import maps
+
+        return maps.vector_field(self, f, **kw)
+
+    def field_complex(self, g, **kw):
+        """Draw a complex vector field g: ℂ→ℂ (arrow = (Re g, Im g)) as a grid of arrows."""
+        from . import maps
+
+        return maps.vector_field(self, maps.from_complex(g), **kw)
+
+    def phase_portrait(self, f, *, res=600, scheme="enhanced", alpha=1.0, **kw):
+        """Fill the plane with the Wegert phase portrait of a complex function f: ℂ→ℂ."""
+        from . import phase
+
+        rgb = phase.phase_portrait(
+            f, extent=self.view.extent, res=res, scheme=scheme, **kw
+        )
+        return self.raster(rgb, alpha=alpha)
+
     # ── output ───────────────────────────────────────────────
     def _scene(self):
         return P.Scene(self.view, list(self.primitives))

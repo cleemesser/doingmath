@@ -41,13 +41,7 @@ from sympy import Matrix, Rational, symbols, eye, linsolve
 
 sp.init_printing()
 
-import vedo
-import vedo.settings
-
-vedo.settings.default_backend = "vtk"  # offscreen render → inline PNG
-from vedo import Grid, Line, Arrow, Plotter, utils, Text3D
-from IPython.display import display as _ipy_display
-from PIL import Image as _PILImage
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -58,86 +52,13 @@ PURPLE = 0xCE93D8
 BG = 0x0F0F0F
 
 
-def _hex(c):
-    return c if isinstance(c, str) else f"#{c:06x}"
-
-
-def _pad(xy):
-    xy = np.asarray(xy, dtype=float).reshape(-1, 2)
-    return np.column_stack([xy, np.zeros(len(xy))])
-
-
-class Plane2D:
-    """Top-down vedo view with a fixed orthographic scale; display() embeds a static PNG."""
-
-    def __init__(self, extent=5, eye=10, margin=0.5, bg=BG):
-        self.extent = extent
-        self.bg = bg
-        self.objects = []
-        self.camera = {
-            "pos": (0, 0, eye),
-            "focal_point": (0, 0, 0),
-            "viewup": (0, 1, 0),
-            "parallel_scale": extent + margin,
-        }
-        ticks = np.arange(-extent, extent + 1)
-        self.objects.append(
-            Grid(s=(ticks, ticks)).wireframe(True).c(_hex(GREY)).alpha(0.22)
-        )
-        self.seg([-extent, 0], [extent, 0], GREY, lw=1, alpha=0.5)
-        self.seg([0, -extent], [0, extent], GREY, lw=1, alpha=0.5)
-
-    def _cam(self):
-        cam = utils.camera_from_dict(self.camera)
-        cam.SetParallelProjection(True)
-        return cam
-
-    def seg(self, p, q, color=GREY, lw=2, alpha=1.0):
-        self.objects.append(
-            Line(_pad(p)[0], _pad(q)[0], c=_hex(color), lw=lw).alpha(alpha)
-        )
-        return self
-
-    def line_eq(self, a, b, c, color=BLUE, lw=3, label=None):
-        """Draw the line a·x + b·y = c across the view."""
-        E = self.extent
-        if abs(b) > 1e-12:
-            pts = [(-E, (c - a * (-E)) / b), (E, (c - a * E) / b)]
-        else:  # vertical line x = c/a
-            pts = [(c / a, -E), (c / a, E)]
-        self.seg(pts[0], pts[1], color, lw)
-        if label:
-            self.objects.append(
-                Text3D(
-                    label,
-                    pos=_pad(pts[1])[0] + np.array([-1.2, -0.3, 0]),
-                    s=0.28,
-                    c=_hex(color),
-                )
-            )
-        return self
-
-    def point(self, p, color=ORANGE, r=0.12, label=None):
-        from vedo import Sphere
-
-        self.objects.append(Sphere(_pad(p)[0], r=r, c=_hex(color)))
-        if label:
-            self.objects.append(
-                Text3D(
-                    label,
-                    pos=_pad(p)[0] + np.array([0.2, 0.2, 0]),
-                    s=0.3,
-                    c=_hex(color),
-                )
-            )
-        return self
-
-    def display(self, size=(640, 640)):
-        plt = Plotter(offscreen=True, size=size, bg=self.bg)
-        plt.show(self.objects, camera=self._cam(), resetcam=False, zoom=1, axes=0)
-        arr = plt.screenshot(asarray=True)
-        plt.close()
-        _ipy_display(_PILImage.fromarray(arr))
+# Plane drawing now comes from the shared `mathviz` library. mv.Plane gives a top-down
+# view with grid+axes; this one domain-specific helper draws the line a·x + b·y = c
+# (the "row picture" of an equation) via mv.Plane.line(point, direction).
+def line_eq(pl, a, b, c, color=BLUE):
+    """Draw the line a·x + b·y = c across the plane `pl` (direction ⟂ normal (a, b))."""
+    p0 = (0.0, c / b) if abs(b) > 1e-12 else (c / a, 0.0)
+    return pl.line(p0, (-b, a), color=color)
 
 
 def show(M, title=""):
@@ -258,11 +179,11 @@ for eqs, title, col in [
     ([(1, 1, 2, BLUE), (1, 1, 5, GREEN)], "(b) none: parallel lines", None),
     ([(1, 1, 2, BLUE), (2, 2, 4, GREEN)], "(c) infinite: same line", None),
 ]:
-    pl = Plane2D(extent=5)
+    pl = mv.Plane(extent=5)
     for a, b, c, lc in eqs:
-        pl.line_eq(a, b, c, color=lc)
+        line_eq(pl, a, b, c, color=lc)
     if title.startswith("(a)"):
-        pl.point([2, 1], ORANGE, label="(2,1)")  # the unique solution
+        pl.points([[2, 1]], ORANGE, size=11).text([2.2, 1.1], "(2,1)", ORANGE)  # unique solution
     print(title)
     pl.display()
 

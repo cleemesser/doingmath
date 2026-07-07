@@ -32,7 +32,7 @@
 # 4. **Change of basis and ℂ** (nb 5) — similarity preserves $\det$/$\operatorname{tr}$, and the
 #    "scale-and-rotate" algebra $xI+yJ$ **is** the complex numbers, shown by exact matrix arithmetic.
 #
-# A couple of vedo pictures tie the symbols back to geometry, as in the `Geometry/` notebooks.
+# A couple of `mathviz` pictures tie the symbols back to geometry.
 
 # %%
 import numpy as np
@@ -52,13 +52,7 @@ from sympy import (
 
 sp.init_printing()
 
-import vedo
-import vedo.settings
-
-vedo.settings.default_backend = "vtk"
-from vedo import Grid, Line, Arrow, Plotter, utils, Text3D
-from IPython.display import display as _ipy_display
-from PIL import Image as _PILImage
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -70,76 +64,8 @@ PURPLE = 0xCE93D8
 BG = 0x000000  # white background?
 
 
-def _hex(c):
-    return c if isinstance(c, str) else f"#{c:06x}"
-
-
-def _pad(xy):
-    xy = np.asarray(xy, dtype=float).reshape(-1, 2)
-    return np.column_stack([xy, np.zeros(len(xy))])
-
-
-class Plane2D:
-    """Top-down vedo view with a fixed orthographic scale; display() embeds a static PNG."""
-
-    def __init__(self, extent=3, eye=6, margin=0.5, bg=BG):
-        self.extent = extent
-        self.bg = bg
-        self.objects = []
-        self.camera = {
-            "pos": (0, 0, eye),
-            "focal_point": (0, 0, 0),
-            "viewup": (0, 1, 0),
-            "parallel_scale": extent + margin,
-        }
-        ticks = np.arange(-extent, extent + 1)
-        self.objects.append(
-            Grid(s=(ticks, ticks)).wireframe(True).c(_hex(GREY)).alpha(0.22)
-        )
-        # grey lines for coordinates?
-        # self.seg([-extent, 0], [extent, 0], GREY, lw=1, alpha=0.5)
-        # self.seg([0, -extent], [0, extent], GREY, lw=1, alpha=0.5)
-
-    def _cam(self):
-        cam = utils.camera_from_dict(self.camera)
-        cam.SetParallelProjection(True)
-        return cam
-
-    def vector(self, vec, origin=(0, 0), color=RED, label=None, alpha=1.0):
-        s = _pad(origin)[0]
-        e = _pad(np.asarray(origin, float) + np.asarray(vec, float))[0]
-        self.objects.append(
-            Arrow(
-                s,
-                e,
-                c=_hex(color),
-                shaft_radius=0.014,
-                head_radius=0.05,
-                head_length=0.15,
-            ).alpha(alpha)
-        )
-        if label:
-            self.objects.append(
-                Text3D(label, pos=e + np.array([0.1, 0.1, 0]), s=0.26, c=_hex(color))
-            )
-        return self
-
-    def seg(self, p, q, color=GREY, lw=2, alpha=1.0):
-        self.objects.append(
-            Line(_pad(p)[0], _pad(q)[0], c=_hex(color), lw=lw).alpha(alpha)
-        )
-        return self
-
-    def curve(self, pts, color=BLUE, lw=3, alpha=1.0):
-        self.objects.append(Line(_pad(pts), c=_hex(color), lw=lw).alpha(alpha))
-        return self
-
-    def display(self, size=(620, 620)):
-        plt = Plotter(offscreen=True, size=size, bg=self.bg)
-        plt.show(self.objects, camera=self._cam(), resetcam=False, zoom=1, axes=0)
-        arr = plt.screenshot(asarray=True)
-        plt.close()
-        _ipy_display(_PILImage.fromarray(arr))
+# Plane drawing now comes from the shared `mathviz` library: mv.Plane(extent=…) is a
+# top-down view whose .vector / .curve / .display match what this notebook used.
 
 
 # %% [markdown]
@@ -228,7 +154,7 @@ print("exact angle:", sp.acos(cos_ang), "≈", float(sp.acos(cos_ang)), "rad")
 
 # picture: the wedge as the signed area of the parallelogram on u and v
 un, vn = np.array([2.0, 0.6]), np.array([0.7, 1.8])
-pl = Plane2D(extent=3)
+pl = mv.Plane(extent=3)
 pl.curve([np.zeros(2), un, un + vn, vn, np.zeros(2)], BLUE, 3)  # parallelogram
 pl.vector(un, color=RED, label="u").vector(vn, color=GREEN, label="v")
 pl.display()
@@ -328,7 +254,7 @@ print("  ↑ e^{iφ} = cosφ + i sinφ, the complex exponential, as a matrix ide
 # geometry: e^{φJ} rotates the standard basis
 ph = np.pi / 5
 Rn = np.array([[np.cos(ph), -np.sin(ph)], [np.sin(ph), np.cos(ph)]])
-pl = Plane2D(extent=2)
+pl = mv.Plane(extent=2)
 pl.vector([1, 0], color=GREY, alpha=0.5).vector([0, 1], color=GREY, alpha=0.5)
 pl.vector(Rn @ [1, 0], color=RED, label="e^{φJ} e₁").vector(
     Rn @ [0, 1], color=GREEN, label="e^{φJ} e₂"

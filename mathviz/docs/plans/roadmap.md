@@ -36,11 +36,11 @@ on **both** backends (vedo VTK meshes, matplotlib mplot3d):
   `Space3D.riemann_log()` (the log helicoid), parametrized by the value `w` and colored by phase.
 
 ### 🚧 Phase 5 — migrate existing notebooks & polish
-- **`GeometricLinearAlgebra/`**: ✅ migrated `00, 01, 02, 05, 06, 07` — the inline `Plane2D` (vedo)
-  and `new_plot`/k3d toolkits replaced by `mathviz` (thin adapters keep the original call sites in the
-  k3d ones). ⬜ `03, 04` are now **unblocked** — mathviz gained filled **`Polygon`** (2D) and
-  **`Mesh3D`** (3D) primitives, with `Plane.parallelogram` and `Space3D.parallelogram`/`parallelepiped`
-  builders (the wedge area and the scalar-triple-product volume). Migration is the next step.
+- **`GeometricLinearAlgebra/`**: ✅ **all `00`–`07` migrated** onto `mathviz` — the inline `Plane2D`
+  (vedo) and `new_plot`/k3d toolkits replaced by `mathviz` (thin adapters keep the original call sites
+  in the k3d ones). `03`/`04` mix 2D and 3D, so their `new_plot` returns a `Plane` (top-down) or a
+  `Space3D` (perspective) and the `add_*` helpers dispatch on the plot type; filled
+  parallelograms/parallelepipeds use the new `Polygon`/`Mesh3D` primitives.
 - ⬜ **`Geometry/`** notebooks.
 - Surfaced a library fix along the way: the matplotlib backend is now **pyplot-free** (Figure + Agg
   canvas), so it emits static PNGs even when a notebook's kernel has the ipympl widget backend active.

@@ -23,6 +23,14 @@ multi-sheeted **Riemann surfaces**. Requested by the user 2026-07-07; delivered 
     `ipyvtklink`, `2d`, `vtk`); expose it (e.g. `vedo_backend="k3d"`), since the repo already pins the
     trame/vue2 stack for this. Wire it through `vedo.settings.default_backend` and a live `Plotter.show`
     (not offscreen) on the interactive path. Note interactive 3D is where vedo shines over matplotlib.
+- **SymPy pretty-printing in notebooks** *(user-requested)*: the sympy-heavy GLA notebooks (`00`, `06`,
+  `07`) use `print(...)` / `sp.pprint(...)`, which emit plain monospace text — they don't use Jupyter's
+  native LaTeX/MathJax rendering of expressions. Detect when running in a notebook (an IPython kernel is
+  present) and render sympy expressions with `IPython.display.display` (or a `%`-free `init_printing`
+  path) instead of `print`, falling back to text when headless. Likely a tiny shared helper,
+  e.g. `show_expr(expr, label=...)` that displays LaTeX in a notebook and prints otherwise; then sweep
+  the sympy notebooks to use it for matrices/identities. (Not a `mathviz`-core feature — a notebook
+  authoring utility — but tracked here with the rest of the plan.)
 - **`animate.py`** (Phase 5): parameter sweeps → GIF / inline scrubber; generalize the
   `Geometry/2dplaneVedo.py` shear animation. Pre-render frames offscreen; drive with an ipywidgets
   Play/slider.

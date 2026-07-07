@@ -32,7 +32,7 @@
 #    formula, and close the loop with $\det(e^{tT}) = e^{t\,\operatorname{tr}T}$ — the exact bridge from
 #    the infinitesimal (trace) to the finite (determinant) that the `LieGroups/` notebooks lean on.
 #
-# k3d throughout; the 3D scenes are free to orbit.
+# Figures use the shared `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
 
 # %% [markdown]
 # May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram.
@@ -41,7 +41,7 @@
 # %%
 import numpy as np
 from scipy.linalg import expm
-import k3d
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -61,104 +61,50 @@ LABELC = 0xCCCCCC
 
 
 # %%
-def _to3(pts):
-    pts = np.asarray(pts, dtype=np.float32)
-    if pts.shape[-1] == 3:
-        return pts
-    zeros = np.zeros(pts.shape[:-1] + (1,), dtype=np.float32)
-    return np.concatenate([pts, zeros], axis=-1)
-
-
+# Thin adapters over the shared `mathviz` library — see the note in notebook 3. new_plot returns a
+# 2D mv.Plane (top_down) or a 3D mv.Space3D (top_down=False); the add_* helpers dispatch on the plot
+# type. Filled parallelograms/parallelepipeds use mv's Polygon (2D) / Mesh3D (3D) primitives.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
-    plot = k3d.plot(
-        background_color=BG,
-        grid_color=GRIDC,
-        label_color=LABELC,
-        grid_visible=grid,
-        camera_auto_fit=not top_down,
-        menu_visibility=False,
-    )
     if top_down:
-        plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
-    if axes:
-        add_line(plot, np.array([[-lim, 0], [lim, 0]]), GREY, width=0.012)
-        add_line(plot, np.array([[0, -lim], [0, lim]]), GREY, width=0.012)
-    return plot
+        return mv.Plane(extent=lim, grid=grid, axes=axes)
+    return mv.Space3D(bounds=lim)
 
 
 def add_line(plot, pts, color, width=0.02, alpha=1.0):
-    plot += k3d.line(_to3(pts), color=color, width=width, shader="thick", opacity=alpha)
+    w = max(1.0, width * 130)
+    if isinstance(plot, mv.Space3D):
+        plot.line(pts, color=color, width=w, alpha=alpha)
+    else:
+        plot.curve(pts, color=color, width=w, alpha=alpha)
+    return plot
 
 
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
-    tail3 = _to3(np.atleast_2d(tail))
-    head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(
-        origins=tail3,
-        vectors=(head3 - tail3),
-        color=color,
-        head_size=1.5,
-        line_width=0.03,
-    )
-    if label:
-        pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(
-            label, position=pos, color=color, size=label_size, label_box=False
-        )
+    tail = np.asarray(tail, float).reshape(-1)
+    head = np.asarray(head, float).reshape(-1)
+    if isinstance(plot, mv.Space3D):
+        plot.arrow(tail, head, color=color)
+    else:
+        plot.vector(head - tail, origin=tail, color=color, label=label)
+    return plot
+
+
+def add_points(plot, pts, color, size=0.18):
+    plot.points(np.atleast_2d(pts), color=color, size=max(5.0, size * 45))
+    return plot
 
 
 def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
-    o, u, v = np.asarray(o, float), np.asarray(u, float), np.asarray(v, float)
-    corners = _to3(np.array([o, o + u, o + u + v, o + v]))
-    indices = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.uint32)
-    plot += k3d.mesh(corners, indices, color=color, opacity=opacity, side="double")
-    if outline:
-        add_line(plot, np.array([o, o + u, o + u + v, o + v, o]), color, width=0.02)
-
-
-# corner bit-patterns (a,b,c) ∈ {0,1}³  →  o + a u + b v + c w
-_BITS = np.array([[a, b, c] for c in (0, 1) for b in (0, 1) for a in (0, 1)], float)
-_FACES = [
-    (0, 1, 3, 2),
-    (4, 5, 7, 6),
-    (0, 1, 5, 4),
-    (2, 3, 7, 6),
-    (0, 2, 6, 4),
-    (1, 3, 7, 5),
-]
+    plot.parallelogram(
+        o, u, v, facecolor=color, alpha=opacity, edgecolor=(color if outline else None)
+    )
+    return plot
 
 
 def add_parallelepiped(plot, o, u, v, w, color, opacity=0.18):
     """Filled, edged parallelepiped with corner o and edges u, v, w."""
-    o, u, v, w = (np.asarray(x, float) for x in (o, u, v, w))
-    corners = o + _BITS @ np.stack([u, v, w])  # (8,3)
-    tris = []
-    for p, q, r, s in _FACES:
-        tris += [[p, q, r], [q, s, r]]
-    plot += k3d.mesh(
-        corners.astype(np.float32),
-        np.array(tris, np.uint32),
-        color=color,
-        opacity=opacity,
-        side="double",
-    )
-    # 12 edges
-    edges = [
-        (0, 1),
-        (0, 2),
-        (0, 4),
-        (1, 3),
-        (1, 5),
-        (2, 3),
-        (2, 6),
-        (3, 7),
-        (4, 5),
-        (4, 6),
-        (5, 7),
-        (6, 7),
-    ]
-    for i, j in edges:
-        add_line(plot, np.array([corners[i], corners[j]]), color, width=0.02)
+    plot.parallelepiped(o, u, v, w, facecolor=color, alpha=opacity, edgecolor=color)
+    return plot
 
 
 # %% [markdown]

@@ -30,7 +30,7 @@
 # into — two real axes, a **defective** shear, and a **rotation** whose eigenvalues are complex
 # (closing the loop on the $J^2=-I$ story from the earlier notebooks).
 #
-# Pictures are static **vedo** (VTK) renders in the $z=0$ plane, as in the `Geometry/` notebooks;
+# Pictures use the shared **`mathviz`** plane library (static renders in the $z=0$ plane);
 # every algebraic claim is cross-checked with SymPy's exact arithmetic.
 
 # %%
@@ -40,15 +40,7 @@ from sympy import Matrix, Rational, symbols, I, simplify
 
 sp.init_printing()
 
-import vedo
-import vedo.settings
-
-vedo.settings.default_backend = (
-    "vtk"  # offscreen render → inline PNG (headless-friendly)
-)
-from vedo import Grid, Line, Arrow, Plotter, utils, Text3D
-from IPython.display import display as _ipy_display
-from PIL import Image as _PILImage
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -60,88 +52,9 @@ YELLOW = 0xFFD54F
 BG = 0x0F0F0F
 
 
-def _hex(c):
-    return c if isinstance(c, str) else f"#{c:06x}"
-
-
-def _pad(xy):
-    xy = np.asarray(xy, dtype=float).reshape(-1, 2)
-    return np.column_stack([xy, np.zeros(len(xy))])
-
-
-class Plane2D:
-    """A top-down vedo view of the x–y plane with a FIXED orthographic scale.
-
-    Drawing helpers (vector / seg / curve) accumulate VTK objects; display() renders
-    them inline as a static PNG (vedo '2d' backend). The parallel-projection camera at
-    a fixed parallel_scale keeps the on-screen scale constant even when an applied
-    matrix spreads the grid past the original extent.
-    """
-
-    def __init__(self, extent=4, eye=8, margin=0.5, bg=BG):
-        self.extent = extent
-        self.bg = bg
-        self.objects = []
-        self.camera = {
-            "pos": (0, 0, eye),
-            "focal_point": (0, 0, 0),
-            "viewup": (0, 1, 0),
-            "parallel_scale": extent + margin,
-        }
-        ticks = np.arange(-extent, extent + 1)
-        self.objects.append(
-            Grid(s=(ticks, ticks)).wireframe(True).c(_hex(GREY)).alpha(0.22)
-        )
-        self.seg([-extent, 0], [extent, 0], GREY, lw=1, alpha=0.5)
-        self.seg([0, -extent], [0, extent], GREY, lw=1, alpha=0.5)
-
-    def _cam(self):
-        cam = utils.camera_from_dict(self.camera)
-        cam.SetParallelProjection(True)
-        return cam
-
-    def vector(self, vec, origin=(0, 0), color=RED, label=None, alpha=1.0):
-        s = _pad(origin)[0]
-        e = _pad(np.asarray(origin, float) + np.asarray(vec, float))[0]
-        self.objects.append(
-            Arrow(
-                s,
-                e,
-                c=_hex(color),
-                shaft_radius=0.014,
-                head_radius=0.05,
-                head_length=0.15,
-            ).alpha(alpha)
-        )
-        if label:
-            self.objects.append(
-                Text3D(label, pos=e + np.array([0.12, 0.12, 0]), s=0.26, c=_hex(color))
-            )
-        return self
-
-    def seg(self, p, q, color=GREY, lw=2, alpha=1.0):
-        self.objects.append(
-            Line(_pad(p)[0], _pad(q)[0], c=_hex(color), lw=lw).alpha(alpha)
-        )
-        return self
-
-    def eigenline(self, d, color=PURPLE, lw=3, alpha=0.9):
-        """Draw the full invariant line through the origin in direction d."""
-        d = np.asarray(d, float)
-        d = d / np.linalg.norm(d)
-        return self.seg(-self.extent * d, self.extent * d, color, lw, alpha)
-
-    def curve(self, pts, color=BLUE, lw=3, alpha=1.0):
-        self.objects.append(Line(_pad(pts), c=_hex(color), lw=lw).alpha(alpha))
-        return self
-
-    def display(self, size=(640, 640)):
-        """Render offscreen and embed a static PNG inline (works anywhere in a cell)."""
-        plt = Plotter(offscreen=True, size=size, bg=self.bg)
-        plt.show(self.objects, camera=self._cam(), resetcam=False, zoom=1, axes=0)
-        arr = plt.screenshot(asarray=True)
-        plt.close()
-        _ipy_display(_PILImage.fromarray(arr))
+# Plane drawing now comes from the shared `mathviz` library: mv.Plane(extent=…) gives a
+# top-down view with grid+axes; .vector/.curve/.segment/.line/.display match what this
+# notebook used (the former inline Plane2D.eigenline(d) is mv.Plane.line([0, 0], d)).
 
 
 UNIT_CIRCLE = np.c_[
@@ -159,13 +72,13 @@ UNIT_CIRCLE = np.c_[
 # %%
 A = np.array([[2.0, 1.0], [0.0, 3.0]])  # our running example (eigenvalues 2 and 3)
 
-pl = Plane2D(extent=4)
+pl = mv.Plane(extent=4)
 for ang in np.linspace(0, np.pi, 12, endpoint=False):  # a fan of input directions
     u = np.array([np.cos(ang), np.sin(ang)])
     pl.vector(u, color=GREY, alpha=0.5)  # input direction (faint)
     pl.vector(A @ u, color=BLUE, alpha=0.9)  # its image (bold)
 # the two invariant directions of A, highlighted
-pl.eigenline([1, 0], PURPLE).eigenline([1, 1], ORANGE)
+pl.line([0, 0],[1, 0], PURPLE).line([0, 0],[1, 1], ORANGE)
 pl.display()
 print(
     "Most arrows turn (grey → blue). Two lines are special: along them the image stays on the line."
@@ -178,14 +91,14 @@ print("Those purple/orange lines are the eigen-directions of A = [[2,1],[0,3]]."
 # how far out it reaches relative to the input.
 
 # %%
-pl = Plane2D(extent=4)
+pl = mv.Plane(extent=4)
 pl.curve(UNIT_CIRCLE, GREY, 2, 0.6)  # unit circle of inputs
 pl.curve(UNIT_CIRCLE @ A.T, BLUE, 3)  # image ellipse
 for d, c, lab in [
     (np.array([1.0, 0]), PURPLE, "λ=2"),
     (np.array([1, 1]) / np.sqrt(2), ORANGE, "λ=3"),
 ]:
-    pl.eigenline(d, c)
+    pl.line([0, 0],d, c)
     pl.vector(d, color=c)  # the eigenvector (input)
     pl.vector(
         A @ d, color=c, label=lab, alpha=0.6
@@ -272,13 +185,13 @@ v1, v2 = vecs_S[0][1], vecs_S[1][1]
 print("eigenvectors orthogonal (v₁·v₂ = 0):", int(np.dot(v1, v2)) == 0)
 
 Sn = np.array(S.tolist(), dtype=float)
-pl = Plane2D(extent=4)
+pl = mv.Plane(extent=4)
 pl.curve(UNIT_CIRCLE, GREY, 2, 0.6).curve(UNIT_CIRCLE @ Sn.T, BLUE, 3)
 for (lamv, d), c, lab in zip(
     vecs_S, (PURPLE, ORANGE), ("λ=3 (long axis)", "λ=1 (short axis)")
 ):
     dn = d / np.linalg.norm(d)
-    pl.eigenline(dn, c)
+    pl.line([0, 0],dn, c)
     pl.vector(lamv * dn, color=c, label=lab)
 pl.display()
 print(
@@ -316,9 +229,9 @@ except Exception as e:
     )
 
 Hn = np.array(H.tolist(), dtype=float)
-pl = Plane2D(extent=4)
+pl = mv.Plane(extent=4)
 pl.curve(UNIT_CIRCLE, GREY, 2, 0.6).curve(UNIT_CIRCLE @ Hn.T, BLUE, 3)
-pl.eigenline([1, 0], PURPLE)
+pl.line([0, 0],[1, 0], PURPLE)
 pl.vector([1, 0], color=PURPLE, label="only eigenvector")
 for ang in [
     np.pi / 3,
@@ -363,7 +276,7 @@ print("|z|² = det(xI+yJ) =", Z.det(), "= x² + y²   (modulus squared)")
 
 # geometric view: a rotation sends the circle to itself but swings every arrow — no fixed line
 Rn = np.array([[np.cos(0.7), -np.sin(0.7)], [np.sin(0.7), np.cos(0.7)]])
-pl = Plane2D(extent=3)
+pl = mv.Plane(extent=3)
 pl.curve(UNIT_CIRCLE, GREY, 2, 0.6).curve(UNIT_CIRCLE @ Rn.T, BLUE, 3)
 for ang in np.linspace(0, 2 * np.pi, 10, endpoint=False):
     u = np.array([np.cos(ang), np.sin(ang)])

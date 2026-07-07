@@ -12,6 +12,17 @@ from ..primitives import Scene
 class Backend:
     name = "base"
 
-    def render(self, scene: Scene, *, save: str | None = None):
-        """Draw the scene. If ``save`` is a path, write an image there; otherwise display inline."""
+    def render(
+        self,
+        scene: Scene,
+        *,
+        save: str | None = None,
+        interactive=None,
+        vedo_display=None,
+    ):
+        """Draw the scene. If ``save`` is a path, write an image there; otherwise display inline.
+
+        ``interactive`` / ``vedo_display`` request a live widget instead of a static image (honored by
+        the vedo backend; ignored by static backends).
+        """
         raise NotImplementedError

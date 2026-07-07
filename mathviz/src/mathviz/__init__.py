@@ -8,7 +8,13 @@ GeometricLinearAlgebra and Geometry notebooks.
 from __future__ import annotations
 
 from . import maps, palette, phase, primitives
-from .backends import get_backend, set_backend
+from .backends import (
+    get_backend,
+    in_notebook,
+    set_backend,
+    set_interactive,
+    set_vedo_display,
+)
 from .maps import FLAG, UNIT_SQUARE, unit_circle
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
 from .phase import phase_portrait
@@ -20,6 +26,9 @@ __all__ = [
     "Space3D",
     "set_backend",
     "get_backend",
+    "set_interactive",
+    "set_vedo_display",
+    "in_notebook",
     "maps",
     "phase",
     "phase_portrait",

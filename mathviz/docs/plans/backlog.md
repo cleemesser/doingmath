@@ -12,17 +12,16 @@ multi-sheeted **Riemann surfaces**. Requested by the user 2026-07-07; delivered 
 
 ## Other deferred items
 
-- **Interactive vedo rendering** *(user-requested)*: today the vedo backend only renders **offscreen →
-  static PNG**. Add an interactive path:
-  - **Detect the environment** — are we in an IPython/Jupyter notebook (`get_ipython()` exists and has a
-    kernel) vs. a plain script/headless run? Default to static PNG when headless, offer interactive when
-    in a notebook.
-  - **Let the caller choose** — e.g. `Plane(..., interactive=True)` / `Space3D(..., interactive=True)` or
-    a `display(interactive=...)` flag, so a user can force static or live regardless of detection.
-  - **Let the caller choose the vedo display backend** — vedo supports several (`k3d`, `trame`,
-    `ipyvtklink`, `2d`, `vtk`); expose it (e.g. `vedo_backend="k3d"`), since the repo already pins the
-    trame/vue2 stack for this. Wire it through `vedo.settings.default_backend` and a live `Plotter.show`
-    (not offscreen) on the interactive path. Note interactive 3D is where vedo shines over matplotlib.
+- **Interactive vedo rendering** ✅ *(delivered)*: the vedo backend now supports a **live widget** path
+  alongside offscreen static PNG. `mv.in_notebook()` detects a Jupyter kernel; `display(interactive=…,
+  vedo_display=…)` overrides per call; `mv.set_interactive(True|False|"auto")` and
+  `mv.set_vedo_display("k3d"|"trame"|…)` set global defaults. `"auto"` → live in a notebook, static when
+  headless. **Two live paths:** in a **notebook** → an inline `vedo.settings.default_backend` widget
+  (k3d/trame) returned for display; in a **plain script** → a native, orbitable VTK window (blocking
+  `Plotter.show(interactive=True)`). Examples: `examples/06_interactive.ipynb` (widgets) and
+  `examples/interactive_script.py` (native window). *Remaining polish:* interactive matplotlib (ipympl)
+  is still static-only; the notebook 2D live path drops the parallel-projection camera (k3d ignores
+  vtkCamera) so live 2D auto-fits instead of holding scale.
 - **SymPy pretty-printing in notebooks** *(user-requested)*: the sympy-heavy GLA notebooks (`00`, `06`,
   `07`) use `print(...)` / `sp.pprint(...)`, which emit plain monospace text — they don't use Jupyter's
   native LaTeX/MathJax rendering of expressions. Detect when running in a notebook (an IPython kernel is

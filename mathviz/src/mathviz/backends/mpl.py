@@ -24,7 +24,15 @@ class MatplotlibBackend(Backend):
         FigureCanvasAgg(fig)
         return fig
 
-    def render(self, scene: P.Scene, *, save: str | None = None):
+    def render(
+        self,
+        scene: P.Scene,
+        *,
+        save: str | None = None,
+        interactive=None,
+        vedo_display=None,
+    ):
+        # matplotlib renders static images; the interactive flags are for the vedo backend.
         if isinstance(scene.view, P.View3D):
             return self._render3d(scene, save=save)
 

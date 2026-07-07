@@ -17,7 +17,21 @@ Drawing is backend-neutral. A `Plane` records primitives; a backend renders them
 - **matplotlib** — 2D, raster-native (best for phase portraits), static PNG that embeds and renders on
   GitHub. The default.
 - **vedo** (VTK) — 2D parity with the `Geometry/` notebooks plus 3D (analytic landscapes, Riemann
-  surfaces). Offscreen static PNG or interactive.
+  surfaces). Offscreen static PNG by default, or a **live, orbitable widget** when interactive.
+
+**Interactive rendering** (vedo). By default everything renders to a static PNG (so figures survive a
+headless `jupytext --execute` and show on GitHub). Opt into a live view per call or globally —
+`display(interactive=True)` gives a **live k3d widget in a Jupyter notebook**, or a **native, orbitable
+VTK window from a plain `python` script** (it blocks until you close it):
+
+```python
+mv.Space3D(bounds=3).parallelepiped(o, a, b, c).display(interactive=True)  # widget (notebook) / window (script)
+mv.set_interactive("auto")      # global: live in a notebook, static when headless (mv.in_notebook())
+mv.set_vedo_display("trame")    # choose vedo's live backend: 'k3d' (default) / 'trame' / 'ipyvtklink'
+```
+
+Worked examples: `examples/06_interactive.ipynb` (notebook widgets) and `examples/interactive_script.py`
+(`uv run python …/interactive_script.py` opens a native window).
 
 ```python
 import mathviz as mv

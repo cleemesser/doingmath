@@ -20,16 +20,25 @@ def _pad(xy):
 class VedoBackend(Backend):
     name = "vedo"
 
-    def render(self, scene: P.Scene, *, save: str | None = None):
-        import vedo
-        import vedo.settings
+    def render(
+        self,
+        scene: P.Scene,
+        *,
+        save: str | None = None,
+        interactive=None,
+        vedo_display=None,
+    ):
+        from . import resolve_interactive, resolve_vedo_display
 
-        vedo.settings.default_backend = "vtk"
+        interactive = resolve_interactive(interactive)
+        vedo_display = resolve_vedo_display(vedo_display)
 
         if isinstance(scene.view, P.View3D):
-            return self._render3d(scene, save=save)
+            return self._render3d(
+                scene, save=save, interactive=interactive, vedo_display=vedo_display
+            )
 
-        from vedo import Arrow, Grid, Line, Plotter, Points, Text3D, utils
+        from vedo import Arrow, Grid, Line, Points, Text3D, utils
 
         view = scene.view
         E = view.extent
@@ -137,16 +146,21 @@ class VedoBackend(Backend):
         cam = utils.camera_from_dict(camera)
         cam.SetParallelProjection(True)
 
-        plt = Plotter(offscreen=True, size=view.size, bg=hexstr(view.bg))
-        plt.show(objects, camera=cam, resetcam=False, zoom=1, axes=0)
-        arr = plt.screenshot(asarray=True)
-        plt.close()
-
-        return self._emit(arr, save)
+        return self._show(
+            objects,
+            view,
+            save,
+            interactive,
+            vedo_display,
+            camera=cam,
+            resetcam=False,
+            zoom=1,
+            axes=0,
+        )
 
     # ── 3D scenes ─────────────────────────────────────────────
-    def _render3d(self, scene, *, save=None):
-        from vedo import Arrow, Line, Mesh, Plotter, Points
+    def _render3d(self, scene, *, save=None, interactive=False, vedo_display="k3d"):
+        from vedo import Arrow, Line, Mesh, Points
 
         view = scene.view
         objects = []
@@ -185,11 +199,66 @@ class VedoBackend(Backend):
                     m.linewidth(prim.edgewidth).linecolor(hexstr(prim.edgecolor))
                 objects.append(m)
 
+        return self._show(
+            objects,
+            view,
+            save,
+            interactive,
+            vedo_display,
+            elevation=view.elev,
+            azimuth=view.azim,
+            axes=1,
+            resetcam=True,
+        )
+
+    # ── offscreen (static PNG) vs. live (interactive) ────────────────────────────
+    def _show(self, objects, view, save, interactive, vedo_display, **show_kw):
+        """Route to: a live notebook widget, a live desktop window, or an offscreen PNG."""
+        from . import in_notebook
+
+        if interactive and save is None:
+            if in_notebook():
+                return self._live_widget(objects, view, show_kw, vedo_display)
+            return self._live_window(
+                objects, view, show_kw
+            )  # plain script → native VTK window
+
+        import vedo
+        import vedo.settings
+        from vedo import Plotter
+
+        vedo.settings.default_backend = "vtk"  # offscreen → static PNG
         plt = Plotter(offscreen=True, size=view.size, bg=hexstr(view.bg))
-        plt.show(objects, elevation=view.elev, azimuth=view.azim, axes=1, resetcam=True)
+        plt.show(objects, **show_kw)
         arr = plt.screenshot(asarray=True)
         plt.close()
         return self._emit(arr, save)
+
+    def _live_widget(self, objects, view, show_kw, vedo_display):
+        """Inline live widget in a Jupyter notebook (k3d/trame/…); returns the widget to display."""
+        import vedo
+        import vedo.settings
+        from vedo import Plotter
+
+        vedo.settings.default_backend = vedo_display or "k3d"
+        live_kw = {
+            k: v for k, v in show_kw.items() if k != "camera"
+        }  # k3d ignores vtkCamera
+        return Plotter(size=view.size, bg=hexstr(view.bg)).show(objects, **live_kw)
+
+    def _live_window(self, objects, view, show_kw):
+        """A native, orbitable VTK window for a plain ``python script.py`` run (blocks until closed)."""
+        import vedo
+        import vedo.settings
+        from vedo import Plotter
+
+        vedo.settings.default_backend = "vtk"
+        plt = Plotter(size=view.size, bg=hexstr(view.bg), title="mathviz")
+        plt.show(
+            objects, **{**show_kw, "interactive": True}
+        )  # blocks: drag to orbit, close to continue
+        plt.close()
+        return None
 
     @staticmethod
     def _surface_mesh(prim, Mesh):

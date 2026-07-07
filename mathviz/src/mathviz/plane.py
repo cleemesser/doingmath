@@ -161,8 +161,11 @@ class Plane:
     def _scene(self):
         return P.Scene(self.view, list(self.primitives))
 
-    def display(self):
-        return get_backend(self._backend).render(self._scene())
+    def display(self, *, interactive=None, vedo_display=None):
+        """Render inline. ``interactive=True`` (vedo backend) gives a live, orbitable widget."""
+        return get_backend(self._backend).render(
+            self._scene(), interactive=interactive, vedo_display=vedo_display
+        )
 
     def save(self, path):
         return get_backend(self._backend).render(self._scene(), save=path)

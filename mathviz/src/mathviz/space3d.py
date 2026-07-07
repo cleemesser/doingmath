@@ -291,9 +291,12 @@ class Space3D:
         )
 
     # ── output ───────────────────────────────────────────────
-    def display(self):
+    def display(self, *, interactive=None, vedo_display=None):
+        """Render inline. ``interactive=True`` gives a live, orbitable 3D widget (vedo)."""
         return get_backend(self._backend).render(
-            P.Scene(self.view, list(self.primitives))
+            P.Scene(self.view, list(self.primitives)),
+            interactive=interactive,
+            vedo_display=vedo_display,
         )
 
     def save(self, path):

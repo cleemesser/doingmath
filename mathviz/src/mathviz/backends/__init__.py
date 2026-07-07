@@ -33,3 +33,45 @@ def set_backend(name: str) -> None:
     global _DEFAULT
     _load(name)  # validate eagerly
     _DEFAULT = "mpl" if name in ("mpl", "matplotlib") else "vedo"
+
+
+# ── interactivity (currently honored by the vedo backend) ─────────────────────────
+_INTERACTIVE = (
+    False  # False | True | "auto" (auto → interactive only inside a notebook)
+)
+_VEDO_DISPLAY = (
+    "k3d"  # vedo's live display backend: 'k3d' | 'trame' | 'ipyvtklink' | ...
+)
+
+
+def in_notebook() -> bool:
+    """True when running inside a Jupyter/IPython kernel (as opposed to a script / headless run)."""
+    try:
+        from IPython import get_ipython
+
+        ip = get_ipython()
+        return ip is not None and ip.__class__.__name__ == "ZMQInteractiveShell"
+    except Exception:
+        return False
+
+
+def set_interactive(value=True) -> None:
+    """Global default: static PNG (``False``), live widget (``True``), or ``"auto"`` (live in a notebook)."""
+    global _INTERACTIVE
+    _INTERACTIVE = value
+
+
+def set_vedo_display(name: str) -> None:
+    """Choose vedo's live display backend ('k3d', 'trame', 'ipyvtklink', ...) for interactive rendering."""
+    global _VEDO_DISPLAY
+    _VEDO_DISPLAY = name
+
+
+def resolve_interactive(interactive) -> bool:
+    """Per-call override → global default → (for 'auto') notebook detection."""
+    val = _INTERACTIVE if interactive is None else interactive
+    return in_notebook() if val == "auto" else bool(val)
+
+
+def resolve_vedo_display(name) -> str:
+    return name or _VEDO_DISPLAY

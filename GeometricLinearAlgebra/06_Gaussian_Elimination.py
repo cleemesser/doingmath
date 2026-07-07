@@ -183,7 +183,9 @@ for eqs, title, col in [
     for a, b, c, lc in eqs:
         line_eq(pl, a, b, c, color=lc)
     if title.startswith("(a)"):
-        pl.points([[2, 1]], ORANGE, size=11).text([2.2, 1.1], "(2,1)", ORANGE)  # unique solution
+        pl.points([[2, 1]], ORANGE, size=11).text(
+            [2.2, 1.1], "(2,1)", ORANGE
+        )  # unique solution
     print(title)
     pl.display()
 

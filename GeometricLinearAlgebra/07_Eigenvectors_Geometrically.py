@@ -78,7 +78,7 @@ for ang in np.linspace(0, np.pi, 12, endpoint=False):  # a fan of input directio
     pl.vector(u, color=GREY, alpha=0.5)  # input direction (faint)
     pl.vector(A @ u, color=BLUE, alpha=0.9)  # its image (bold)
 # the two invariant directions of A, highlighted
-pl.line([0, 0],[1, 0], PURPLE).line([0, 0],[1, 1], ORANGE)
+pl.line([0, 0], [1, 0], PURPLE).line([0, 0], [1, 1], ORANGE)
 pl.display()
 print(
     "Most arrows turn (grey → blue). Two lines are special: along them the image stays on the line."
@@ -98,7 +98,7 @@ for d, c, lab in [
     (np.array([1.0, 0]), PURPLE, "λ=2"),
     (np.array([1, 1]) / np.sqrt(2), ORANGE, "λ=3"),
 ]:
-    pl.line([0, 0],d, c)
+    pl.line([0, 0], d, c)
     pl.vector(d, color=c)  # the eigenvector (input)
     pl.vector(
         A @ d, color=c, label=lab, alpha=0.6
@@ -191,7 +191,7 @@ for (lamv, d), c, lab in zip(
     vecs_S, (PURPLE, ORANGE), ("λ=3 (long axis)", "λ=1 (short axis)")
 ):
     dn = d / np.linalg.norm(d)
-    pl.line([0, 0],dn, c)
+    pl.line([0, 0], dn, c)
     pl.vector(lamv * dn, color=c, label=lab)
 pl.display()
 print(
@@ -231,7 +231,7 @@ except Exception as e:
 Hn = np.array(H.tolist(), dtype=float)
 pl = mv.Plane(extent=4)
 pl.curve(UNIT_CIRCLE, GREY, 2, 0.6).curve(UNIT_CIRCLE @ Hn.T, BLUE, 3)
-pl.line([0, 0],[1, 0], PURPLE)
+pl.line([0, 0], [1, 0], PURPLE)
 pl.vector([1, 0], color=PURPLE, label="only eigenvector")
 for ang in [
     np.pi / 3,

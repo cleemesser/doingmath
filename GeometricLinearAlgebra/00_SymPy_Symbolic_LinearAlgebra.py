@@ -25,7 +25,7 @@
 # It is a tour of the whole series through one tool:
 # 1. **Operators as exact matrices** (nb 2) — the quarter-turn $J$ with $J^2=-I$, rotation, projection,
 #    reflection, shear — each property an exact identity.
-# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v\rangle^2+(u\wedge v)^2=\|u\|^2\|v\|^2$
+# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v\rangle^2+(u\wedge v)^2=\rvertu\rvert^2\rvertv\rvert^2$
 #    proven symbolically.
 # 3. **Determinant and trace** (nb 4) — multiplicativity, $\det$ = area scaling, and the coordinate-free
 #    trace $\frac{d}{dt}\big|_0\det(I+tT)$, plus $\det e^{tT}=e^{t\,\operatorname{tr}T}$.
@@ -273,8 +273,8 @@ print(
 # |--------|----------|--------------------|
 # | $J^2=-I$, $R(\theta)=\cos\theta\,I+\sin\theta\,J$ orthogonal, $R(\alpha)R(\beta)=R(\alpha{+}\beta)$ | 2 | `trigsimp(...) == 0` |
 # | $P_a$ idempotent, $F_a$ involution, shear preserves area | 2 | symbolic direction $a$, exact identity |
-# | $\langle u,v\rangle^2+(u\wedge v)^2=\|u\|^2\|v\|^2$, wedge $=\det[u\,v]$ | 3 | `simplify(lhs-rhs) == 0` |
-# | $\det(AB)=\det A\det B$, $\operatorname{tr}T=\frac{d}{dt}\big|_0\det(I+tT)$, $\det e^{tT}=e^{t\operatorname{tr}T}$ | 4 | symbolic $A,B,T$; `diff`, `.exp()` |
+# | $\langle u,v\rangle^2+(u\wedge v)^2=\rvert u\lvert^2 \rvert v \lvert^2$, wedge $=\det[u\,v]$ | 3 | `simplify(lhs-rhs) == 0` |
+# | $\det(AB)=\det A\det B$, $\operatorname{tr}T=\frac{d}{dt}\big\rvert_0\det(I+tT)$, $\det e^{tT}=e^{t\operatorname{tr}T}$ | 4 | symbolic $A,B,T$; `diff`, `.exp()` |
 # | $\det,\operatorname{tr}$ similarity-invariant; $xI+yJ\cong\mathbb{C}$; $e^{\phi J}=R(\phi)$ | 5 | `P.inv()*A*P`, exact complex product |
 #
 # The lesson of the symbolic view: **a `simplify(... ) == 0` on a matrix of symbols is a proof for all

@@ -61,6 +61,30 @@ def test_landscape_pole_is_capped_not_infinite():
     assert np.isfinite(surf.Z).all() and surf.Z.max() <= 3 + 1e-9
 
 
+def test_riemann_root_builds_colored_surface():
+    s = Space3D(bounds=2).riemann_root(2, nr=20, ntheta=41)
+    surf = s.primitives[-1]
+    assert isinstance(surf, P.Surface)
+    assert surf.Z.shape == (20, 41) and surf.colors.shape == (20, 41, 3)
+    assert np.isfinite(surf.Z).all()
+
+
+def test_riemann_root_spans_two_sheets():
+    # height = Im(w) over the full w-disk → both sheets (negative and positive heights)
+    surf = Space3D(bounds=2).riemann_root(2, nr=30, ntheta=120).primitives[-1]
+    assert surf.Z.min() < 0 < surf.Z.max()
+
+
+def test_riemann_log_is_a_rising_helicoid():
+    surf = (
+        Space3D(bounds=2)
+        .riemann_log(sheets=2, nr=20, ntheta=61, height_scale=1.0)
+        .primitives[-1]
+    )
+    assert isinstance(surf, P.Surface)
+    assert np.isclose(surf.Z.min(), 0.0) and surf.Z.max() > 2 * np.pi  # ~2 full turns
+
+
 @pytest.mark.parametrize("be", ["vedo", "mpl"])
 def test_render_3d_nonblank(tmp_path, be):
     out = tmp_path / f"s3_{be}.png"

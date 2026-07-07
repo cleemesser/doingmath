@@ -25,6 +25,17 @@ def _as_field3(f):
     return f
 
 
+def _scheme_colors(w, scheme):
+    """Phase-portrait colors for a complex array, selecting contours from a scheme name."""
+    from .phase import colorize
+
+    return colorize(
+        w,
+        phase_contours=(scheme in ("phase", "enhanced")),
+        modulus_contours=(scheme in ("modulus", "enhanced")),
+    )
+
+
 def _cmap_colors(mag, cmap):
     import matplotlib as mpl
     import matplotlib.cm as cm
@@ -155,6 +166,58 @@ class Space3D:
             )
         )
         return self.surface(z.real, z.imag, height, colors=colors)
+
+    # ── Riemann surfaces ─────────────────────────────────────
+    def riemann_root(
+        self,
+        n=2,
+        *,
+        radius=None,
+        nr=60,
+        ntheta=241,
+        scheme="enhanced",
+        height="im",
+        height_scale=1.0,
+    ):
+        """The Riemann surface of the multivalued ``z^{1/n}`` (``√z`` for n=2).
+
+        Parametrized by the *value* ``w`` over a disk (so ``z = wⁿ`` covers the base plane n-to-1 and
+        the sheets join smoothly at the branch point). Height is ``Im w`` (or ``"re"``); colored by the
+        phase of ``w``. The classic self-intersecting "parking ramp" for n=2.
+        """
+        R = self.view.bounds if radius is None else radius
+        rho = np.linspace(0, R ** (1.0 / n), nr)
+        phi = np.linspace(0, 2 * np.pi, ntheta)  # one turn of w = n sheets of z
+        RHO, PHI = np.meshgrid(rho, phi, indexing="ij")
+        w = RHO * np.exp(1j * PHI)
+        z = w**n
+        h = (w.imag if height == "im" else w.real) * height_scale
+        return self.surface(z.real, z.imag, h, colors=_scheme_colors(w, scheme))
+
+    def riemann_log(
+        self,
+        *,
+        radius=None,
+        sheets=3,
+        rmin=0.12,
+        nr=60,
+        ntheta=241,
+        scheme="enhanced",
+        height_scale=0.5,
+    ):
+        """The Riemann surface of ``log z`` — the infinite spiral **helicoid** (``sheets`` turns shown).
+
+        Parametrized by ``w = log z`` over a rectangle; ``z = e^w``, height is the winding ``Im w``
+        (the sheet), colored by the phase of ``z`` so each 2π turn cycles the hue.
+        """
+        R = self.view.bounds if radius is None else radius
+        u = np.linspace(np.log(rmin), np.log(R), nr)
+        v = np.linspace(0, 2 * np.pi * sheets, ntheta)
+        U, V = np.meshgrid(u, v, indexing="ij")
+        z = np.exp(U + 1j * V)
+        return self.surface(
+            z.real, z.imag, V * height_scale, colors=_scheme_colors(z, scheme)
+        )
 
     # ── output ───────────────────────────────────────────────
     def display(self):

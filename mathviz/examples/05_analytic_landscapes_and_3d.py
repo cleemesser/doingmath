@@ -83,6 +83,36 @@ assert np.allclose(lens, lens[0])  # uniform length by default
 print(f"{len(arrows)} arrows, uniform length {lens[0]:.3f}, magnitude by color ✓")
 
 # %% [markdown]
+# ## Riemann surfaces
+#
+# A multi-valued function becomes single-valued on its **Riemann surface**. We parametrize by the
+# *value* `w` (so the sheets join smoothly at the branch point) and color by phase.
+#
+# - `riemann_root(n)` — the surface of `z^{1/n}`: `z = wⁿ` covers the base plane n-to-1. For `n=2`
+#   (`√z`) it is the classic self-intersecting two-sheet "parking ramp".
+# - `riemann_log()` — the surface of `log z`: an infinite **helicoid** (spiral staircase), each 2π
+#   turn a new sheet, the hue cycling once per turn.
+
+# %%
+mv.Space3D(bounds=2.5, elev=18, azim=-70).riemann_root(
+    2, nr=70, ntheta=280
+).display()  # √z
+mv.Space3D(bounds=2.5, elev=18, azim=-70).riemann_root(
+    3, nr=70, ntheta=300
+).display()  # ∛z: 3 sheets
+mv.Space3D(bounds=3, elev=20, azim=-70).riemann_log(
+    sheets=3, ntheta=300
+).display()  # log z helicoid
+
+# √z has two sheets: height = Im(w) spans below and above the base plane
+surf = mv.Space3D(bounds=2).riemann_root(2, nr=40, ntheta=160).primitives[-1]
+assert surf.Z.min() < 0 < surf.Z.max()
+# log z is a rising helicoid: height = winding angle, up 2π per sheet
+lsurf = mv.Space3D(bounds=2).riemann_log(sheets=2, height_scale=1.0).primitives[-1]
+assert np.isclose(lsurf.Z.min(), 0) and lsurf.Z.max() > 2 * np.pi
+print("√z: two sheets (±height) ✓   log z: helicoid rising 2π per turn ✓")
+
+# %% [markdown]
 # ## Same scene, either backend
 #
 # The 3D scene renders under vedo (VTK meshes/arrows) and matplotlib (mplot3d) alike.
@@ -96,5 +126,5 @@ print("matplotlib mplot3d path OK — same landscape ✓")
 # %% [markdown]
 # **Recap.** `Space3D` lifts the library into 3D: `landscape(f)` is the analytic-landscape form of a
 # phase portrait (surface `|f|` colored by `arg f`), and `field(f)` draws 3D vector fields with the
-# same uniform-length, color-by-magnitude convention as 2D — on both backends. *(Riemann surfaces are
-# the remaining Phase-4 item.)*
+# same uniform-length, color-by-magnitude convention as 2D — on both backends. And `riemann_root` /
+# `riemann_log` draw multi-sheeted **Riemann surfaces** (√z, ∛z, log z) colored by phase.

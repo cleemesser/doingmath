@@ -25,14 +25,15 @@ pole/branch handling (non-finite → split the drawn curve). Also `vector_field`
 where hues meet CCW; poles render white. `Plane.phase_portrait(f, scheme=…)`; `Raster` now supported in
 the vedo backend (textured image behind the vector layer).
 
-### 🚧 Phase 4 — 3D scene, analytic landscapes & Riemann surfaces
+### ✅ Phase 4 — 3D scene, analytic landscapes & Riemann surfaces
 A `Space3D` scene (perspective camera, 3D primitives `Arrow3D`/`Line3D`/`Points3D`/`Surface`), rendered
 on **both** backends (vedo VTK meshes, matplotlib mplot3d):
-- ✅ **Analytic landscape**: `Space3D.landscape(f)` — the surface `|f(z)|` colored by `arg f(z)` (reuses
+- **Analytic landscape**: `Space3D.landscape(f)` — the surface `|f(z)|` colored by `arg f(z)` (reuses
   `phase.colorize`), height clipped to `zmax` (or `log=True`).
-- ✅ **3D vector fields**: `Space3D.field(f)` for `f: ℝ³→ℝ³` (3×3 matrix or point-map); uniform arrow
+- **3D vector fields**: `Space3D.field(f)` for `f: ℝ³→ℝ³` (3×3 matrix or point-map); uniform arrow
   length, magnitude by color — the 2D convention carried into 3D.
-- ⬜ Riemann-surface scaffolding (patched sheets, branch cuts).
+- **Riemann surfaces**: `Space3D.riemann_root(n)` (√z / z^{1/n}, sheets joined at the branch point) and
+  `Space3D.riemann_log()` (the log helicoid), parametrized by the value `w` and colored by phase.
 
 ### ⬜ Phase 5 — migrate existing notebooks & polish
 - Replace the duplicated `Plane2D` / `new_plot` helpers in `GeometricLinearAlgebra/` and `Geometry/`

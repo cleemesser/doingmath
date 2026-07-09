@@ -123,7 +123,7 @@ As = Matrix([[2, 1], [0, 3]])
 lam = symbols("lambda")
 charpoly = (As - lam * sp.eye(2)).det()
 print("A =")
-sp.pprint(As)
+mv.show_expr(As)
 print("\ncharacteristic polynomial det(A − λI) =", sp.factor(charpoly), "= 0")
 print("eigenvalues with multiplicity:", As.eigenvals())
 print("\neigenvects() — (eigenvalue, multiplicity, [eigenvectors]):")
@@ -153,16 +153,16 @@ print("tr  A =", As.trace(), "= 2+3 = sum of eigenvalues")
 # %%
 P, D = As.diagonalize()
 print("P (eigenvectors as columns) =")
-sp.pprint(P)
+mv.show_expr(P)
 print("D (eigenvalues on the diagonal) =")
-sp.pprint(D)
+mv.show_expr(D)
 print("P D P⁻¹ == A :", (P * D * P.inv() == As))
 print("\nConsequence — powers are easy:  Aⁿ = P Dⁿ P⁻¹")
 n = 5
 print(f"A^{n} =")
-sp.pprint(As**n)
+mv.show_expr(As**n)
 print(f"P D^{n} P⁻¹ =")
-sp.pprint(simplify(P * D**n * P.inv()))
+mv.show_expr(simplify(P * D**n * P.inv()))
 
 # %% [markdown]
 # ## 4. Three regimes a real 2×2 map can fall into
@@ -175,7 +175,7 @@ sp.pprint(simplify(P * D**n * P.inv()))
 # %%
 S = Matrix([[2, 1], [1, 2]])
 print("Symmetric S =")
-sp.pprint(S)
+mv.show_expr(S)
 print("eigen-data:")
 vecs_S = []
 for val, mult, vecs in S.eigenvects():
@@ -209,7 +209,7 @@ print(
 # %%
 H = Matrix([[1, 1], [0, 1]])
 print("Shear H =")
-sp.pprint(H)
+mv.show_expr(H)
 print(
     "char. poly:",
     sp.factor((H - lam * sp.eye(2)).det()),

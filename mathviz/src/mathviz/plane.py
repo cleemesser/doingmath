@@ -148,10 +148,17 @@ class Plane:
 
         return maps.vector_field(self, maps.from_complex(g), **kw)
 
-    def phase_portrait(self, f, *, res=600, scheme="enhanced", alpha=1.0, **kw):
-        """Fill the plane with the Wegert phase portrait of a complex function f: ℂ→ℂ."""
+    def phase_portrait(self, f, *, res=None, scheme="enhanced", alpha=1.0, **kw):
+        """Fill the plane with the Wegert phase portrait of a complex function f: ℂ→ℂ.
+
+        ``res`` defaults to the view's pixel width: a raster coarser than the pixels it is stretched
+        across shows blocky contours no anti-aliasing can recover. Pass ``res`` explicitly to trade
+        sharpness for speed (animation frames), or to oversample.
+        """
         from . import phase
 
+        if res is None:
+            res = max(self.view.size)
         rgb = phase.phase_portrait(
             f, extent=self.view.extent, res=res, scheme=scheme, **kw
         )

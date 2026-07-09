@@ -7,7 +7,17 @@ GeometricLinearAlgebra and Geometry notebooks.
 
 from __future__ import annotations
 
-from . import maps, palette, phase, primitives
+from . import animate, maps, palette, phase, primitives
+from .animate import (
+    animate_matrix,
+    homotopy,
+    matrix_path,
+    mobius,
+    mobius_path,
+    scrubber,
+    scrubber2,
+    to_gif,
+)
 from .backends import (
     get_backend,
     in_notebook,
@@ -16,6 +26,7 @@ from .backends import (
     set_vedo_display,
 )
 from .maps import FLAG, UNIT_SQUARE, unit_circle
+from .notebook import show_expr
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
 from .phase import phase_portrait
 from .plane import Plane
@@ -29,6 +40,16 @@ __all__ = [
     "set_interactive",
     "set_vedo_display",
     "in_notebook",
+    "show_expr",
+    "animate",
+    "animate_matrix",
+    "matrix_path",
+    "scrubber",
+    "scrubber2",
+    "to_gif",
+    "homotopy",
+    "mobius",
+    "mobius_path",
     "maps",
     "phase",
     "phase_portrait",

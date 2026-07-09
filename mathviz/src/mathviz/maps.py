@@ -32,6 +32,62 @@ def unit_circle(n: int = 240) -> np.ndarray:
     return np.c_[np.cos(t), np.sin(t)]
 
 
+# ── the fundamental linear operations of the plane ────────────────────────────────
+# GL(2, ℝ) has two connected components, separated by the det = 0 wall:
+#   det > 0 — rotation, scaling, shear: the identity's component, smoothly reachable from I.
+#   det < 0 — reflection: the *other* component; any path from I must cross det = 0.
+#   det = 0 — projection: on the wall itself, not invertible.
+# See mathviz.animate.matrix_path for what that means for animating each one.
+
+
+def rotation(theta: float) -> np.ndarray:
+    """Rotation by ``theta`` radians about the origin. ``det = +1``, no real eigenvalues (θ ∉ πℤ)."""
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s], [s, c]])
+
+
+def scaling(sx: float, sy: float | None = None) -> np.ndarray:
+    """``diag(sx, sy)``; ``sy`` defaults to ``sx`` (a uniform dilation). ``det = sx·sy``.
+
+    ``scaling(k, 1/k)`` is the **squeeze** (hyperbolic rotation): area-preserving but not a rotation.
+    """
+    return np.diag([float(sx), float(sx if sy is None else sy)])
+
+
+def shear(k: float, axis: str = "x") -> np.ndarray:
+    """Shear of strength ``k`` parallel to ``axis``. ``det = 1``; the ``axis`` line is fixed pointwise.
+
+    ``axis="x"`` slides points horizontally in proportion to ``y`` (``[[1, k], [0, 1]]``).
+    Its only eigenvalue is 1, with a *single* eigendirection — the shear is **not diagonalizable**.
+    """
+    if axis == "x":
+        return np.array([[1.0, float(k)], [0.0, 1.0]])
+    if axis == "y":
+        return np.array([[1.0, 0.0], [float(k), 1.0]])
+    raise ValueError(f"axis must be 'x' or 'y', got {axis!r}")
+
+
+def reflection(theta: float = 0.0) -> np.ndarray:
+    """Reflection **in** the line through the origin at angle ``theta``. ``det = -1``.
+
+    Orientation-reversing, so it sits in the component of GL(2, ℝ) *not* containing the identity —
+    no continuous path of invertible maps joins it to ``I``. Eigenvalues ``+1`` (along the mirror)
+    and ``-1`` (across it).
+    """
+    c, s = np.cos(2 * theta), np.sin(2 * theta)
+    return np.array([[c, s], [s, -c]])
+
+
+def projection(theta: float = 0.0) -> np.ndarray:
+    """Orthogonal projection **onto** the line through the origin at angle ``theta``. ``det = 0``.
+
+    Singular (rank 1) and **idempotent**: ``P² = P``. Eigenvalues ``1`` (along the line) and ``0``
+    (the kernel, perpendicular to it). Not invertible, so it lies on the ``det = 0`` boundary.
+    """
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c * c, c * s], [c * s, s * s]])
+
+
 # ── normalizing any map to a point-map (N,2) -> (N,2) ─────────────────────────────
 def from_matrix(M):
     """A 2×2 matrix as a point-map: p ↦ M p (row-vector form ``pts @ M.T``)."""

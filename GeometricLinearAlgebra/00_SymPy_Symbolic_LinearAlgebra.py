@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -91,7 +91,7 @@ print(
 )
 
 R = cos(theta) * I2 + sin(theta) * J
-sp.pprint(R)
+mv.show_expr(R)
 print("Rᵀ R = I (orthogonal):", trigsimp(R.T * R) == I2)
 print("det R = 1            :", trigsimp(R.det()) == 1)
 Ra = cos(alpha) * I2 + sin(alpha) * J
@@ -185,7 +185,7 @@ print("d/dt det(I+tT) at t=0  =", sp.diff(area, t).subs(t, 0), " = a + d = tr(T)
 Tt = Matrix([[1, 2], [0, 3]])
 expTt = (t * Tt).exp()
 print("\nexp(tT) =")
-sp.pprint(expTt)
+mv.show_expr(expTt)
 print(
     "det(exp(tT)) =", simplify(expTt.det()), "   exp(t·tr T) =", sp.exp(t * Tt.trace())
 )
@@ -210,7 +210,7 @@ A = Matrix([[a, b], [c, dd]])
 P = Matrix([[2, 1], [1, 1]])  # any invertible change of basis
 Asim = P.inv() * A * P
 print("similar matrix P⁻¹AP =")
-sp.pprint(simplify(Asim))
+mv.show_expr(simplify(Asim))
 print("det preserved :", simplify(Asim.det() - A.det()) == 0)
 print("trace preserved:", simplify(Asim.trace() - A.trace()) == 0)
 
@@ -230,7 +230,7 @@ def Z(xx, yy):
 
 prod = Z(x, y) * Z(x2, y2)
 print("(xI+yJ)(x₂I+y₂J) =")
-sp.pprint(prod)
+mv.show_expr(prod)
 print(
     "equals Z(x·x₂ − y·y₂,  x·y₂ + x₂·y):",
     simplify(prod - Z(x * x2 - y * y2, x * y2 + x2 * y)) == sp.zeros(2),
@@ -244,7 +244,7 @@ print("modulus²     det Z = x²+y²:", simplify(Z(x, y).det() - (x**2 + y**2)) 
 
 # e^{φJ} is the rotation — Euler's formula at the matrix level
 print("\nexp(φJ) =")
-sp.pprint(trigsimp((phi * J).exp()))
+mv.show_expr(trigsimp((phi * J).exp()))
 print(
     "equals R(φ) = cosφ·I + sinφ·J :",
     trigsimp((phi * J).exp() - (cos(phi) * I2 + sin(phi) * J)) == sp.zeros(2),

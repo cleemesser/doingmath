@@ -65,7 +65,7 @@ def show(M, title=""):
     """Pretty-print a labelled matrix step."""
     if title:
         print(title)
-    sp.pprint(M)
+    mv.show_expr(M)
     print()
 
 

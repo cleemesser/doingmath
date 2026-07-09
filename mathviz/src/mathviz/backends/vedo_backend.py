@@ -282,10 +282,15 @@ class VedoBackend(Backend):
 
     @staticmethod
     def _emit(arr, save):
+        import os
+
         from PIL import Image
 
         if save is not None:
-            Image.fromarray(arr).save(save)
+            # PIL infers the format from a path's extension, but an in-memory buffer
+            # (io.BytesIO, as animate.to_png passes) has no name — say PNG explicitly.
+            fmt = None if isinstance(save, (str, os.PathLike)) else "PNG"
+            Image.fromarray(arr).save(save, format=fmt)
             return save
         from IPython.display import display
 

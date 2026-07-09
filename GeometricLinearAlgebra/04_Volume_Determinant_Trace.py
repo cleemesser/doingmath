@@ -34,6 +34,9 @@
 #
 # Figures use the shared `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
 
+# %% [markdown]
+# May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram.
+# Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
 
 # %%
 import numpy as np
@@ -386,8 +389,3 @@ for t in (0.3, 1.0, 2.5):
 
 # %% [markdown]
 #
-# %% [markdown]
-# Future to do: For $\frac{d}{dt} det(I + t A) = tr(A)$ may want to draw Arnold's picture for parallelogram.
-# Also trace measures degree of self-mapping and the dimenionality of the subspace of a projection.
-
-# %%

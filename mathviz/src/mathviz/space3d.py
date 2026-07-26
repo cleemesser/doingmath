@@ -25,14 +25,23 @@ def _as_field3(f):
     return f
 
 
-def _scheme_colors(w, scheme):
-    """Phase-portrait colors for a complex array, selecting contours from a scheme name."""
-    from .phase import colorize
-
-    return colorize(
-        w,
+def _scheme_flags(scheme):
+    return dict(
         phase_contours=(scheme in ("phase", "enhanced")),
         modulus_contours=(scheme in ("modulus", "enhanced")),
+    )
+
+
+def _scheme_colors(w, scheme, *, aa=True, **kw):
+    """Phase-portrait colors for a complex array, selecting contours from a scheme name.
+
+    ``aa=True`` anti-aliases the contour bands over one **mesh cell** (the surface is colored per
+    vertex, so a cell is the footprint here, exactly as a pixel is for the 2D raster).
+    """
+    from .phase import _d_logw, colorize
+
+    return colorize(
+        w, **{**_scheme_flags(scheme), **kw, "d_logw": _d_logw(w) if aa else None}
     )
 
 
@@ -210,14 +219,26 @@ class Space3D:
 
     # ── analytic landscape (3D phase portrait) ───────────────
     def landscape(
-        self, f, *, extent=None, res=140, scheme="enhanced", zmax=None, log=False, **kw
+        self,
+        f,
+        *,
+        extent=None,
+        res=140,
+        scheme="enhanced",
+        zmax=None,
+        log=False,
+        aa=True,
+        **kw,
     ):
         """Surface ``|f(z)|`` over the complex plane, colored by ``arg f(z)`` — a 3D phase portrait.
 
         ``extent`` defaults to the scene ``bounds``; the height is clipped to ``zmax`` (default =
         ``bounds``), or set ``log=True`` to plot ``log(1+|f|)`` when the modulus range is large.
+        ``aa=True`` anti-aliases the contour bands over each mesh cell (see :mod:`mathviz.phase`);
+        it matters more here than in 2D, because ``res`` is a mesh resolution and is typically far
+        coarser than the pixels the surface is drawn across.
         """
-        from .phase import colorize, domain
+        from .phase import domain
 
         E = self.view.bounds if extent is None else extent
         z = domain(E, res)
@@ -227,15 +248,7 @@ class Space3D:
         height = np.log1p(mod) if log else mod
         cap = self.view.bounds if zmax is None else zmax
         height = np.clip(np.nan_to_num(height, nan=cap, posinf=cap), 0, cap)
-        colors = (
-            colorize(w, **kw)
-            if kw
-            else colorize(
-                w,
-                phase_contours=(scheme in ("phase", "enhanced")),
-                modulus_contours=(scheme in ("modulus", "enhanced")),
-            )
-        )
+        colors = _scheme_colors(w, scheme, aa=aa, **kw)
         return self.surface(z.real, z.imag, height, colors=colors)
 
     # ── Riemann surfaces ─────────────────────────────────────
@@ -249,6 +262,7 @@ class Space3D:
         scheme="enhanced",
         height="im",
         height_scale=1.0,
+        aa=True,
     ):
         """The Riemann surface of the multivalued ``z^{1/n}`` (``√z`` for n=2).
 
@@ -263,7 +277,7 @@ class Space3D:
         w = RHO * np.exp(1j * PHI)
         z = w**n
         h = (w.imag if height == "im" else w.real) * height_scale
-        return self.surface(z.real, z.imag, h, colors=_scheme_colors(w, scheme))
+        return self.surface(z.real, z.imag, h, colors=_scheme_colors(w, scheme, aa=aa))
 
     def riemann_log(
         self,
@@ -275,6 +289,7 @@ class Space3D:
         ntheta=241,
         scheme="enhanced",
         height_scale=0.5,
+        aa=True,
     ):
         """The Riemann surface of ``log z`` — the infinite spiral **helicoid** (``sheets`` turns shown).
 
@@ -287,7 +302,7 @@ class Space3D:
         U, V = np.meshgrid(u, v, indexing="ij")
         z = np.exp(U + 1j * V)
         return self.surface(
-            z.real, z.imag, V * height_scale, colors=_scheme_colors(z, scheme)
+            z.real, z.imag, V * height_scale, colors=_scheme_colors(z, scheme, aa=aa)
         )
 
     # ── output ───────────────────────────────────────────────

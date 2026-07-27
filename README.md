@@ -36,6 +36,6 @@ The basics are to use:
 
 
 #### Future directions
-- quarto
+- quarto (can use jupyter as one of its formats too)
+- observable notebook
 - marimo notebooks: favor matplotlib, altar and plotly for visualization
-

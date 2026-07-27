@@ -19,6 +19,10 @@ Drawing is backend-neutral. A `Plane` records primitives; a backend renders them
 - **vedo** (VTK) — 2D parity with the `Geometry/` notebooks plus 3D (analytic landscapes, Riemann
   surfaces). Offscreen static PNG by default, or a **live, orbitable widget** when interactive.
 
+3D scenes are **z-up** (`Space3D(bounds=3, elev=22, azim=-60, up="z")`), so the height of a landscape
+is vertical and `elev`/`azim` mean the same thing in both backends; `up="y"` gives VTK's native
+orientation, with z out to the side.
+
 **Interactive rendering** (vedo). By default everything renders to a static PNG (so figures survive a
 headless `jupytext --execute` and show on GitHub). Opt into a live view per call or globally —
 `display(interactive=True)` gives a **live k3d widget in a Jupyter notebook**, or a **native, orbitable
@@ -76,11 +80,12 @@ field as arrows. By default arrows are **uniform length with magnitude shown by 
   and the `Plane` facade (grid/axes/vector/basis/segment/line/curve/points/text/raster). ✓
 - **Phase 2** — `maps.py`: `apply_matrix` (linear), `show_operator` (operators), `apply_complex`
   (conformal), unified as one push-forward, with clean pole/branch handling. ✓
-- **Phase 3** — Wegert phase portraits (`plain`/`phase`/`modulus`/`enhanced`) + `Raster` in the vedo
+- **Phase 3** — Wegert phase portraits (`plane`/`phase`/`modulus`/`enhanced`) + `Raster` in the vedo
   backend. ✓
 - **Phase 4** — 3D scene (`Space3D`, on vedo + mplot3d): analytic landscapes (`landscape`), 3D vector
   fields (`field`), and Riemann surfaces (`riemann_root`, `riemann_log`). ✓
 - **Phase 5** — migrate the `GeometricLinearAlgebra/` and `Geometry/` notebooks onto `mathviz`. 🚧
   Done: **all GLA `00`–`07`**. Pending: `Geometry/` notebooks.
 
-See [`docs/plans/`](docs/plans/) for the full roadmap, architecture notes, and backlog.
+See [`docs/plans/`](docs/plans/) for the full roadmap, architecture notes, and backlog, and
+[`CHANGELOG.md`](CHANGELOG.md) for notable changes (including behavior changes to existing figures).

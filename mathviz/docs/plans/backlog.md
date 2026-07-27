@@ -71,6 +71,39 @@ multi-sheeted **Riemann surfaces**. Requested by the user 2026-07-07; delivered 
   rotation / shear / squeeze / rotate-and-scale.
 - **Migrate existing notebooks** (Phase 5): delete the ~10 duplicated `Plane2D` / `new_plot` helpers in
   `GeometricLinearAlgebra/` and `Geometry/`; replace with `import mathviz`; re-verify renders.
+- **Phase-portrait anti-aliasing** ✅ *(delivered)*: contour bands looked jagged for **two** independent
+  reasons. (1) `Plane.phase_portrait` let `res` default below the pixel width the raster is stretched
+  across — it now defaults to `max(view.size)`. (2) The brightness ramp `_sawtooth` *resets
+  discontinuously* at each band edge, and point-sampling a step function aliases into a staircase at
+  **any** `res`; `interpolation="bilinear"` in the mpl backend cannot recover an edge whose sub-pixel
+  position was never measured. Fixed by **box-filtering the ramp exactly** over each pixel
+  (`aa=True`, default): `∫₀ˣ frac = ⌊x⌋/2 + frac(x)²/2` gives a closed form that → `frac(t)` as the
+  band width → 0 and → `1/2` as it → ∞, so sub-pixel contours fade to flat tone instead of moiré.
+  The band width comes from `|f'/f|` — **shared by both contour families**, since `d(log f) = (f'/f)dz`
+  splits into `d log|f|` (real) and `d arg f` (imaginary), which is also why `enhanced` cells are
+  square — and `f' = ∂f/∂x` for holomorphic `f`, so one `np.gradient` of the existing samples recovers
+  it with **zero extra evaluations of `f`**. Costs ~30% time (18.5 ms vs 14.0 ms at `res=600`).
+  *Measured against 3× supersampling:* SSAA needs 9× the evaluations, leaves brightness noise
+  unchanged (std 0.112 vs 0.118) and drifts the mean (0.577 vs the true 0.681 = 0.825²); analytic AA
+  gives std 0.011 and the exact mean. SSAA *does* smooth hue, which analytic AA leaves alone — only
+  visible near essential singularities. `aa=False` restores the old look.
+
+  *Follow-up — `Space3D` was left out.* `landscape` / `riemann_root` / `riemann_log` call `colorize`
+  directly, so they never got the new AA. Plumbed through (`aa=True` default). Doing so exposed that
+  the original `_d_logf` **silently assumed a holomorphic `(x, y)` sample grid**: it took only
+  `∂/∂axis1` and leaned on `b = i·a` to make one width serve both contour families. True for
+  `landscape`, false for the Riemann surfaces, which sample `(ρ, φ)` and `(u, v)` — on `riemann_log`'s
+  grid, axis 1 moves `log z` purely imaginarily (phase only) and axis 0 purely really (modulus only),
+  so the old formula would over-blur the modulus contours by **1.44×**. Replaced by `_d_logw(w) ->
+  (a, b)` (both axes), with `width_phase = hypot(Im a, Im b)` and `width_mod = hypot(Re a, Re b)`.
+  On a holomorphic grid `b = i·a` and both collapse back to `|f'/f|`, so **the 2D portraits are
+  unchanged** (99.9th pct Δrgb = 5e-4; the max is at poles where `np.gradient` is one-sided).
+  Also fixed: `landscape(**kw)` used to branch to `colorize(w, **kw)` and *silently drop `scheme`*;
+  and `_sawtooth` hit `inf - inf` (a RuntimeWarning) at exact zeros where `log|f| = -inf`.
+  *Measuring AA in 3D:* the mean of `|Δbrightness|` is a **bad** metric (0.0198 → 0.0180) — AA does not
+  lower a step's height, it grades the one cell straddling it. Count hard jumps instead: 557 → 116
+  (4.8×) at `res=140`, touching only 4.5% of cells. Mesh coarseness (`res=140` across a 720 px view)
+  remains a separate, additive cause of chunkiness — raise `res` for stills.
 - **Phase-portrait polish**: alternative color wheels (NIST/Wegert palettes), a `steps`/base control UI,
   and marking detected zeros/poles automatically.
 - **Riemann surfaces — further** (Phase 4+): beyond `riemann_root`/`riemann_log`, general algebraic

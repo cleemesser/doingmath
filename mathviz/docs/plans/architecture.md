@@ -3,9 +3,11 @@
 ## The unifying insight
 
 Three things that look separate across the notebooks are the **same operation**:
+a mapping of one space to another - usually a mapping to itself
 
 - `apply_matrix(M)` — push the grid through a **linear** map (linear algebra).
-- `show_operator(f)` — push grid + probe shape through a geometric **operator** (project/rotate/shear).
+- `show_operator(f)` — push the grid (+ an optional `probe_shape`) through a geometric **operator**
+  (project/rotate/shear).
 - `apply_complex(g)` — push the grid through a **complex** function (a conformal map).
 
 All are **"push the domain through a callable and draw the image."** And a **phase portrait** is the
@@ -37,11 +39,14 @@ matches the existing `Geometry/` look. Rather than pick one, the seam supports b
 - **matplotlib** — 2D, raster-native (`imshow` for phase portraits), native static PNG that embeds and
   renders on GitHub. The default.
 - **vedo** (VTK) — 2D parity with `Geometry/`, plus the path to 3D (Phase 4). Renders **offscreen** to a
-  static PNG, displayed inline via IPython (so figures survive a headless `jupytext --execute`).
+  static PNG, displayed inline via IPython (so figures survive a headless
+  `jupytext --execute`).
+  - also supports interactive figures: either through the k3d backend in the
+    browser/notebook, or via a separate vtk/ipyvtklink backend as a desktop app
 
 Both render the *same* `Scene`; only the translation to pixels differs. Render tests are parametrized
 over both to keep them at parity.
-
+- note currenly text outputs only approximate one another
 ## Packaging
 
 `mathviz/` is an editable sub-package (its own `pyproject.toml`, **src layout** at

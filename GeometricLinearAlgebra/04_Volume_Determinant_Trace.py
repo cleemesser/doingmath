@@ -41,6 +41,7 @@
 # %%
 import numpy as np
 import sympy as sp
+
 sp.init_printing()
 from scipy.linalg import expm
 import mathviz as mv  # shared plane-viz library (see ../mathviz)
@@ -294,7 +295,9 @@ def trace_by_wedge(A):
     return (wedge3(A @ u, v, w) + wedge3(u, A @ v, w) + wedge3(u, v, A @ w)) / base
 
 
-M = rng.normal(size=(3, 3)).round(2) # generate a random 3x3 matrix.  substitute your own to play with it.
+M = rng.normal(size=(3, 3)).round(
+    2
+)  # generate a random 3x3 matrix.  substitute your own to play with it.
 print("For matrix, M:")
 sp.Matrix(M)
 

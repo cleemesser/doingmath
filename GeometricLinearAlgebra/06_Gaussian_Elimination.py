@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -96,6 +96,8 @@ show(
 #
 # by carrying its **augmented matrix** $[A\,|\,b]$ to an upper-triangular (echelon) form. Each step
 # clears one entry below a pivot using the `"n->n+km"` operation; nothing else changes.
+
+# %%
 
 # %%
 Aug = Matrix([[2, 1, -1, 8], [-3, -1, 2, -11], [-2, 1, 2, -3]])

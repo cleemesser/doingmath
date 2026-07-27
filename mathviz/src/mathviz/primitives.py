@@ -131,13 +131,18 @@ class Polygon:
 # ── 3D primitives (rendered by a Space3D scene) ───────────────────────────────────
 @dataclass
 class View3D:
-    """A perspective 3D frame, roughly bounding [-bounds, bounds]³, viewed from (elev, azim)."""
+    """A perspective 3D frame, roughly bounding [-bounds, bounds]³, viewed from (elev, azim).
+
+    ``up`` names the world axis drawn vertically: ``"z"`` (the matplotlib/analytic-landscape
+    convention — height is up) or ``"y"`` (VTK's default, which lays z out to the side).
+    """
 
     bounds: float = 3.0
     bg: int = palette.BG
     size: tuple[int, int] = (720, 720)
     elev: float = 22.0
     azim: float = -60.0
+    up: str = "z"
 
 
 @dataclass

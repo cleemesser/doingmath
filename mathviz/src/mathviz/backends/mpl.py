@@ -81,7 +81,8 @@ class MatplotlibBackend(Backend):
         ax = fig.add_subplot(111, projection="3d")
         fig.patch.set_facecolor(bg)
         ax.set_facecolor(bg)
-        ax.view_init(elev=view.elev, azim=view.azim)
+        # mplot3d is z-up by default; vertical_axis mirrors Space3D(up=...) for the other choices
+        ax.view_init(elev=view.elev, azim=view.azim, vertical_axis=view.up)
 
         tails, dirs, cols, pts3 = [], [], [], []
         for prim in scene.primitives:

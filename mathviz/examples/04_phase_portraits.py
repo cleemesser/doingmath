@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -23,7 +23,7 @@
 #
 # | scheme | shows |
 # |--------|-------|
-# | `plain` | hue only — the bare phase |
+# | `plane` | hue only — the bare phase |
 # | `phase` | + phase contours (constant-argument bands) |
 # | `modulus` | + modulus contours (log-spaced constant-`|f|` bands) |
 # | `enhanced` | **both**, spaced equally → conformal little squares *(default)* |
@@ -42,16 +42,16 @@ from mathviz import primitives as P
 # Same function, four levels of enhancement — from bare hue to the conformal grid.
 
 # %%
-for scheme in ["plain", "phase", "modulus", "enhanced"]:
+for scheme in ["plane", "phase", "modulus", "enhanced"]:
     p = mv.Plane(extent=2, grid=False, axes=False)
     p.phase_portrait(lambda z: z, res=400, scheme=scheme).text([-1.9, 1.7], scheme)
     p.display()
 
 # the schemes really differ, and contours only ever darken (same hue, lower brightness)
 z = phase.domain(2.0, 120)
-plain = phase.colorize(z, phase_contours=False, modulus_contours=False)
+plane = phase.colorize(z, phase_contours=False, modulus_contours=False)
 enhanced = phase.colorize(z)
-assert (enhanced <= plain + 1e-9).all() and enhanced.mean() < plain.mean()
+assert (enhanced <= plane + 1e-9).all() and enhanced.mean() < plane.mean()
 print("schemes differ; enhancement only darkens (adds contour lines) ✓")
 
 # %% [markdown]
@@ -112,7 +112,10 @@ mv.Plane(extent=2, grid=False, axes=False, backend="vedo").phase_portrait(
 print("vedo raster path OK — grid composes over the portrait ✓")
 
 # %% [markdown]
-# **Recap.** `phase_portrait(f, scheme=…)` gives the plain / phase / modulus / enhanced Wegert
+# **Recap.** `phase_portrait(f, scheme=…)` gives the plane / phase / modulus / enhanced Wegert
 # portraits; zeros and poles are legible by the direction and count of the hue cycles, verified here
 # by winding numbers. Next up (Phase 4): the 3D **analytic landscape** — the modulus surface colored
 # by this same phase.
+
+# %% [markdown]
+#

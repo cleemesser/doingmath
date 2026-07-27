@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -38,13 +38,13 @@ from mathviz import primitives as P
 
 # %%
 mv.Space3D(bounds=2.5).landscape(
-    lambda z: z**2, res=110, zmax=3
+    lambda z: z**2, res=2 * 110, zmax=3
 ).display()  # double zero at 0
 mv.Space3D(bounds=2.5).landscape(
     lambda z: (z**2 - 1) / (z**2 + 1), res=120, zmax=3
 ).display()  # zeros ±1, poles ±i
 mv.Space3D(bounds=3).landscape(
-    np.sin, res=130, zmax=4, log=True
+    np.sin, res=2 * 130, zmax=4, log=True
 ).display()  # zeros at kπ (log height)
 
 # a landscape is a colored Surface capped at zmax and finite even through poles
@@ -119,7 +119,7 @@ print("√z: two sheets (±height) ✓   log z: helicoid rising 2π per turn ✓
 
 # %%
 mv.Space3D(bounds=2.5, backend="mpl").landscape(
-    lambda z: (z**2 - 1) / (z**2 + 1), res=80, zmax=3
+    lambda z: (z**2 - 1) / (z**2 + 1), res=300, zmax=3
 ).display()
 print("matplotlib mplot3d path OK — same landscape ✓")
 
@@ -128,3 +128,9 @@ print("matplotlib mplot3d path OK — same landscape ✓")
 # phase portrait (surface `|f|` colored by `arg f`), and `field(f)` draws 3D vector fields with the
 # same uniform-length, color-by-magnitude convention as 2D — on both backends. And `riemann_root` /
 # `riemann_log` draw multi-sheeted **Riemann surfaces** (√z, ∛z, log z) colored by phase.
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#

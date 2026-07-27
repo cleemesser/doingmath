@@ -20,7 +20,7 @@ pole/branch handling (non-finite → split the drawn curve). Also `vector_field`
 (`normalize=True`, `cmap="viridis"`).
 
 ### ✅ Phase 3 — phase portraits (Wegert)
-`phase.py`: domain coloring of complex functions. Schemes `plain` / `phase` / `modulus` / `enhanced`
+`phase.py`: domain coloring of complex functions. Schemes `plane` / `phase` / `modulus` / `enhanced`
 (hue = `arg f`; optional phase and log-modulus contours, equally spaced → conformal cells). Zeros are
 where hues meet CCW; poles render white. `Plane.phase_portrait(f, scheme=…)`; `Raster` now supported in
 the vedo backend (textured image behind the vector layer).

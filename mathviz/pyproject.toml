@@ -11,6 +11,14 @@ dependencies = [
     "pillow>=11.0.0",
 ]
 
+[project.optional-dependencies]
+# animate.py imports these lazily: ipywidgets only in scrubber(), scipy only in the
+# expm/logm-based geodesic_path(). GIF export needs neither (pillow is already core).
+interactive = [
+    "ipywidgets>=7.6",
+    "scipy>=1.10",
+]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

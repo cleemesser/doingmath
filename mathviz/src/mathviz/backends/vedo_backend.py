@@ -17,6 +17,35 @@ def _pad(xy):
     return np.column_stack([xy, np.zeros(len(xy))])
 
 
+def _take_zup(show_kw):
+    """Pull the private z-up flag back out of the show kwargs (it is ours, not vedo's)."""
+    return bool(show_kw.pop("zup", False))
+
+
+def _aim_zup(plt, view):
+    """Aim a Plotter's camera from ``(elev, azim)`` with world **+z** up (matplotlib's convention).
+
+    VTK's default camera is y-up, and ``show(elevation=, azimuth=)`` only rotates *relative* to it —
+    which leaves z pointing sideways. Setting the camera up front instead keeps z vertical. Only the
+    *direction* is set here: the following ``show(resetcam=True)`` slides the camera along it until
+    the scene fits, so no distance has to be computed.
+
+    No-op under a renderer-less display backend (k3d renders in JS, so ``Plotter.camera`` — a property
+    over ``renderer.GetActiveCamera()`` — is ``None`` until ``show()``; assigning to it is a no-op too).
+    """
+    cam = plt.camera
+    if cam is None:
+        return
+    e = np.radians(
+        np.clip(view.elev, -89.0, 89.0)
+    )  # ±90° would align the view with the up vector
+    a = np.radians(view.azim)
+    d = np.array([np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)])
+    focus = np.array(cam.GetFocalPoint(), dtype=float)
+    cam.SetPosition(*(focus + d))
+    cam.SetViewUp(0, 0, 1)
+
+
 class VedoBackend(Backend):
     name = "vedo"
 
@@ -199,14 +228,20 @@ class VedoBackend(Backend):
                     m.linewidth(prim.edgewidth).linecolor(hexstr(prim.edgecolor))
                 objects.append(m)
 
+        # z-up aims the camera before the scene is shown (see _aim_zup); y-up keeps VTK's default
+        # camera and rotates relative to it.
+        aim = (
+            {"zup": True}
+            if view.up == "z"
+            else {"elevation": view.elev, "azimuth": view.azim}
+        )
         return self._show(
             objects,
             view,
             save,
             interactive,
             vedo_display,
-            elevation=view.elev,
-            azimuth=view.azim,
+            **aim,
             axes=1,
             resetcam=True,
         )
@@ -229,6 +264,8 @@ class VedoBackend(Backend):
 
         vedo.settings.default_backend = "vtk"  # offscreen → static PNG
         plt = Plotter(offscreen=True, size=view.size, bg=hexstr(view.bg))
+        if _take_zup(show_kw):
+            _aim_zup(plt, view)
         plt.show(objects, **show_kw)
         arr = plt.screenshot(asarray=True)
         plt.close()
@@ -241,10 +278,16 @@ class VedoBackend(Backend):
         from vedo import Plotter
 
         vedo.settings.default_backend = vedo_display or "k3d"
+        zup = _take_zup(show_kw)
         live_kw = {
             k: v for k, v in show_kw.items() if k != "camera"
         }  # k3d ignores vtkCamera
-        return Plotter(size=view.size, bg=hexstr(view.bg)).show(objects, **live_kw)
+        plt = Plotter(size=view.size, bg=hexstr(view.bg))
+        if zup:
+            _aim_zup(
+                plt, view
+            )  # honored by the VTK-backed widgets; k3d has its own camera
+        return plt.show(objects, **live_kw)
 
     def _live_window(self, objects, view, show_kw):
         """A native, orbitable VTK window for a plain ``python script.py`` run (blocks until closed)."""
@@ -254,6 +297,8 @@ class VedoBackend(Backend):
 
         vedo.settings.default_backend = "vtk"
         plt = Plotter(size=view.size, bg=hexstr(view.bg), title="mathviz")
+        if _take_zup(show_kw):
+            _aim_zup(plt, view)
         plt.show(
             objects, **{**show_kw, "interactive": True}
         )  # blocks: drag to orbit, close to continue

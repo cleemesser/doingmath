@@ -25,7 +25,7 @@ from .backends import (
     set_interactive,
     set_vedo_display,
 )
-from .maps import FLAG, UNIT_SQUARE, unit_circle
+from .maps import FLAG, UNIT_SQUARE, ProbeShape, unit_circle
 from .notebook import show_expr
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
 from .phase import phase_portrait
@@ -57,6 +57,7 @@ __all__ = [
     "primitives",
     "FLAG",
     "UNIT_SQUARE",
+    "ProbeShape",
     "unit_circle",
     "BLUE",
     "ORANGE",

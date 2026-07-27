@@ -14,11 +14,18 @@ singularity cleanly breaks the line instead of streaking to infinity.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 
 from . import palette
 
 # ── probe shapes (reused for "watch what the map does to a recognizable figure") ──
+#: What every ``probe_shape`` argument accepts: ``None`` for no probe, or anything ``np.asarray``
+#: turns into an ``(N,2)`` array of ``(x, y)`` points — an ndarray, a list of pairs, a tuple of
+#: tuples. Repeat the first point at the end to close the outline.
+ProbeShape = np.ndarray | Sequence[Sequence[float]] | None
+
 #: An asymmetric "flag on a pole" — chirality/orientation are instantly legible.
 FLAG = np.array(
     [[0.0, 0.0], [0.0, 2.0], [1.2, 1.6], [0.6, 1.2], [0.0, 1.2], [0.0, 0.0]]
@@ -158,13 +165,20 @@ def push(
     samples=100,
     faint=True,
     faint_color=palette.FAINT,
-    shape=None,
+    probe_shape: ProbeShape = None,
+    probe_shape_color: int | None = None,
     basis=False,
     basis_labels=("f(e1)", "f(e2)"),
 ):
     """Draw the image of the domain (grid / probe shape / basis) under ``f`` onto ``plane``.
 
     ``f`` may be a 2×2 matrix or a point-map ``(N,2)->(N,2)``. Returns ``plane`` (chainable).
+
+    ``probe_shape`` is the recognizable figure carried through the map — ``None`` for no probe, or
+    anything ``np.asarray`` turns into an ``(N,2)`` array of points (a list of ``(x, y)`` pairs, an
+    ``(N,2)`` ndarray, …), such as :data:`FLAG` or :data:`UNIT_SQUARE`. Repeat the first point at the
+    end to close it. ``probe_shape_color`` colors the probe's *image* — it defaults to ``color``,
+    the grid image's color; the faint pre-image follows ``faint_color`` either way.
     """
     fmap = as_pointmap(f)
     E = plane.view.extent
@@ -176,12 +190,13 @@ def push(
             for run in _finite_runs(fmap(ln)):
                 plane.curve(run, color=color, width=width)
 
-    if shape is not None:
-        shape = np.asarray(shape, float).reshape(-1, 2)
+    if probe_shape is not None:
+        probe_shape = np.asarray(probe_shape, float).reshape(-1, 2)
         if faint:
-            plane.curve(shape, color=faint_color, width=1.6, alpha=0.9)
-        for run in _finite_runs(fmap(shape)):
-            plane.curve(run, color=color, width=width + 1.0)
+            plane.curve(probe_shape, color=faint_color, width=1.6, alpha=0.9)
+        pc = color if probe_shape_color is None else probe_shape_color
+        for run in _finite_runs(fmap(probe_shape)):
+            plane.curve(run, color=pc, width=width + 1.0)
 
     if basis:
         for e, bc, lab in (
@@ -204,9 +219,13 @@ def apply_complex(plane, g, **kw):
     return push(plane, from_complex(g), **kw)
 
 
-def show_operator(plane, f, *, shape=FLAG, **kw):
-    """Geometric-operator view: faint original grid+shape beside their bold image under ``f``."""
-    return push(plane, f, shape=shape, **kw)
+def show_operator(plane, f, *, probe_shape: ProbeShape = None, **kw):
+    """Geometric-operator view: faint original grid (+probe) beside their bold image under ``f``.
+
+    ``probe_shape`` is off by default; pass :data:`FLAG` (asymmetric, so a flip or shear is legible
+    at a glance), :data:`UNIT_SQUARE`, or any array of points — see :func:`push`.
+    """
+    return push(plane, f, probe_shape=probe_shape, **kw)
 
 
 def vector_field(

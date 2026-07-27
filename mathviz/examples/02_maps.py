@@ -52,8 +52,13 @@ print("uniform scale ×2: det = 4 (area ×4)")
 # %% [markdown]
 # ## 2. Geometric operators — `show_operator`
 #
-# `show_operator` overlays a faint domain grid + probe shape with their bold image. A **projection**
-# collapses the plane onto a line (non-invertible, det 0); a **rotation** preserves lengths.
+# `show_operator` overlays a faint domain grid with its bold image. A **projection** collapses the
+# plane onto a line (non-invertible, det 0); a **rotation** preserves lengths.
+#
+# Pass `probe_shape=` to carry a recognizable figure along — here `mv.FLAG`, an asymmetric "flag on a
+# pole" whose chirality makes flips and shears legible (`mv.UNIT_SQUARE`, or any array of points,
+# work too; the default is `None`, i.e. grid only). `probe_shape_color=` colors its image separately
+# from the grid's.
 
 
 # %%
@@ -65,7 +70,10 @@ def projection_onto(a):
 
 
 mv.Plane(extent=3, grid=False).show_operator(
-    projection_onto([1, 0.5]), color=mv.ORANGE
+    projection_onto([1, 0.5]),
+    color=mv.ORANGE,
+    probe_shape=mv.FLAG,
+    probe_shape_color=mv.GREEN,
 ).display()
 # projection is idempotent: P(P x) == P x
 Pm = projection_onto([1, 0.5])
@@ -76,7 +84,7 @@ print("projection is idempotent ✓  (the flag collapses onto the line)")
 theta = np.deg2rad(40)
 R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 mv.Plane(extent=3, grid=False).show_operator(
-    maps.from_matrix(R), color=mv.BLUE
+    maps.from_matrix(R), color=mv.BLUE, probe_shape=mv.FLAG
 ).display()
 assert np.allclose(R.T @ R, np.eye(2))  # orthogonal ⇒ preserves lengths
 print("rotation is orthogonal ✓")

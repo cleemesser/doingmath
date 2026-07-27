@@ -43,7 +43,7 @@ import io
 
 import numpy as np
 
-from .maps import UNIT_SQUARE, push
+from .maps import UNIT_SQUARE, ProbeShape, push
 from .plane import Plane
 
 __all__ = [
@@ -335,7 +335,8 @@ def animate_matrix(
     kind: str = "polar",
     extent: float = 3.0,
     n: int = 24,
-    shape=UNIT_SQUARE,
+    probe_shape: ProbeShape = UNIT_SQUARE,
+    probe_shape_color: int | None = None,
     size=(560, 560),
     step: float = 1.0,
     basis: bool = True,
@@ -346,6 +347,9 @@ def animate_matrix(
     The view is pinned to ``±extent``, so the grid warps without the camera rescaling. Straight lines
     stay straight under a linear map, so each gridline needs only its two endpoints — that is what
     keeps 24 frames fast.
+
+    ``probe_shape`` (``None``, or any points ``np.asarray`` accepts — see :func:`mathviz.maps.push`)
+    is the figure carried along; it defaults to the unit square, whose image area is ``det M(t)``.
     """
     at = matrix_path(M, kind)
 
@@ -354,7 +358,8 @@ def animate_matrix(
         return push(
             plane,
             at(t),
-            shape=shape,
+            probe_shape=probe_shape,
+            probe_shape_color=probe_shape_color,
             basis=basis,
             basis_labels=("M(t) e1", "M(t) e2"),
             step=step,

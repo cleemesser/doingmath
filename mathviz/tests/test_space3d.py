@@ -122,3 +122,131 @@ def test_render_3d_nonblank(tmp_path, be):
     )
     arr = np.asarray(Image.open(out).convert("RGB"))
     assert int((arr > 20).sum()) > 500
+
+
+# ── analytic anti-aliasing of the surface contour bands ───────────────
+def _value(colors):
+    import matplotlib.colors as mcolors
+
+    return mcolors.rgb_to_hsv(np.clip(colors, 0, 1))[..., 2]
+
+
+def _hard_edges(colors, thresh=0.25):
+    """Count cells where brightness *jumps* between neighbours — the visible staircase.
+
+    Deliberately not the mean of |diff|: anti-aliasing does not lower the *height* of a step edge,
+    it gives the single cell straddling the edge an intermediate value proportional to its coverage.
+    The mean over all cells therefore barely moves (0.0198 -> 0.0180) while the count of hard,
+    un-graded edges collapses (557 -> 116). Only the second measures jaggedness.
+    """
+    return int((np.abs(np.diff(_value(colors), axis=1)) > thresh).sum())
+
+
+F = lambda z: (z**2 - 1) / (z**2 + 1)  # noqa: E731
+
+
+def test_landscape_anti_aliases_the_contour_bands_by_default():
+    aliased = Space3D(bounds=2.5).landscape(F, res=140, aa=False).primitives[-1].colors
+    smooth = Space3D(bounds=2.5).landscape(F, res=140, aa=True).primitives[-1].colors
+    assert not np.allclose(aliased, smooth)
+    assert _hard_edges(smooth) < _hard_edges(aliased) / 2  # the staircase collapses
+
+
+def test_landscape_aa_only_touches_the_cells_straddling_a_band_edge():
+    """Correct AA is local: interior-of-band cells already hold the exact average."""
+    aliased = Space3D(bounds=2.5).landscape(F, res=140, aa=False).primitives[-1].colors
+    smooth = Space3D(bounds=2.5).landscape(F, res=140, aa=True).primitives[-1].colors
+    changed = (np.abs(aliased - smooth).max(axis=-1) > 0.02).mean()
+    assert 0.005 < changed < 0.15  # a thin skin of edge cells, not a global blur
+
+
+def test_landscape_aa_is_on_by_default():
+    a = Space3D(bounds=2).landscape(F, res=60).primitives[-1].colors
+    b = Space3D(bounds=2).landscape(F, res=60, aa=True).primitives[-1].colors
+    assert np.allclose(a, b)
+
+
+def test_landscape_aa_leaves_the_hue_alone():
+    import matplotlib.colors as mcolors
+
+    hues = [
+        mcolors.rgb_to_hsv(
+            np.clip(
+                Space3D(bounds=2).landscape(F, res=60, aa=x).primitives[-1].colors, 0, 1
+            )
+        )[..., 0]
+        for x in (False, True)
+    ]
+    assert np.allclose(*hues)  # AA filters brightness only
+
+
+def test_landscape_kwargs_no_longer_clobber_the_scheme():
+    """Passing `steps` used to drop into `colorize(w, **kw)` and silently lose `scheme`."""
+    plane = (
+        Space3D(bounds=2)
+        .landscape(F, res=60, scheme="plane", steps=8)
+        .primitives[-1]
+        .colors
+    )
+    enhanced = (
+        Space3D(bounds=2)
+        .landscape(F, res=60, scheme="enhanced", steps=8)
+        .primitives[-1]
+        .colors
+    )
+    assert _value(plane).std() < 1e-9  # 'plane' = hue only, brightness flat at 1
+    assert _value(enhanced).std() > 0.05  # 'enhanced' really has contour bands
+
+
+@pytest.mark.parametrize("aa", [False, True])
+def test_riemann_surfaces_accept_aa_and_stay_finite(aa):
+    for surf in (
+        Space3D(bounds=2).riemann_root(2, nr=20, ntheta=41, aa=aa),
+        Space3D(bounds=2).riemann_log(sheets=2, nr=20, ntheta=41, aa=aa),
+    ):
+        colors = surf.primitives[-1].colors
+        assert np.isfinite(colors).all() and colors.min() >= 0 and colors.max() <= 1
+
+
+def test_riemann_log_aa_reduces_the_staircase():
+    rough = (
+        Space3D(bounds=2.5)
+        .riemann_log(sheets=2, nr=60, ntheta=241, aa=False)
+        .primitives[-1]
+        .colors
+    )
+    smooth = (
+        Space3D(bounds=2.5)
+        .riemann_log(sheets=2, nr=60, ntheta=241, aa=True)
+        .primitives[-1]
+        .colors
+    )
+    assert _hard_edges(smooth) < _hard_edges(rough)
+
+
+def test_riemann_log_uses_a_different_width_per_contour_family():
+    """On the (u, v) grid the phase and modulus footprints genuinely differ; one width over-blurs.
+
+    Forcing the holomorphic shortcut b = i*a onto this grid must give a different (wrong) result.
+    """
+    from mathviz.phase import _d_logw, colorize
+
+    u = np.linspace(np.log(0.12), np.log(2.5), 60)
+    v = np.linspace(0, 4 * np.pi, 241)
+    U, V = np.meshgrid(u, v, indexing="ij")
+    z = np.exp(U + 1j * V)
+    a, b = _d_logw(z)
+    correct = colorize(z, d_logw=(a, b))
+    forced = colorize(z, d_logw=(a, 1j * a))
+    assert not np.allclose(correct, forced)
+
+
+def test_riemann_root_branch_point_does_not_produce_nans():
+    """w = 0 at the branch point makes log w singular; the AA width must not leak a NaN."""
+    colors = (
+        Space3D(bounds=2)
+        .riemann_root(2, nr=30, ntheta=61, aa=True)
+        .primitives[-1]
+        .colors
+    )
+    assert np.isfinite(colors).all()

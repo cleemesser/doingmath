@@ -66,9 +66,12 @@ class Space3D:
         size=(720, 720),
         elev=22.0,
         azim=-60.0,
+        up="z",
     ):
+        """``up`` picks the vertical axis: ``"z"`` (default — |f| points up in a landscape) or
+        ``"y"`` (VTK's native orientation, where z lies to the side)."""
         self.view = P.View3D(
-            bounds=float(bounds), bg=bg, size=size, elev=elev, azim=azim
+            bounds=float(bounds), bg=bg, size=size, elev=elev, azim=azim, up=up
         )
         self.primitives: list = []
         self._backend = backend

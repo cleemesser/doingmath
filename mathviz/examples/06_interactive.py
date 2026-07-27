@@ -23,6 +23,8 @@
 # > **Run this notebook live.** The interactive cells below render as widgets only in a running Jupyter
 # > frontend (Lab/Notebook). In a static export (GitHub, `jupytext --execute`) they won't show an image —
 # > that's expected. The **static** cells embed a normal PNG for reference.
+# Note that this runs best for me in a real jupyter notebook or jupyter lab notebook
+#   - some features run inside a vscode jupyter window
 
 # %%
 import numpy as np
@@ -56,13 +58,24 @@ mv.Space3D(bounds=3).parallelepiped(o, a, b, c, facecolor=mv.ORANGE).display(
 # - `mv.set_interactive(True | False | "auto")` — global default. **`"auto"`** is the ergonomic choice:
 #   **live in a notebook, static when headless** (it consults `mv.in_notebook()`).
 # - `mv.set_vedo_display("k3d" | "trame" | "ipyvtklink")` — pick vedo's live display backend.
+#   `k3d` renders in JS and carries its own camera, so it starts from *its* default view; `trame`
+#   keeps a live VTK renderer and so honors mathviz's z-up `(elev, azim)`.
 
+# the vedo ipyvtklink backend si the most robust as it handles images correctly, but it opens a new window to display graphics and thus requires an active desktop display.
+# the k3d backend works pretty well, but 2D images are not currently handled well
+# TODO: add on image handling to the k3d code -- likely using textures to do so
+#  see plt_texture = k3d.texture(binary=image_data, file_format='png')
+#     plot = k3d.plot(); plot += plt_texture; plot.display()
 # %%
 mv.set_interactive("auto")  # live here in Jupyter, static under jupytext --execute
-mv.Space3D(bounds=3).field(
-    lambda P: np.c_[-P[:, 1], P[:, 0], 0.3 * P[:, 2]], n=6
-).display()
-mv.set_interactive(False)  # restore the static default for the rest of the notebook
+try:
+    mv.Space3D(bounds=3).field(
+        lambda P: np.c_[-P[:, 1], P[:, 0], 0.3 * P[:, 2]], n=6
+    ).display()
+finally:
+    mv.set_interactive(False)  # restore the static default even if the render raises
+
+# TODO: suppress INFO in helpers: "converting int64 array to in32 for JS compatibility"
 
 # %% [markdown]
 # ## An analytic landscape you can orbit
@@ -85,9 +98,13 @@ mv.Space3D(bounds=2.5).landscape(f, res=120, zmax=3).display(
 # a phase portrait sits in the plane.
 
 # %%
+mv.set_vedo_display(
+    "ipyvtklink"
+)  # this handles images while k3d backend does not currently
 mv.Plane(extent=2, grid=False, axes=False, backend="vedo").phase_portrait(
     f, res=300
 ).display(interactive=True)
+# will need to use textures to emmulate images in k3d I think - clm
 
 # %% [markdown]
 # ## Under the hood

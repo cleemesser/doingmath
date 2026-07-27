@@ -175,7 +175,7 @@ def build(t):
     plane = mv.Plane(extent=3, grid=False)
     for k in range(2):  # the invariant eigendirections
         plane.line((0, 0), vecs[:, k], color=mv.PURPLE, width=1.5, alpha=0.5)
-    return plane.push(at(t), shape=mv.UNIT_SQUARE, basis=True, samples=2)
+    return plane.push(at(t), probe_shape=mv.UNIT_SQUARE, basis=True, samples=2)
 
 
 mv.scrubber(build, n=24, ping_pong=True)
@@ -214,7 +214,7 @@ shear_at = geodesic_path(SHEAR)
 out = Path(tempfile.mkdtemp()) / "shear.gif"
 mv.to_gif(
     lambda t: mv.Plane(extent=3, grid=False, size=(360, 360)).push(
-        shear_at(t), shape=mv.UNIT_SQUARE, basis=True, samples=2
+        shear_at(t), probe_shape=mv.UNIT_SQUARE, basis=True, samples=2
     ),
     out,
     n=20,

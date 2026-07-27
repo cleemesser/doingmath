@@ -72,7 +72,7 @@ def _sawtooth(t, low=0.65, width=None):
     degenerate = degenerate | ~np.isfinite(w)
     w = np.clip(np.where(np.isfinite(w), w, 1.0), 0.0, 1e6)
 
-    tiny = w < 1e-9  # avoid 0/0; the limit is the plane point sample
+    tiny = w < 1e-9  # avoid 0/0; the limit is the unfiltered point sample
     safe = np.where(tiny, 1.0, w)
     avg = (_frac_integral(t + safe / 2) - _frac_integral(t - safe / 2)) / safe
     avg = np.where(tiny, t % 1.0, avg)

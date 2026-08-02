@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -86,6 +86,18 @@ show(
     M0.elementary_row_op("n->n+km", row1=1, row2=0, k=-Rational(1, 2)),
     "R1 → R1 − ½·R0  (eliminate an entry):",
 )
+
+# %%
+scale0 = Matrix([[1/2, 0, 0], [0,1,0],[0,0,1]])
+scale0
+
+# %%
+scale0 @ M0
+
+# %%
+M0 @ scale0
+
+# %%
 
 # %% [markdown]
 # ## 2. Forward elimination to row-echelon form

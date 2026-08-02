@@ -163,10 +163,15 @@ def push(
     grid=True,
     step=1.0,
     samples=100,
+    alpha=1.0,
     faint=True,
     faint_color=palette.FAINT,
+    faint_alpha=0.9,
     probe_shape: ProbeShape = None,
     probe_shape_color: int | None = None,
+    probe_shape_alpha: float | None = None,
+    probe_faint_color: int | None = None, # before transform
+    probe_faint_alpha: float | None = None, # before transform
     basis=False,
     basis_labels=("f(e1)", "f(e2)"),
 ):
@@ -177,8 +182,17 @@ def push(
     ``probe_shape`` is the recognizable figure carried through the map — ``None`` for no probe, or
     anything ``np.asarray`` turns into an ``(N,2)`` array of points (a list of ``(x, y)`` pairs, an
     ``(N,2)`` ndarray, …), such as :data:`FLAG` or :data:`UNIT_SQUARE`. Repeat the first point at the
-    end to close it. ``probe_shape_color`` colors the probe's *image* — it defaults to ``color``,
-    the grid image's color; the faint pre-image follows ``faint_color`` either way.
+    end to close it.
+
+    Everything is drawn twice — once faint for the **pre-image** (the domain, before ``f``) and once
+    bold for the **image** — and the styling splits along that seam. ``color``/``alpha`` style the
+    image, ``faint_color``/``faint_alpha`` the pre-image. The probe overrides each of those four
+    independently of the grid: ``probe_shape_color``/``probe_shape_alpha`` for its image and
+    ``probe_faint_color``/``probe_faint_alpha`` for its pre-image. Each probe override defaults to
+    ``None``, meaning "follow the grid", so a purple original flag over neutral grid lines is::
+
+        plane.show_operator(f, probe_shape=FLAG, probe_faint_color=palette.PURPLE,
+                            probe_faint_alpha=0.4, probe_shape_color=palette.GREEN)
     """
     fmap = as_pointmap(f)
     E = plane.view.extent
@@ -186,17 +200,25 @@ def push(
     if grid:
         for ln in domain_gridlines(E, step=step, samples=samples):
             if faint:
-                plane.curve(ln, color=faint_color, width=1.0, alpha=0.9)
+                plane.curve(ln, color=faint_color, width=1.0, alpha=faint_alpha)
             for run in _finite_runs(fmap(ln)):
-                plane.curve(run, color=color, width=width)
+                plane.curve(run, color=color, width=width, alpha=alpha)
 
     if probe_shape is not None:
         probe_shape = np.asarray(probe_shape, float).reshape(-1, 2)
+        # Each probe knob falls back to its grid counterpart, so the probe is styled apart from the
+        # grid only where explicitly asked.
         if faint:
-            plane.curve(probe_shape, color=faint_color, width=1.6, alpha=0.9)
+            plane.curve(
+                probe_shape,
+                color=faint_color if probe_faint_color is None else probe_faint_color,
+                width=1.6,
+                alpha=faint_alpha if probe_faint_alpha is None else probe_faint_alpha,
+            )
         pc = color if probe_shape_color is None else probe_shape_color
+        pa = alpha if probe_shape_alpha is None else probe_shape_alpha
         for run in _finite_runs(fmap(probe_shape)):
-            plane.curve(run, color=pc, width=width + 1.0)
+            plane.curve(run, color=pc, width=width + 1.0, alpha=pa)
 
     if basis:
         for e, bc, lab in (

@@ -141,15 +141,14 @@ print("⟨u,v⟩² + (u∧v)² − ‖u‖²‖v‖²  =", simplify(lhs - rhs), 
 # the wedge is exactly the determinant of the matrix [u | v]
 print("u ∧ v == det[u v]:", simplify(wedge - u.row_join(v).det()) == 0)
 
-# an exact angle, where numpy would only give a decimal
-uu, vv = Matrix([1, 2, 2]), Matrix([2, 0, -1])
+# an exact angle, where numpy would only give a decimal.
+# (1,2,2) and (2,2,1) both have norm 3 and dot product 8, so cos = 8/9 exactly — an
+# angle with no closed form, held exactly anyway. Note the vectors must NOT be
+# orthogonal for this to make its point: (1,2,2)·(2,0,−1) = 2 + 0 − 2 = 0 would give a
+# dull π/2.
+uu, vv = Matrix([1, 2, 2]), Matrix([2, 2, 1])
 cos_ang = (uu.T * vv)[0] / (uu.norm() * vv.norm())
-print(
-    "\nexact cos(angle) between (1,2,2) and (2,0,−1):",
-    cos_ang,
-    "=",
-    sp.nsimplify(cos_ang),
-)
+print("\nexact cos(angle) between (1,2,2) and (2,2,1):", cos_ang)
 print("exact angle:", sp.acos(cos_ang), "≈", float(sp.acos(cos_ang)), "rad")
 
 # picture: the wedge as the signed area of the parallelogram on u and v
@@ -279,6 +278,6 @@ print(
 #
 # The lesson of the symbolic view: **a `simplify(... ) == 0` on a matrix of symbols is a proof for all
 # inputs**, where `np.allclose` only ever checks one sample. SymPy's exact arithmetic also keeps the
-# geometry honest — angles come out as `acos(5/9)`, eigenvalues as `x ± iy`, determinants as `x²+y²` —
+# geometry honest — angles come out as `acos(8/9)`, eigenvalues as `x ± iy`, determinants as `x²+y²` —
 # so the structure stays visible instead of dissolving into floating-point noise. Use it alongside the
 # numerical notebooks: `numpy` to *see and compute*, SymPy to *prove and understand*.

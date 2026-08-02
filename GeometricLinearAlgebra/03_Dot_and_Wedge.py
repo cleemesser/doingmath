@@ -22,7 +22,7 @@
 #
 # - the **dot product** $\langle u,v\rangle = |u||v|\cos\theta$ — **symmetric**, measuring *length and
 #   angle* (how aligned the arrows are);
-# - the **wedge product** $u\wedge v = |u||v|\sin\theta$ — **antisymmetric**, measuring *signed area*
+# - the **wedge product** $|u\wedge v | = |u||v||\sin\theta|$ — **antisymmetric**, measuring *signed area*
 #   (how much the arrows splay apart, and in which orientation).
 #
 # The slogan: **dot is the symmetric part, wedge is the antisymmetric part, of multiplying two

@@ -5,13 +5,21 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "anywidget>=0.11.0",
     "bokeh>=3.9.1",
     "clifford>=1.5.1",
     "ipykernel>=7.3.0",
     "ipyvtklink>=0.2.3",
+    "ipywidgets>=7.8.5",
     "jupyter>=1.1.1",
     "jupytext>=1.19.1",
     "k3d>=2.17.0",
+    "kingdon>=2.1.1",
+    # marimo notebooks (GeometricLinearAlgebra/*_marimo.py) run in *this* environment
+    # rather than a --sandbox venv, so that they can `import mathviz as mv` and reuse
+    # the same Plane/Space3D scenes as the paired jupytext notebooks.
+    "marimo>=0.23.3",
+    "mathviz",
     "matplotlib>=3.11.0",
     "numpy>=2.4.6",
     "pandas>=3.0.3",
@@ -28,10 +36,19 @@ dependencies = [
     "trame-vtk<2.6",
     "trame-vuetify<3",
     "vedo>=2026.6.1",
+    "wigglystuff>=0.5.23",
     "xarray>=2026.4.0",
 ]
 
 [dependency-groups]
 dev = [
     "meson>=1.11.1",
+    "pytest>=8.0",
 ]
+
+[tool.uv.sources]
+mathviz = { path = "mathviz", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["mathviz/tests"]
+addopts = "-q"

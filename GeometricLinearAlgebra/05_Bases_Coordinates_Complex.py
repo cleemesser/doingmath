@@ -37,7 +37,7 @@
 # %%
 import numpy as np
 from scipy.linalg import expm
-import k3d
+import mathviz as mv  # shared plane-viz library (see ../mathviz)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -57,58 +57,48 @@ LABELC = 0xCCCCCC
 
 
 # %%
-def _to3(pts):
-    pts = np.asarray(pts, dtype=np.float32)
-    if pts.shape[-1] == 3:
-        return pts
-    zeros = np.zeros(pts.shape[:-1] + (1,), dtype=np.float32)
-    return np.concatenate([pts, zeros], axis=-1)
-
-
+# Thin adapters over the shared `mathviz` library, keeping this notebook's original drawing
+# calls (new_plot / add_line / add_vector / add_points / show_operator) intact.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
-    plot = k3d.plot(
-        background_color=BG, grid_color=GRIDC, label_color=LABELC,
-        grid_visible=grid, camera_auto_fit=not top_down, menu_visibility=False,
-    )
-    if top_down:
-        plot.camera = [0, 0, 2.6 * lim, 0, 0, 0, 0, 1, 0]
-    if axes:
-        add_line(plot, np.array([[-lim, 0], [lim, 0]]), GREY, width=0.012)
-        add_line(plot, np.array([[0, -lim], [0, lim]]), GREY, width=0.012)
-    return plot
+    return mv.Plane(extent=lim, grid=grid, axes=axes)
 
 
 def add_line(plot, pts, color, width=0.02, alpha=1.0):
-    plot += k3d.line(_to3(pts), color=color, width=width, shader="thick", opacity=alpha)
+    plot.curve(pts, color=color, width=max(1.0, width * 130), alpha=alpha)
+    return plot
 
 
 def add_vector(plot, tail, head, color, label=None, label_size=0.7):
-    tail3 = _to3(np.atleast_2d(tail))
-    head3 = _to3(np.atleast_2d(head))
-    plot += k3d.vectors(origins=tail3, vectors=(head3 - tail3), color=color, head_size=1.5, line_width=0.03)
-    if label:
-        pos = (tail3[0] + 0.55 * (head3[0] - tail3[0])).tolist()
-        plot += k3d.text(label, position=pos, color=color, size=label_size, label_box=False)
+    tail = np.asarray(tail, float).reshape(-1)
+    head = np.asarray(head, float).reshape(-1)
+    plot.vector(head - tail, origin=tail, color=color, label=label)
+    return plot
 
 
 def add_points(plot, pts, color, size=0.18):
-    plot += k3d.points(_to3(np.atleast_2d(pts)), color=color, point_size=size, shader="3d")
+    plot.points(np.atleast_2d(pts), color=color, size=max(5.0, size * 45))
+    return plot
 
 
-FLAG = np.array([[0.0, 0.0], [0.0, 1.6], [1.0, 1.3], [0.5, 1.0], [0.0, 1.0], [0.0, 0.0]])
+FLAG = np.array(
+    [[0.0, 0.0], [0.0, 1.6], [1.0, 1.3], [0.5, 1.0], [0.0, 1.0], [0.0, 0.0]]
+)
 
 
 def show_operator(matfunc, color, lim=2.0):
     """Overlay a unit grid (faint) with its image under a 2x2 matrix action (bold) + the flag."""
-    p = new_plot(lim=2.6 * lim, axes=True)
+    p = mv.Plane(extent=lim, grid=False, axes=True)
     ticks = np.linspace(-lim, lim, 9)
     s = np.linspace(-lim, lim, 30)
     for tk in ticks:
-        for ln in (np.stack([s, np.full_like(s, tk)], 1), np.stack([np.full_like(s, tk), s], 1)):
-            add_line(p, ln, FAINT, width=0.01)
+        for ln in (
+            np.stack([s, np.full_like(s, tk)], 1),
+            np.stack([np.full_like(s, tk), s], 1),
+        ):
+            add_line(p, ln, FAINT, width=0.008)
             add_line(p, ln @ matfunc.T, color, width=0.018)
-    add_line(p, FLAG, FAINT, width=0.02)
-    add_line(p, FLAG @ matfunc.T, color, width=0.04)
+    add_line(p, FLAG, FAINT, width=0.014)
+    add_line(p, FLAG @ matfunc.T, color, width=0.03)
     add_points(p, [0, 0], GREEN, size=0.16)
     return p
 
@@ -140,7 +130,12 @@ cs, ck = coords_in(std, v), coords_in(skew, v)
 print("arrow v (a fixed geometric object):", v)
 print("  coordinates in standard basis :", np.round(cs, 3))
 print("  coordinates in skewed basis   :", np.round(ck, 3))
-print("  reconstruct from skew coords  :", np.round(ck @ skew, 3), "→ same arrow:", np.allclose(ck @ skew, v))
+print(
+    "  reconstruct from skew coords  :",
+    np.round(ck @ skew, 3),
+    "→ same arrow:",
+    np.allclose(ck @ skew, v),
+)
 
 p = new_plot(lim=3.0)
 # standard frame (grey) and skew frame (purple); v as a combination of the skew basis.
@@ -152,7 +147,11 @@ add_vector(p, [0, 0], v, BLUE, "v")
 add_line(p, np.array([ck[0] * skew[0], v]), ORANGE, width=0.015)  # the y·b2 leg
 add_line(p, np.array([[0, 0], ck[0] * skew[0]]), ORANGE, width=0.015)  # the x·b1 leg
 p.display()
-print("v = x·b1 + y·b2 with (x,y) =", np.round(ck, 3), " (the orange path walks the two legs)")
+print(
+    "v = x·b1 + y·b2 with (x,y) =",
+    np.round(ck, 3),
+    " (the orange path walks the two legs)",
+)
 
 
 # %% [markdown]
@@ -184,22 +183,35 @@ theta = np.deg2rad(35)
 a_dir = np.array([1.0, 0.5])
 rotate = lambda v: np.cos(theta) * np.asarray(v, float) + np.sin(theta) * J(v)
 project = lambda v: (np.dot(v, a_dir) / np.dot(a_dir, a_dir)) * a_dir
-shear = lambda v: np.asarray(v, float) + 0.8 * np.asarray(v, float)[..., 1] * np.array([1.0, 0.0])
+shear = lambda v: (
+    np.asarray(v, float) + 0.8 * np.asarray(v, float)[..., 1] * np.array([1.0, 0.0])
+)
 
 for name, op, expected in [
-    ("rotation 35°", rotate, np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])),
+    (
+        "rotation 35°",
+        rotate,
+        np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]),
+    ),
     ("shear k=0.8", shear, np.array([[1.0, 0.8], [0.0, 1.0]])),
 ]:
     M = matrix_of(op)
-    print(f"{name:<14} matrix =\n{np.round(M, 3)}   matches closed form: {np.allclose(M, expected)}")
+    print(
+        f"{name:<14} matrix =\n{np.round(M, 3)}   matches closed form: {np.allclose(M, expected)}"
+    )
 
 # Matrix action == geometric action, on random vectors.
 Mrot = matrix_of(rotate)
 test = np.random.default_rng(5).normal(size=(4, 2))
-print("matrix·v reproduces the geometric rotation:", np.allclose(test @ Mrot.T, rotate(test)))
+print(
+    "matrix·v reproduces the geometric rotation:",
+    np.allclose(test @ Mrot.T, rotate(test)),
+)
 
 show_operator(matrix_of(shear), ORANGE).display()
-print("the shear operator, now as a matrix acting on coordinates — same picture as notebook 2")
+print(
+    "the shear operator, now as a matrix acting on coordinates — same picture as notebook 2"
+)
 
 
 # %% [markdown]
@@ -218,8 +230,18 @@ print("the shear operator, now as a matrix acting on coordinates — same pictur
 
 # %%
 A = np.array([[1.3, -0.7], [0.4, 1.1]])
-print("det  ad−bc      :", round(A[0, 0] * A[1, 1] - A[0, 1] * A[1, 0], 6), " = np.linalg.det:", round(np.linalg.det(A), 6))
-print("trace a+d       :", round(A[0, 0] + A[1, 1], 6), " = np.trace:", round(np.trace(A), 6))
+print(
+    "det  ad−bc      :",
+    round(A[0, 0] * A[1, 1] - A[0, 1] * A[1, 0], 6),
+    " = np.linalg.det:",
+    round(np.linalg.det(A), 6),
+)
+print(
+    "trace a+d       :",
+    round(A[0, 0] + A[1, 1], 6),
+    " = np.trace:",
+    round(np.trace(A), 6),
+)
 
 rng = np.random.default_rng(6)
 inv_ok = True
@@ -228,7 +250,9 @@ for _ in range(1000):
     if abs(np.linalg.det(P)) < 1e-6:
         continue
     B = np.linalg.inv(P) @ A @ P  # same operator, different basis
-    inv_ok &= np.allclose(np.linalg.det(B), np.linalg.det(A)) and np.allclose(np.trace(B), np.trace(A))
+    inv_ok &= np.allclose(np.linalg.det(B), np.linalg.det(A)) and np.allclose(
+        np.trace(B), np.trace(A)
+    )
 print("det and trace are basis-independent (under A ↦ P⁻¹AP):", inv_ok)
 
 
@@ -269,9 +293,15 @@ x_out, y_out = prod[0, 0], prod[1, 0]
 print("closed under product:", np.allclose(prod, stw(x_out, y_out)))
 print("and they commute     :", np.allclose(A1 @ A2, A2 @ A1))
 # The composed (x,y) follow a familiar rule:
-print(f"  ({c1[0]:.2f},{c1[1]:.2f}) ∘ ({c2[0]:.2f},{c2[1]:.2f}) = ({x_out:.3f},{y_out:.3f})")
-print("  matches (x1x2−y1y2, x1y2+x2y1):",
-      np.allclose([x_out, y_out], [c1[0] * c2[0] - c1[1] * c2[1], c1[0] * c2[1] + c2[0] * c1[1]]))
+print(
+    f"  ({c1[0]:.2f},{c1[1]:.2f}) ∘ ({c2[0]:.2f},{c2[1]:.2f}) = ({x_out:.3f},{y_out:.3f})"
+)
+print(
+    "  matches (x1x2−y1y2, x1y2+x2y1):",
+    np.allclose(
+        [x_out, y_out], [c1[0] * c2[0] - c1[1] * c2[1], c1[0] * c2[1] + c2[0] * c1[1]]
+    ),
+)
 
 
 # %% [markdown]
@@ -294,8 +324,8 @@ for _ in range(2000):
     z1, z2 = rng.normal(size=2), rng.normal(size=2)
     M1, M2 = stw(*z1), stw(*z2)
     c1c, c2c = to_complex(M1), to_complex(M2)
-    assert np.isclose(to_complex(M1 + M2), c1c + c2c)        # addition ↔ addition
-    assert np.isclose(to_complex(M1 @ M2), c1c * c2c)        # composition ↔ multiplication
+    assert np.isclose(to_complex(M1 + M2), c1c + c2c)  # addition ↔ addition
+    assert np.isclose(to_complex(M1 @ M2), c1c * c2c)  # composition ↔ multiplication
 print("matrix algebra {xI+yJ} ≅ ℂ  (addition and composition both match) ✓")
 
 
@@ -322,20 +352,35 @@ print("matrix algebra {xI+yJ} ≅ ℂ  (addition and composition both match) ✓
 z = np.array([1.3, 0.9])  # x, y
 M = stw(*z)
 r, phi = np.hypot(*z), np.arctan2(z[1], z[0])
-print(f"z = {z[0]} + {z[1]}i   modulus r = {r:.4f}   argument φ = {np.rad2deg(phi):.2f}°")
+print(
+    f"z = {z[0]} + {z[1]}i   modulus r = {r:.4f}   argument φ = {np.rad2deg(phi):.2f}°"
+)
 print("det = |z|²        :", np.allclose(np.linalg.det(M), r**2))
 print("trace = 2 Re z    :", np.allclose(np.trace(M), 2 * z[0]))
 
 # Moduli multiply, arguments add.
 w = np.array([0.5, 1.4])
 zw = stw(*z) @ stw(*w)
-print("|zw| = |z||w|     :", np.allclose(np.hypot(zw[0, 0], zw[1, 0]), np.hypot(*z) * np.hypot(*w)))
-print("arg(zw)=argz+argw :", np.allclose(np.arctan2(zw[1, 0], zw[0, 0]), np.arctan2(z[1], z[0]) + np.arctan2(w[1], w[0])))
+print(
+    "|zw| = |z||w|     :",
+    np.allclose(np.hypot(zw[0, 0], zw[1, 0]), np.hypot(*z) * np.hypot(*w)),
+)
+print(
+    "arg(zw)=argz+argw :",
+    np.allclose(
+        np.arctan2(zw[1, 0], zw[0, 0]), np.arctan2(z[1], z[0]) + np.arctan2(w[1], w[0])
+    ),
+)
 
 # Euler: e^{φJ} is rotation by φ.
 phi0 = 0.7
-print("e^{φJ} = R(φ)     :", np.allclose(expm(phi0 * Jm),
-      np.array([[np.cos(phi0), -np.sin(phi0)], [np.sin(phi0), np.cos(phi0)]])))
+print(
+    "e^{φJ} = R(φ)     :",
+    np.allclose(
+        expm(phi0 * Jm),
+        np.array([[np.cos(phi0), -np.sin(phi0)], [np.sin(phi0), np.cos(phi0)]]),
+    ),
+)
 
 
 # %% [markdown]
@@ -347,7 +392,9 @@ print("e^{φJ} = R(φ)     :", np.allclose(expm(phi0 * Jm),
 
 # %%
 show_operator(stw(*z), GREEN).display()
-print(f"multiply-by-z: scale ×{r:.3f}, rotate {np.rad2deg(phi):.1f}° — one complex number, one operator")
+print(
+    f"multiply-by-z: scale ×{r:.3f}, rotate {np.rad2deg(phi):.1f}° — one complex number, one operator"
+)
 
 
 # %% [markdown]

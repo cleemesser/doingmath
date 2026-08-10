@@ -170,8 +170,8 @@ def push(
     probe_shape: ProbeShape = None,
     probe_shape_color: int | None = None,
     probe_shape_alpha: float | None = None,
-    probe_faint_color: int | None = None, # before transform
-    probe_faint_alpha: float | None = None, # before transform
+    probe_faint_color: int | None = None,  # before transform
+    probe_faint_alpha: float | None = None,  # before transform
     basis=False,
     basis_labels=("f(e1)", "f(e2)"),
 ):

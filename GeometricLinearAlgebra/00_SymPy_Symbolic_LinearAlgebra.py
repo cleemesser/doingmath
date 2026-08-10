@@ -25,7 +25,7 @@
 # It is a tour of the whole series through one tool:
 # 1. **Operators as exact matrices** (nb 2) — the quarter-turn $J$ with $J^2=-I$, rotation, projection,
 #    reflection, shear — each property an exact identity.
-# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v \rangle^2+(u\wedge v)^2= \rvert u \rvert^2 \rvert v \rvert^2$
+# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v \rangle^2+ |u\wedge v|^2= \rvert u \rvert^2 \rvert v \rvert^2$
 #    proven symbolically.
 # 3. **Determinant and trace** (nb 4) — multiplicativity, $\det$ = area scaling, and the coordinate-free
 #    trace $\frac{d}{dt}\big|_0\det(I+tT)$, plus $\det e^{tT}=e^{t\,\operatorname{tr}T}$.
@@ -76,12 +76,6 @@ BG = 0x000000  # white background?
 # seed of $i^2=-1$ — and rotation $R(\theta)=\cos\theta\,I+\sin\theta\,J$.
 
 # %%
-
-# %%
-
-# %%
-
-# %%
 theta, alpha, beta = symbols("theta alpha beta", real=True)
 J = Matrix([[0, -1], [1, 0]])
 I2 = eye(2)
@@ -91,7 +85,9 @@ print(
 )
 
 R = cos(theta) * I2 + sin(theta) * J
-mv.show_expr(R)
+# display(Markdown(rf'$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ '))
+mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ ")
+# mv.show_expr(R)
 print("Rᵀ R = I (orthogonal):", trigsimp(R.T * R) == I2)
 print("det R = 1            :", trigsimp(R.det()) == 1)
 Ra = cos(alpha) * I2 + sin(alpha) * J
@@ -124,9 +120,9 @@ print("shear preserves area (det H = 1):", simplify(H.det()) == 1)
 # ## 2. Dot and wedge: the Pythagorean identity, proven (notebook 3)
 #
 # The dot product (symmetric, $\langle u,v\rangle=|u||v|\cos\theta$) and the wedge (antisymmetric,
-# $u\wedge v=|u||v|\sin\theta$, the signed area) are the two halves of multiplying two arrows. Their
+# $u\wedge v=|u||v|\sin\theta (e_1 \wedge e_2)$, the signed area) are the two halves of multiplying two arrows. Their
 # squares add to the product of the squared lengths — the identity
-# $\langle u,v\rangle^2+(u\wedge v)^2=\|u\|^2\|v\|^2$ is just $\cos^2+\sin^2=1$ in disguise. SymPy
+# $\langle u,v\rangle^2+|u\wedge v|^2=\|u\|^2\|v\|^2$ is just $\cos^2+\sin^2=1$ in disguise. SymPy
 # proves it for arbitrary $u,v$.
 
 # %%
@@ -136,7 +132,7 @@ dot = (u.T * v)[0]
 wedge = u1 * v2 - u2 * v1  # signed area = 2×2 determinant [u v]
 lhs = dot**2 + wedge**2
 rhs = (u.T * u)[0] * (v.T * v)[0]
-print("⟨u,v⟩² + (u∧v)² − ‖u‖²‖v‖²  =", simplify(lhs - rhs), "  (identically zero ✓)")
+print("⟨u,v⟩² + |u∧v|² − ‖u‖²‖v‖²  =", simplify(lhs - rhs), "  (identically zero ✓)")
 
 # the wedge is exactly the determinant of the matrix [u | v]
 print("u ∧ v == det[u v]:", simplify(wedge - u.row_join(v).det()) == 0)

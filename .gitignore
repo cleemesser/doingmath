@@ -133,3 +133,6 @@ dmypy.json
 
 # marimo notebook session cache (output snapshots, not source)
 __marimo__/
+
+# direnv
+.direnv/

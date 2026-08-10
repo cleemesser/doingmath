@@ -19,7 +19,44 @@ uv run jupytext --sync --execute <file>.py  # sync AND re-run, embedding fresh o
 MPLBACKEND=Agg uv run python <file>.py      # run a percent-format script headless to check numerics
 ```
 
+A committed `.envrc` (direnv) syncs the venv and puts `.venv/bin` on `PATH` on `cd`, so on a
+machine with direnv enabled (`direnv allow` once) the `uv run` prefix above is optional. It also
+watches `pyproject.toml`/`uv.lock` and re-syncs when they change. Keep using `uv run` in anything
+written down — scripts, docs, CI — since direnv is a local convenience, not a guarantee.
+
 There are no automated tests. "Correctness" in this repo is demonstrated *inside* the notebooks: math identities are verified numerically with `np.allclose(...)` assertions printed inline (e.g. confirming `Ad_{exp(X)} = exp(ad_X)`). When changing math code, preserve and re-run those checks rather than adding a separate test harness.
+
+## PyTorch (optional, backend-selected)
+
+`torch` is **not** a base dependency — only `Geometry/kingdon-with-pytorch.ipynb` and friends need
+it, and the CUDA wheels are ~2.5 GB. It lives behind three mutually exclusive extras, declared in
+`[tool.uv] conflicts` so uv rejects any two at once:
+
+```bash
+uv sync --extra torch    # normal case: auto-selects the build for this machine
+uv sync --extra cpu      # override: force the CPU-only build
+uv sync --extra cu129    # override: force CUDA 12.9
+```
+
+Non-obvious points, all encoded in `pyproject.toml` comments:
+
+- **There is no separate "MPS wheel."** On Apple silicon the ordinary PyPI `arm64` wheel is already
+  built with the MPS backend. So the `torch` extra's `[tool.uv.sources]` entry carries both an
+  `extra` and a `marker = "sys_platform != 'darwin'"`: off macOS it points at the CUDA index, and on
+  macOS *nothing matches*, letting it fall through to PyPI. The fall-through is the mechanism —
+  don't "fix" it by adding a darwin entry.
+- Both `[[tool.uv.index]]` blocks are `explicit = true`, so the PyTorch indexes are consulted only
+  for `torch` itself. Without that, uv would resolve every package against them and silently pull
+  stale mirrors of common deps (jinja2, networkx, sympy).
+- `uv sync --extra cu129` on a Mac fails at *install* time, not lock time — that's intended. The
+  lockfile stays portable, carrying all three variants (`2.13.0`, `2.13.0+cpu`, `2.13.0+cu129`).
+- **`UV_EXTRA` does not exist.** Extras have no environment-variable form (unlike dependency groups,
+  which have `UV_DEFAULT_GROUPS`), and uv *silently ignores* the unknown var rather than erroring —
+  so `UV_EXTRA=torch uv sync` quietly uninstalls torch. That is why `.envrc` runs
+  `uv sync --extra torch` as a command instead of exporting anything. Likewise `--torch-backend=auto`
+  exists only on the `uv pip` interface, not `uv sync`/`uv lock`.
+
+Verify the backend is live with `torch.backends.mps.is_available()`, not just `is_built()`.
 
 ## Notebook / script pairing (important)
 

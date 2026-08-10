@@ -1,4 +1,5 @@
 """Notebook-friendly display of expressions.
+`show_md` renders full markdown which can be used with rf"$... {sympy.latex(expr)$"}
 
 `show_expr` renders a value with the notebook's **native LaTeX** (MathJax) when running in Jupyter —
 so a SymPy matrix or identity appears as real math instead of monospace text — and falls back to a
@@ -9,6 +10,21 @@ pretty text print when headless (script / CI), so nothing breaks either way. It 
 from __future__ import annotations
 
 from . import backends
+
+
+def show_md(*args, **kwargs):
+    if backends.in_notebook():
+        from IPython.display import display, Markdown
+
+        return display(Markdown(*args, **kwargs))
+    else:
+        try:
+            import sympy as sp
+
+            text = sp.pretty(expr)
+        except Exception:
+            text = str(expr)
+        print(text)
 
 
 def show_expr(expr, label=None):

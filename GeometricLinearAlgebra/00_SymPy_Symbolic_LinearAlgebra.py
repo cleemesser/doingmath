@@ -87,7 +87,7 @@ print(
 
 R = cos(theta) * I2 + sin(theta) * J
 # display(Markdown(rf'$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ '))
-#mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ ")
+# mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ ")
 mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J =$ ")
 mv.show_expr(R)
 print()
@@ -207,7 +207,7 @@ print(
 A = Matrix([[a, b], [c, dd]])
 P = Matrix([[2, 1], [1, 1]])  # any invertible change of basis
 Asim = P.inv() * A * P
-print("similar matrix P⁻¹AP =") # shouldn't this be PAP⁻¹ if [x'] is in new basis
+print("similar matrix P⁻¹AP =")  # shouldn't this be PAP⁻¹ if [x'] is in new basis
 mv.show_expr(simplify(Asim))
 print("det preserved :", simplify(Asim.det() - A.det()) == 0)
 print("trace preserved:", simplify(Asim.trace() - A.trace()) == 0)

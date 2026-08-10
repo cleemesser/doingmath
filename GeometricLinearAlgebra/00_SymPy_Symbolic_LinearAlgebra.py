@@ -33,6 +33,7 @@
 #    "scale-and-rotate" algebra $xI+yJ$ **is** the complex numbers, shown by exact matrix arithmetic.
 #
 # A couple of `mathviz` pictures tie the symbols back to geometry.
+# $\newcommand{\Area}{\operatorname{Area}}$
 
 # %%
 import numpy as np
@@ -86,8 +87,10 @@ print(
 
 R = cos(theta) * I2 + sin(theta) * J
 # display(Markdown(rf'$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ '))
-mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ ")
-# mv.show_expr(R)
+#mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J = {sp.latex(R)}$ ")
+mv.show_md(rf"$R(\theta)= \cos\theta I + \sin\theta J =$ ")
+mv.show_expr(R)
+print()
 print("Rᵀ R = I (orthogonal):", trigsimp(R.T * R) == I2)
 print("det R = 1            :", trigsimp(R.det()) == 1)
 Ra = cos(alpha) * I2 + sin(alpha) * J
@@ -135,7 +138,7 @@ rhs = (u.T * u)[0] * (v.T * v)[0]
 print("⟨u,v⟩² + |u∧v|² − ‖u‖²‖v‖²  =", simplify(lhs - rhs), "  (identically zero ✓)")
 
 # the wedge is exactly the determinant of the matrix [u | v]
-print("u ∧ v == det[u v]:", simplify(wedge - u.row_join(v).det()) == 0)
+print("u ∧ v == det[u v] e1 ∧ e2:", simplify(wedge - u.row_join(v).det()) == 0)
 
 # an exact angle, where numpy would only give a decimal.
 # (1,2,2) and (2,2,1) both have norm 3 and dot product 8, so cos = 8/9 exactly — an
@@ -204,10 +207,17 @@ print(
 A = Matrix([[a, b], [c, dd]])
 P = Matrix([[2, 1], [1, 1]])  # any invertible change of basis
 Asim = P.inv() * A * P
-print("similar matrix P⁻¹AP =")
+print("similar matrix P⁻¹AP =") # shouldn't this be PAP⁻¹ if [x'] is in new basis
 mv.show_expr(simplify(Asim))
 print("det preserved :", simplify(Asim.det() - A.det()) == 0)
 print("trace preserved:", simplify(Asim.trace() - A.trace()) == 0)
+print()
+print("similar matrix PAP⁻¹ =")
+Ainvsim = P * A * P.inv()
+mv.show_expr(Ainvsim)
+mv.show_md("det(PAP⁻¹) =")
+mv.show_expr(Ainvsim.det())
+mv.show_md(rf"which is equal to det(A): $({sp.latex(A.det())})$")
 
 # %% [markdown]
 # **The capstone: $xI+yJ$ *is* $\mathbb{C}$.** The "scale-and-rotate" operators — a real multiple of
@@ -268,7 +278,7 @@ print(
 # |--------|----------|--------------------|
 # | $J^2=-I$, $R(\theta)=\cos\theta\,I+\sin\theta\,J$ orthogonal, $R(\alpha)R(\beta)=R(\alpha{+}\beta)$ | 2 | `trigsimp(...) == 0` |
 # | $P_a$ idempotent, $F_a$ involution, shear preserves area | 2 | symbolic direction $a$, exact identity |
-# | $\langle u,v\rangle^2+(u\wedge v)^2=\rvert u\lvert^2 \rvert v \lvert^2$, wedge $=\det[u\,v]$ | 3 | `simplify(lhs-rhs) == 0` |
+# | $\langle u,v\rangle^2+\|u\wedge v\|^2=\rvert u\lvert^2 \rvert v \lvert^2$, wedge $=\Area[u\,v] e_1 \wedge e_2$ | 3 | `simplify(lhs-rhs) == 0` |
 # | $\det(AB)=\det A\det B$, $\operatorname{tr}T=\frac{d}{dt}\big\rvert_0\det(I+tT)$, $\det e^{tT}=e^{t\operatorname{tr}T}$ | 4 | symbolic $A,B,T$; `diff`, `.exp()` |
 # | $\det,\operatorname{tr}$ similarity-invariant; $xI+yJ\cong\mathbb{C}$; $e^{\phi J}=R(\phi)$ | 5 | `P.inv()*A*P`, exact complex product |
 #
@@ -277,3 +287,9 @@ print(
 # geometry honest — angles come out as `acos(8/9)`, eigenvalues as `x ± iy`, determinants as `x²+y²` —
 # so the structure stays visible instead of dissolving into floating-point noise. Use it alongside the
 # numerical notebooks: `numpy` to *see and compute*, SymPy to *prove and understand*.
+
+# %% [markdown]
+#
+
+# %% [markdown]
+#

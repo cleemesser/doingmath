@@ -24,6 +24,7 @@ dependencies = [
     "numpy>=2.4.6",
     "pandas>=3.0.3",
     "pillow>=11.0.0",
+    "plotly>=6.9.0",
     "pymupdf>=1.27.2.3",
     "pyvista-zstd>=0.2.4",
     "pyvista[all]>=0.48.4",
@@ -40,14 +41,50 @@ dependencies = [
     "xarray>=2026.4.0",
 ]
 
+[project.optional-dependencies]
+# PyTorch is optional: nothing in the notebooks imports it unless you ask for
+# it. `torch` is the one you normally want -- it picks the right build for the
+# machine automatically. `cpu` and `cu129` are explicit overrides.
+#
+# On Apple silicon there is no separate "MPS wheel": the ordinary PyPI
+# arm64 wheel is already built with the MPS backend, so on darwin the `torch`
+# extra deliberately matches *no* [tool.uv.sources] entry and resolves from
+# PyPI. The download.pytorch.org indexes only matter off macOS.
+torch = ["torch>=2.13"]
+cpu = ["torch>=2.13"]
+cu129 = ["torch>=2.13"]
+
 [dependency-groups]
 dev = [
     "meson>=1.11.1",
     "pytest>=8.0",
 ]
 
+[tool.uv]
+conflicts = [[{ extra = "torch" }, { extra = "cpu" }, { extra = "cu129" }]]
+
 [tool.uv.sources]
 mathviz = { path = "mathviz", editable = true }
+torch = [
+    # `torch` extra: auto-dispatch. Off macOS take the CUDA build; on macOS
+    # there is no matching entry, so it falls through to PyPI -> MPS wheel.
+    { index = "pytorch-cu129", extra = "torch", marker = "sys_platform != 'darwin'" },
+    # Explicit overrides, for when the auto choice is wrong.
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu129", extra = "cu129" },
+]
+
+# `explicit = true` keeps these indexes from being consulted for anything other
+# than the packages that name them in [tool.uv.sources] above.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
 
 [tool.pytest.ini_options]
 testpaths = ["mathviz/tests"]

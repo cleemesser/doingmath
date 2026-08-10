@@ -25,7 +25,7 @@
 # It is a tour of the whole series through one tool:
 # 1. **Operators as exact matrices** (nb 2) — the quarter-turn $J$ with $J^2=-I$, rotation, projection,
 #    reflection, shear — each property an exact identity.
-# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v\rangle^2+(u\wedge v)^2=\rvertu\rvert^2\rvertv\rvert^2$
+# 2. **Dot and wedge** (nb 3) — the Pythagorean identity $\langle u,v \rangle^2+(u\wedge v)^2= \rvert u \rvert^2 \rvert v \rvert^2$
 #    proven symbolically.
 # 3. **Determinant and trace** (nb 4) — multiplicativity, $\det$ = area scaling, and the coordinate-free
 #    trace $\frac{d}{dt}\big|_0\det(I+tT)$, plus $\det e^{tT}=e^{t\,\operatorname{tr}T}$.

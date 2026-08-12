@@ -19,12 +19,13 @@ def show_md(*args, **kwargs):
         return display(Markdown(*args, **kwargs))
     else:
         try:
-            import sympy as sp
+            from pylatexenc.latex2text import LatexNodes2Text
 
-            text = sp.pretty(expr)
+            latex = "".join(*args)
+            text = LatexNodes2Text().latex_to_text(latex)
+            print(text)
         except Exception:
-            text = str(expr)
-        print(text)
+            text = str(*args)
 
 
 def show_expr(expr, label=None):

@@ -1,14 +1,13 @@
 # ---
 # jupyter:
 #   jupytext:
-#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: doingmath (3.14.3)
 #     language: python
 #     name: python3
 # ---
@@ -102,7 +101,7 @@ def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
 
 
 # %% [markdown]
-# ## 1. The dot product, properly
+# ## 1. The dot product
 #
 # For $u,v \in V$, define the dot product $u \cdot v = \langle u,v\rangle = |u|\,|v|\,\cos\theta$. Three structural facts make it so we can use it
 # as a "ruler" and "protractor":
@@ -188,8 +187,8 @@ print(
 
 
 # %%
-def wedge2(u, v):
-    """Signed area of the parallelogram spanned by u, v in the plane."""
+def area2(u, v):
+    """Signed area of the parallelogram spanned by u, v."""
     u, v = np.asarray(u, float), np.asarray(v, float)
     return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
 
@@ -199,37 +198,51 @@ alt = anti = bil = True
 for _ in range(2000):
     p, q, r = rng.normal(size=2), rng.normal(size=2), rng.normal(size=2)
     a, b = rng.normal(), rng.normal()
-    anti &= np.allclose(wedge2(p, q), -wedge2(q, p))
-    alt &= np.allclose(wedge2(p, p), 0.0)
-    bil &= np.allclose(wedge2(a * p + b * r, q), a * wedge2(p, q) + b * wedge2(r, q))
+    anti &= np.allclose(area2(p, q), -area2(q, p))
+    alt &= np.allclose(area2(p, p), 0.0)
+    bil &= np.allclose(area2(a * p + b * r, q), a * area2(p, q) + b * area2(r, q))
 theta = np.arccos(np.clip(dot(u, v) / (norm(u) * norm(v)), -1, 1))
 print("antisymmetric        :", anti)
 print("alternating u∧u=0    :", alt)
 print("bilinear             :", bil)
 print(
     "Area[u,v] = |u||v|sinθ     :",
-    np.allclose(wedge2(u, v), norm(u) * norm(v) * np.sin(theta)),
+    np.allclose(area2(u, v), norm(u) * norm(v) * np.sin(theta)),
 )
 
 # The sign is orientation: u∧v > 0 means v is counter-clockwise from u.
 p = new_plot(lim=3.0)
-add_parallelogram(p, [0, 0], u, v, GREEN if wedge2(u, v) > 0 else RED)
+add_parallelogram(p, [0, 0], u, v, GREEN if area2(u, v) > 0 else RED)
 add_vector(p, [0, 0], u, BLUE, "u")
 add_vector(p, [0, 0], v, ORANGE, "v")
 p.display()
 print(
-    rf"signed area Area[u,v] = wedge2(u,v)={wedge2(u, v):+.3f}  (green = positive/counter-clockwise orientation)"
+    rf"signed area Area[u,v] = area2(u,v)={area2(u, v):+.3f}  (green = positive/counter-clockwise orientation)"
+)
+
+# %% [markdown]
+# Motivating the wedge product. If we want the $\Area$ function to be linear in each of its argument, then it has to be signed or oriented. $\Area(\lambda u, v) = \Area(u,\lambda v) = \lambda \Area(u,v)$. This makes sense based upon the idea above. if $u \rightarrow 2u$ then the Area should also double in size in correspondence with our intuition. But if $\lambda = -1$, then $Area(u,v) \rightarrow -Area(u,v)$ so we need the concept of signed area. See below.
+
+# %%
+# multiplying a vector by negative -1 — same size parallelogram, but negative -- notice also opposite orientation (drawn red).
+p = new_plot(lim=3.0)
+add_parallelogram(p, [0, 0], -u, v, GREEN if area2(-2*u, v) > 0 else RED)
+add_vector(p, [0, 0], v, ORANGE, "v")
+add_vector(p, [0, 0], -u, BLUE, "-u")
+p.display()
+print(
+    f"signed area Area[v,u] = {area2(-2*u, v):+.3f}  (red = negative/clockwise — the orientation reversed)"
 )
 
 # %%
 # Swapping the order flips the sign — same parallelogram, opposite orientation (drawn red).
 p = new_plot(lim=3.0)
-add_parallelogram(p, [0, 0], v, u, GREEN if wedge2(v, u) > 0 else RED)
+add_parallelogram(p, [0, 0], v, u, GREEN if area2(v, u) > 0 else RED)
 add_vector(p, [0, 0], v, ORANGE, "v")
 add_vector(p, [0, 0], u, BLUE, "u")
 p.display()
 print(
-    f"signed area Area[v,u] = {wedge2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)"
+    f"signed area Area[v,u] = {area2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)"
 )
 
 
@@ -266,7 +279,7 @@ print("identity correct", correctq)
 ok = True
 for _ in range(5000):
     p_, q_ = rng.normal(size=2), rng.normal(size=2)
-    ok &= np.allclose(dot(p_, q_) ** 2 + wedge2(p_, q_) ** 2, dot(p_, p_) * dot(q_, q_))
+    ok &= np.allclose(dot(p_, q_) ** 2 + area2(p_, q_) ** 2, dot(p_, p_) * dot(q_, q_))
 print("⟨u,v⟩² + |u∧v|² = |u|²|v|²  for 5000 random pairs:", ok)
 
 
@@ -287,7 +300,7 @@ def polygon_area(verts):
     """Signed area via the shoelace = half-sum of consecutive wedges."""
     verts = np.asarray(verts, float)
     nxt = np.roll(verts, -1, axis=0)
-    return 0.5 * np.sum(wedge2(verts, nxt))
+    return 0.5 * np.sum(area2(verts, nxt))
 
 
 # A pentagon, plus a triangle whose area we cross-check against ½|base×height|.
@@ -394,7 +407,7 @@ A = np.array([[1.3, -0.7], [0.4, 1.1]])
 ratios = []
 for _ in range(6):
     p_, q_ = rng.normal(size=2), rng.normal(size=2)
-    ratios.append(wedge2(apply_lin(A, p_), apply_lin(A, q_)) / wedge2(p_, q_))
+    ratios.append(area2(apply_lin(A, p_), apply_lin(A, q_)) / area2(p_, q_))
 print("T(u)∧T(v) / (u∧v) for 6 random pairs:", np.round(ratios, 6))
 print("→ all equal; this constant is det T =", round(ratios[0], 6))
 
@@ -408,7 +421,7 @@ ops = {
 }
 e1, e2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
 for name, M in ops.items():
-    det = wedge2(apply_lin(M, e1), apply_lin(M, e2)) / wedge2(e1, e2)
+    det = area2(apply_lin(M, e1), apply_lin(M, e2)) / area2(e1, e2)
     print(f"  {name:<20} area factor (det) = {det:+.3f}")
 
 

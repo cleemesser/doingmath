@@ -17,10 +17,14 @@ class Backend:
         scene: Scene,
         *,
         save: str | None = None,
+        format: str | None = None,
         interactive=None,
         vedo_display=None,
     ):
         """Draw the scene. If ``save`` is a path, write an image there; otherwise display inline.
+
+        ``format`` ("png", "svg", ...) overrides the format inferred from the ``save`` filename —
+        needed when ``save`` is an in-memory buffer, which carries no suffix to infer from.
 
         ``interactive`` / ``vedo_display`` request a live widget instead of a static image (honored by
         the vedo backend; ignored by static backends).

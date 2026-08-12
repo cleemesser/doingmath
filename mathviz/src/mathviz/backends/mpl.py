@@ -29,12 +29,13 @@ class MatplotlibBackend(Backend):
         scene: P.Scene,
         *,
         save: str | None = None,
+        format: str | None = None,
         interactive=None,
         vedo_display=None,
     ):
         # matplotlib renders static images; the interactive flags are for the vedo backend.
         if isinstance(scene.view, P.View3D):
-            return self._render3d(scene, save=save)
+            return self._render3d(scene, save=save, format=format)
 
         view = scene.view
         w, h = view.size
@@ -53,11 +54,13 @@ class MatplotlibBackend(Backend):
             self._draw(ax, prim)
 
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        return self._emit(fig, save)
+        return self._emit(fig, save, format)
 
-    def _emit(self, fig, save):
+    def _emit(self, fig, save, format=None):
         if save is not None:
-            fig.savefig(save, facecolor=fig.get_facecolor(), dpi=100)
+            # `format` is required when `save` is a buffer: savefig infers from the filename
+            # suffix, and a BytesIO/StringIO has none, so it would silently fall back to PNG.
+            fig.savefig(save, format=format, facecolor=fig.get_facecolor(), dpi=100)
             return save
         try:  # display the rendered PNG bytes — a static image regardless of the active
             import io  # matplotlib backend (inline / ipympl-widget / Agg) or cell position
@@ -71,7 +74,7 @@ class MatplotlibBackend(Backend):
             return fig
 
     # ── 3D scenes (mplot3d) ──────────────────────────────────
-    def _render3d(self, scene, *, save=None):
+    def _render3d(self, scene, *, save=None, format=None):
         import mpl_toolkits.mplot3d  # noqa: F401  (registers the '3d' projection)
 
         view = scene.view
@@ -189,7 +192,7 @@ class MatplotlibBackend(Backend):
         for pane in (ax.xaxis, ax.yaxis, ax.zaxis):
             pane.set_pane_color((0, 0, 0, 0))
         ax.grid(False)
-        return self._emit(fig, save)
+        return self._emit(fig, save, format)
 
     def _draw(self, ax, prim):
         if isinstance(prim, P.Grid):

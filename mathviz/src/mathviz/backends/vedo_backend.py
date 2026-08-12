@@ -54,6 +54,7 @@ class VedoBackend(Backend):
         scene: P.Scene,
         *,
         save: str | None = None,
+        format: str | None = None,  # noqa: ARG002  (vedo infers from the filename; kept for interface parity)
         interactive=None,
         vedo_display=None,
     ):

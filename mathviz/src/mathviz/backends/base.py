@@ -11,7 +11,8 @@ from ..primitives import Scene
 
 class Backend:
     name = "base"
-
+    # should this really be
+    # render to {file, inline in notebook, or to a window outside the running noteobook}
     def render(
         self,
         scene: Scene,

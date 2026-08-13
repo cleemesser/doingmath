@@ -231,8 +231,14 @@ def push(
     return plane
 
 
-def apply_matrix(plane, M, *, basis=True, basis_labels=("M e1", "M e2"), **kw):
-    """Linear-algebra view: warp the coordinate grid by the 2×2 matrix ``M`` and draw its columns."""
+def apply_matrix(plane, M, *, basis=True, basis_labels=("M e₁", "M e₂"), **kw):
+    """Linear-algebra view: warp the coordinate grid by the 2×2 matrix ``M`` and
+    draw its columns.
+
+    in some backends like matplotlib, may want to use latex for labels:
+    basis_labels=("$M e_1$, "$M e_2$")
+
+    """
     return push(plane, from_matrix(M), basis=basis, basis_labels=basis_labels, **kw)
 
 

@@ -2,12 +2,42 @@
 output that embeds in notebooks and renders on GitHub. The default backend."""
 
 from __future__ import annotations
-
+import re
 import numpy as np
 
 from .. import primitives as P
 from ..palette import rgb01
 from .base import Backend
+
+def svg_inline_mpl(scene, width=430):
+    """A mathviz scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+    Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a content
+    hash*, so every widget tick mints a fresh URL and the browser tears down the old <img> to
+    re-fetch it. That blank gap — plus an <img> with no reserved height collapsing the row —
+    is what made these cells flash while dragging. Inline SVG is DOM, not an asset, so it
+    swaps in the same paint as the rest of the cell output. It also renders in about half the
+    time and ships ~3x smaller than the PNG did.
+
+    This may need to have some checking on backend because it assumes scene is going to work
+    """
+
+    buf = io.StringIO()
+    scene.save(buf, format="svg")
+    body = buf.getvalue()
+    body = body[
+        body.index("<svg") :
+    ]  # the XML declaration + DOCTYPE are illegal inline
+    body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+        r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+        r'\1 width="100%" height="100%" style="display:block"',
+        body,
+        count=1,
+    )
+    w, h = scene.view.size  # a fixed box => no reflow between frames
+    # return mo.Html(  # from marimo adapter
+    return  f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+
 
 
 class MatplotlibBackend(Backend):
@@ -61,15 +91,23 @@ class MatplotlibBackend(Backend):
             # `format` is required when `save` is a buffer: savefig infers from the filename
             # suffix, and a BytesIO/StringIO has none, so it would silently fall back to PNG.
             fig.savefig(save, format=format, facecolor=fig.get_facecolor(), dpi=100)
+            print(f"about to return buffer in format={format}")
             return save
         try:  # display the rendered PNG bytes — a static image regardless of the active
             import io  # matplotlib backend (inline / ipympl-widget / Agg) or cell position
 
-            from IPython.display import Image, display
-
-            buf = io.BytesIO()
-            fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), dpi=100)
-            display(Image(data=buf.getvalue()))
+            from IPython.display import Image, display, SVG
+            if format=='png' or not format: # default to png image
+                print("try default png path")
+                buf = io.BytesIO()
+                fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), dpi=100)
+                display(Image(data=buf.getvalue()))
+            if format=='svg':
+                print("try the svg path")
+                buf = io.BytesIO()
+                fig.savefig(buf, format="svg", facecolor=fig.get_facecolor(), dpi=100)
+                display(SVG(data=buf.getvalue()))
+            # should any of this play return something?
         except Exception:
             return fig
 

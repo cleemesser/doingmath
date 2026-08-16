@@ -188,9 +188,11 @@ np.dot(u_arr,v_arr)
 G_diag = np.diag((newbasis_mv | newbasis_mv).e)
 G_12 = (newbasis_mv[0] | newbasis_mv[1]).e
 Gb = G_diag + np.array([[0.0,G_12],[G_12,0]])
+Gb_lower = Gb
 Gbinv = np.linalg.inv(G)
-mv.show_md("$Gb_{ij} = " f"{sp.latex(Matrix(G))}$") 
-mv.show_md("$Gb^{ij} = " f"{sp.latex(Matrix(Ginv))}$")
+Gb_raise = Gbinv
+mv.show_md("$Gb_{ij} = " f"{sp.latex(Matrix(Gb))}$") 
+mv.show_md("$Gb^{ij} = " f"{sp.latex(Matrix(Gbinv))}$")
 
 # %%
 Gb @ Gbinv
@@ -202,8 +204,8 @@ print(f"<u_mv | v_mv> = {u_mv |v_mv}")
 u_arr = grade1tovector2(u_mv) # standard basis
 v_arr = grade1tovector2(v_mv)
 print(f"np.dot(u_arr,v_arr)={np.dot(u_arr,v_arr)}")
-inner_prod_value = np.dot(u_arr,v_arr)
-print(f"inner product value of <u|v> = {inner_prod_value}")
+inner_prod_uv = np.dot(u_arr,v_arr)
+print(f"inner product value of <u|v> = {inner_prod_uv}")
 # now change to newbasis
 u_arr_b, v_arr_b = Sinv @ u_arr, Sinv @ v_arr
 mv.show_md(r'$ub = S^{-1} u$ to transforms compoents of $\vec{u}$ in std basis to components in new basis $b_j$')
@@ -222,19 +224,34 @@ newbasis, b1_mv, b2_mv, u_mv, v_mv
 #            ,grid=1, labels=1)
 
 mv.show_md(rf'now show that the naive summation "dot" product does not work')
-mv.show_md(rf'$<u,v>$ = {inner_prod_value} != $\sum_i ub^i vb^i$ = {einsum} = {np.dot(u_arr_b , u_arr_b)}') 
+mv.show_md(rf'$<u,v>$ = {inner_prod_uv:2.2f} != $\sum_i ub^i vb^i$ = {einsum(u_arr_b,v_arr_b,'i,i->'):2.2f} = {np.dot(u_arr_b , v_arr_b):2.2f}') 
 
 # %%
 # shows that 
-u_arr_b.T @ Ginv @ v_arr_b, u_arr_b.T @ Ginv @ v_arr_b == inner_prod_value
+u_arr_b.T @ Ginv @ v_arr_b, u_arr_b.T @ Ginv @ v_arr_b == inner_prod_uv
+
+# %%
+# same calculation using einsum
+einsum(u_arr_b, Ginv, v_arr_b,'i,i j,j->') == inner_prod_uv
+
+# %%
+# get back originals
+mv.show_md(f'covector components $ub_i$ in basis b: {einsum(Ginv,u_arr_b,'i j,j->i')}')
+
+u_arr_b, S @ u_arr_b, u_mv
 
 # %%
 (Ginv @ u_arr_b).T @ v_arr_b == u_arr_b.T @ (Ginv @ v_arr_b)
 
 # %%
-u = np.array([1.0, 1.0])
-ug  =
+v_arr_b # [2,1] vector compoents (upper index)
+v_arr_b_lower = Gb_raise @ v_arr_b
+v_arr_b_lower # [5,3]
+ # %%
+ ( v_arr_b).T @ Gbinv @v_arr_b, (v_mv**2).e
 # %%
+v_arr_b.T, v_arr_b.T @ Gbinv, v_arr_b.T @ Gbinv @ v_arr_b
+
 # %%
 # so in the new basis with basis[0], basis[1] as the vasis vectors
 # is ng is the gram matrix ?

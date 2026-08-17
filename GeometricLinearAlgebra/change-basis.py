@@ -388,6 +388,7 @@ b1_dual_b.T @ b1_dual_b, b1_dual_b.T @ b2_arr_b, b2_dual_b.T @ b2_arr_b,
 md("""We can visualize the  basis vectors and superimpose the new 
 basis vectors on the graph. Note that can move $e_2$ to $b_2$ with a shearing 
 operation by "pushing" it to the right.
+If we identify the $V^*$ with $V$ we can graph both vectors on top of each other
 """)
 if mv.backends.in_notebook:
     # from IPython.display import Math, Markdown,display
@@ -399,7 +400,7 @@ plane1.vector(newbasis_list[0],label='$b_1=e_1$',color=mv.GREEN) # bump index fr
 plane1.vector(newbasis_list[1],label='$b_2$', color=mv.RED)
 # plane1.vector(np.array([0,1]), label='$e_2$', color=mv.PURPLE)
 plane1.vector(grade1tovector2(b1_dual_mv),label='$b^1 (dual)$',color=mv.BLUE) # bump index from 0 to 1 ?
-plane1.vector(grade1tovector2(b2_dual_mv),label='$b^2 (dual)$',color=mv.BLUE) # bump index from 0 to 1 ?
+plane1.vector(grade1tovector2(b2_dual_mv),label='$b^2 (dual)=e^2$',color=mv.BLUE) # bump index from 0 to 1 ?
 plane1.display()
 
 # %%

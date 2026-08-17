@@ -398,7 +398,8 @@ else:
 plane1.vector(newbasis_list[0],label='$b_1=e_1$',color=mv.GREEN) # bump index from 0 to 1 ?
 plane1.vector(newbasis_list[1],label='$b_2$', color=mv.RED)
 # plane1.vector(np.array([0,1]), label='$e_2$', color=mv.PURPLE)
-plane1.vector(b1_dual,label='$b^1 (dual)$',color=mv.BLUE) # bump index from 0 to 1 ?
+plane1.vector(grade1tovector2(b1_dual_mv),label='$b^1 (dual)$',color=mv.BLUE) # bump index from 0 to 1 ?
+plane1.vector(grade1tovector2(b2_dual_mv),label='$b^2 (dual)$',color=mv.BLUE) # bump index from 0 to 1 ?
 plane1.display()
 
 # %%

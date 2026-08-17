@@ -2,12 +2,44 @@
 output that embeds in notebooks and renders on GitHub. The default backend."""
 
 from __future__ import annotations
-
+import re
 import numpy as np
 
 from .. import primitives as P
 from ..palette import rgb01
 from .base import Backend
+
+def make_mpl_svg_inline(scene, width=430) -> str:
+    """A mathviz scene -> inline SVG str
+    @scene must implment the backend .save(buffer, format='svg') operation
+    (see 01_..._marimo.py for why not .display()).
+
+    Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a content
+    hash*, so every widget tick mints a fresh URL and the browser tears down the old <img> to
+    re-fetch it. That blank gap — plus an <img> with no reserved height collapsing the row —
+    is what made these cells flash while dragging. Inline SVG is DOM, not an asset, so it
+    swaps in the same paint as the rest of the cell output. It also renders in about half the
+    time and ships ~3x smaller than the PNG did.
+
+    This may need to have some checking on backend because it assumes scene is going to work
+    """
+
+    buf = io.StringIO()
+    scene.save(buf, format="svg")
+    body = buf.getvalue()
+    body = body[
+        body.index("<svg") :
+    ]  # the XML declaration + DOCTYPE are illegal inline
+    body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+        r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+        r'\1 width="100%" height="100%" style="display:block"',
+        body,
+        count=1,
+    )
+    w, h = scene.view.size  # a fixed box => no reflow between frames
+    # return mo.Html(  # from marimo adapter
+    return  f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+
 
 
 class MatplotlibBackend(Backend):
@@ -29,12 +61,13 @@ class MatplotlibBackend(Backend):
         scene: P.Scene,
         *,
         save: str | None = None,
+        format: str | None = None,
         interactive=None,
         vedo_display=None,
     ):
         # matplotlib renders static images; the interactive flags are for the vedo backend.
         if isinstance(scene.view, P.View3D):
-            return self._render3d(scene, save=save)
+            return self._render3d(scene, save=save, format=format)
 
         view = scene.view
         w, h = view.size
@@ -53,25 +86,35 @@ class MatplotlibBackend(Backend):
             self._draw(ax, prim)
 
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        return self._emit(fig, save)
+        return self._emit(fig, save, format)
 
-    def _emit(self, fig, save):
+    def _emit(self, fig, save, format=None):
         if save is not None:
-            fig.savefig(save, facecolor=fig.get_facecolor(), dpi=100)
+            # `format` is required when `save` is a buffer: savefig infers from the filename
+            # suffix, and a BytesIO/StringIO has none, so it would silently fall back to PNG.
+            fig.savefig(save, format=format, facecolor=fig.get_facecolor(), dpi=100)
+            #print(f"about to return buffer in format={format}")
             return save
         try:  # display the rendered PNG bytes — a static image regardless of the active
             import io  # matplotlib backend (inline / ipympl-widget / Agg) or cell position
 
-            from IPython.display import Image, display
-
-            buf = io.BytesIO()
-            fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), dpi=100)
-            display(Image(data=buf.getvalue()))
+            from IPython.display import Image, display, SVG
+            if format=='png' or not format: # default to png image
+                #print("try default png path")
+                buf = io.BytesIO()
+                fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), dpi=100)
+                display(Image(data=buf.getvalue()))
+            if format=='svg':
+                #print("try the svg path")
+                buf = io.BytesIO()
+                fig.savefig(buf, format="svg", facecolor=fig.get_facecolor(), dpi=100)
+                display(SVG(data=buf.getvalue()))
+            # should any of this play return something?
         except Exception:
             return fig
 
     # ── 3D scenes (mplot3d) ──────────────────────────────────
-    def _render3d(self, scene, *, save=None):
+    def _render3d(self, scene, *, save=None, format=None):
         import mpl_toolkits.mplot3d  # noqa: F401  (registers the '3d' projection)
 
         view = scene.view
@@ -189,7 +232,7 @@ class MatplotlibBackend(Backend):
         for pane in (ax.xaxis, ax.yaxis, ax.zaxis):
             pane.set_pane_color((0, 0, 0, 0))
         ax.grid(False)
-        return self._emit(fig, save)
+        return self._emit(fig, save, format)
 
     def _draw(self, ax, prim):
         if isinstance(prim, P.Grid):

@@ -1,14 +1,13 @@
 # ---
 # jupyter:
 #   jupytext:
-#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: doingmath (3.14.3)
 #     language: python
 #     name: python3
 # ---
@@ -25,15 +24,17 @@
 # - the **wedge product** $|u\wedge v | = |u||v||\sin\theta|$ — **antisymmetric**, measuring *signed area*
 #   (how much the arrows splay apart, and in which orientation).
 #
-# The slogan: **dot is the symmetric part, wedge is the antisymmetric part, of multiplying two
-# vectors.** Cosine and sine; alignment and spread. And because $\cos^2+\sin^2=1$, the two satisfy a
-# Pythagorean identity that lets you reconstruct the whole relative configuration of two arrows from
+# Note that **dot and wedge have a reciprocal relationship***. Dot is symmetric; wedge is the antisymmetric in its vector arguments.
+# The involve cosine and sine, respectively; alignment and spread, and can be used to build projections and regjections.
+# Because $\cos^2+\sin^2=1$, the two satisfy a Pythagorean identity that lets you reconstruct the whole relative configuration of two arrows from
 # just these numbers.
 #
 # We stay coordinate-free, build both products from their geometric meaning, and — for the first time
 # — step into **3D**, where the wedge of two arrows becomes an oriented *area element* (a bivector),
 # the thing that will give us volume and the determinant in notebook 4. Figures use the shared
 # `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
+# $\newcommand{\Area}{\operatorname{Area}}$
+#
 
 # %%
 import numpy as np
@@ -100,10 +101,10 @@ def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
 
 
 # %% [markdown]
-# ## 1. The dot product, properly
+# ## 1. The dot product
 #
-# Define $\langle u,v\rangle = |u|\,|v|\,\cos\theta$. Three structural facts make it the unique
-# sensible "ruler":
+# For $u,v \in V$, define the dot product $u \cdot v = \langle u,v\rangle = |u|\,|v|\,\cos\theta$. Three structural facts make it so we can use it
+# as a "ruler" and "protractor":
 #
 # - **Symmetric**: $\langle u,v\rangle = \langle v,u\rangle$ (the angle does not care about order).
 # - **Bilinear**: linear in each slot separately, $\langle au+bw, v\rangle = a\langle u,v\rangle + b\langle w,v\rangle$.
@@ -118,6 +119,7 @@ def add_parallelogram(plot, o, u, v, color, opacity=0.35, outline=True):
 
 # %%
 def dot(u, v):
+    """note, np defines an efficient dot product np.dot(u,v)"""
     return np.sum(np.asarray(u, float) * np.asarray(v, float), axis=-1)
 
 
@@ -142,7 +144,10 @@ print(
     "positive-definite    :",
     dot(u, u) > 0 and np.isclose(dot(np.zeros(2), np.zeros(2)), 0),
 )
-
+print(
+    "compare our dot product with numpy's dot. Equal, for this example?",
+    np.allclose(dot(a * p + b * r, q), np.dot(a * p + b * r, q)),
+)
 # Law of cosines and Cauchy–Schwarz.
 print(
     "law of cosines       :",
@@ -156,32 +161,34 @@ print(
 
 
 # %% [markdown]
-# ## 2. The wedge product: signed area
+# ## 2. The determinant: signed area and the wedge (exterior product)
+# In 2D, we can develop the concept of the signed area created by the parallelogram spanned by two vectors $u$ and $v$. The sign will be defined by a choice of orientation. It is positive if going from $u$ to $v$ is in the clockwise rotation, this corresponds to the angle $\theta$ increasing from zero when progressing from $u$ to $v$. Using the standard basis, $\{\hat{e}_1,\hat{e}_2\}$, $\Area[\hat{e}_1,\hat{e}_2] = +1$ by definition in our convention.
 #
-# Now the antisymmetric partner. In 2D, the **wedge** $u \wedge v$ can be defined as the **signed area** of the
-# parallelogram spanned by $u$ and $v$:
+# $$\Area[u,v] = |u|\,|v|\,\sin\theta$$
 #
-# $$u \wedge v = |u|\,|v|\,\sin\theta.$$
 #
-# Its defining properties are the mirror image of the dot's:
+# In 2D with orthonormal basis $\{\hat{e}_1,\hat{e}_2\}$, the **wedge** or exterior product $u \wedge v$ produces a new object, called a bivector. Its amplitude can be defined as the **signed area** of the parallelogram spanned by $u$ and $v$:
 #
+# $$u \wedge v = |u|\,|v|\,\sin\theta \, \hat{e}_1\wedge\hat{e}_2 = \Area[u,v] \hat{e}_1\wedge\hat{e}_2.$$
+#
+# Its defining properties are the mirror image of the dot product:
+#
+# - **Alternating**: $u\wedge u = 0$. A degenerate parallelogram (two parallel edges) has no area.
 # - **Antisymmetric**: $u\wedge v = -\,v\wedge u$. Swapping the arrows flips the orientation, hence the
 #   sign. The magnitude is the area; the sign records whether $v$ is counter-clockwise from $u$ (+) or
 #   clockwise (−).
-# - **Bilinear**: linear in each slot (sliding one edge parallel to the other shears the parallelogram
-#   without changing its area — base × height is unchanged).
-# - **Alternating**: $u\wedge u = 0$. A degenerate parallelogram (two parallel edges) has no area.
+# - **Bilinear**: linear in each slot.
 #
-# In the plane the wedge is a single signed number; concretely $u\wedge v = u_x v_y - u_y v_x$ (the
-# 2D cross product we used for collinearity in notebook 1 — there, "lies on a line" meant "spans zero
+#
+# In the plane the, the wedge of two vectors produces of a bivector with a single component. It's coefficient is a single signed number; concretely $\Area[u, v] = u_x v_y - u_y v_x$ (the 2D cross product we used for collinearity in notebook 1 — there, "lies on a line" meant "spans zero
 # area").
 #
-# [Note, there are some fancier defintions of the $\wedge$ product involving turning two vectors in to a different type of vector. See below.]
+# [Note, we will leave the object $\hat{e}_1\wedge\hat{e}_2$ losely defined at this point - you can treat it as a formal symbol that we will explore in more depth later. It is effectively a basis vector of another vector space. There are some fancier defintions of the $\wedge$ product involving building it out of the tensor product of vector spaces. See subsequent chapters for this information.]
 
 
 # %%
-def wedge2(u, v):
-    """Signed area of the parallelogram spanned by u, v in the plane."""
+def area2(u, v):
+    """Signed area of the parallelogram spanned by u, v."""
     u, v = np.asarray(u, float), np.asarray(v, float)
     return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
 
@@ -191,60 +198,89 @@ alt = anti = bil = True
 for _ in range(2000):
     p, q, r = rng.normal(size=2), rng.normal(size=2), rng.normal(size=2)
     a, b = rng.normal(), rng.normal()
-    anti &= np.allclose(wedge2(p, q), -wedge2(q, p))
-    alt &= np.allclose(wedge2(p, p), 0.0)
-    bil &= np.allclose(wedge2(a * p + b * r, q), a * wedge2(p, q) + b * wedge2(r, q))
+    anti &= np.allclose(area2(p, q), -area2(q, p))
+    alt &= np.allclose(area2(p, p), 0.0)
+    bil &= np.allclose(area2(a * p + b * r, q), a * area2(p, q) + b * area2(r, q))
 theta = np.arccos(np.clip(dot(u, v) / (norm(u) * norm(v)), -1, 1))
 print("antisymmetric        :", anti)
 print("alternating u∧u=0    :", alt)
 print("bilinear             :", bil)
 print(
-    "u∧v = |u||v|sinθ     :",
-    np.allclose(wedge2(u, v), norm(u) * norm(v) * np.sin(theta)),
+    "Area[u,v] = |u||v|sinθ     :",
+    np.allclose(area2(u, v), norm(u) * norm(v) * np.sin(theta)),
 )
 
 # The sign is orientation: u∧v > 0 means v is counter-clockwise from u.
 p = new_plot(lim=3.0)
-add_parallelogram(p, [0, 0], u, v, GREEN if wedge2(u, v) > 0 else RED)
+add_parallelogram(p, [0, 0], u, v, GREEN if area2(u, v) > 0 else RED)
 add_vector(p, [0, 0], u, BLUE, "u")
 add_vector(p, [0, 0], v, ORANGE, "v")
 p.display()
 print(
-    f"signed area u∧v = {wedge2(u, v):+.3f}  (green = positive/counter-clockwise orientation)"
+    rf"signed area Area[u,v] = area2(u,v)={area2(u, v):+.3f}  (green = positive/counter-clockwise orientation)"
+)
+
+# %% [markdown]
+# Motivating the wedge product. If we want the $\Area$ function to be linear in each of its argument, then it has to be signed or oriented. $\Area(\lambda u, v) = \Area(u,\lambda v) = \lambda \Area(u,v)$. This makes sense based upon the idea above. if $u \rightarrow 2u$ then the Area should also double in size in correspondence with our intuition. But if $\lambda = -1$, then $Area(u,v) \rightarrow -Area(u,v)$ so we need the concept of signed area. See below.
+
+# %%
+# multiplying a vector by negative -1 — same size parallelogram, but negative -- notice also opposite orientation (drawn red).
+p = new_plot(lim=3.0)
+add_parallelogram(p, [0, 0], -u, v, GREEN if area2(-2*u, v) > 0 else RED)
+add_vector(p, [0, 0], v, ORANGE, "v")
+add_vector(p, [0, 0], -u, BLUE, "-u")
+p.display()
+print(
+    f"signed area Area[v,u] = {area2(-2*u, v):+.3f}  (red = negative/clockwise — the orientation reversed)"
 )
 
 # %%
 # Swapping the order flips the sign — same parallelogram, opposite orientation (drawn red).
 p = new_plot(lim=3.0)
-add_parallelogram(p, [0, 0], v, u, GREEN if wedge2(v, u) > 0 else RED)
+add_parallelogram(p, [0, 0], v, u, GREEN if area2(v, u) > 0 else RED)
 add_vector(p, [0, 0], v, ORANGE, "v")
 add_vector(p, [0, 0], u, BLUE, "u")
 p.display()
 print(
-    f"signed area v∧u = {wedge2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)"
+    f"signed area Area[v,u] = {area2(v, u):+.3f}  (red = negative/clockwise — the orientation reversed)"
 )
 
 
 # %% [markdown]
-# ## 3. Dot + wedge = the whole story
+# ## 3. Dot + wedge : reciprocal roles
 #
-# Alignment is $\cos\theta$, spread is $\sin\theta$, and $\cos^2\theta + \sin^2\theta = 1$. Multiplying
+# The alignment between two vectors is $\cos\theta$, and the spread between two vectors is $\sin\theta$.
+#
+# Given $\cos^2\theta + \sin^2\theta = 1$. Multiplying
 # by $|u|^2|v|^2$ gives a **Pythagorean identity tying the two products together**:
 #
-# $$\langle u,v\rangle^2 + (u\wedge v)^2 = |u|^2\,|v|^2.$$
+# $$\langle u,v\rangle^2 + |u\wedge v|^2 = |u|^2\,|v|^2.$$
 #
 # So the dot and the wedge are genuinely the two orthogonal "components" of the pair $(u,v)$: knowing
 # both lengths plus these two numbers pins down the relative geometry completely (up to a rigid
-# motion). This is the 2D shadow of the **geometric product** $uv = \langle u,v\rangle + u\wedge v$,
-# where a real "scalar" part and an "area" part are literally added — the idea geometric algebra is
-# built on.
+# motion).
+#
+# Note, this part of the motivation for the creation of the **geometric product** $uv = \langle u,v\rangle + u\wedge v$,
+# where a real "scalar" part and an "area" part are literally added. By including both components it possible to build a product that is invertible — the idea geometric algebra is built on.
+
+# %%
+# verify with kingdon sympbolically
+from kingdon import Algebra
+
+alg2 = Algebra(p=2, q=0, r=0)  # use 3D VGA for simple examples
+# alg3 = Algebra(p=3, q=0,r=0) # use 3D VGA for simple examples
+u = alg2.multivector(name="u", grades=(1,))
+v = alg2.multivector(name="v", grades=(1,))
+
+correctq = (u | v) ** 2 + (u ^ v).normsq() == u.normsq() * v.normsq()
+print("identity correct", correctq)
 
 # %%
 ok = True
 for _ in range(5000):
     p_, q_ = rng.normal(size=2), rng.normal(size=2)
-    ok &= np.allclose(dot(p_, q_) ** 2 + wedge2(p_, q_) ** 2, dot(p_, p_) * dot(q_, q_))
-print("⟨u,v⟩² + (u∧v)² = |u|²|v|²  for 5000 random pairs:", ok)
+    ok &= np.allclose(dot(p_, q_) ** 2 + area2(p_, q_) ** 2, dot(p_, p_) * dot(q_, q_))
+print("⟨u,v⟩² + |u∧v|² = |u|²|v|²  for 5000 random pairs:", ok)
 
 
 # %% [markdown]
@@ -264,7 +300,7 @@ def polygon_area(verts):
     """Signed area via the shoelace = half-sum of consecutive wedges."""
     verts = np.asarray(verts, float)
     nxt = np.roll(verts, -1, axis=0)
-    return 0.5 * np.sum(wedge2(verts, nxt))
+    return 0.5 * np.sum(area2(verts, nxt))
 
 
 # A pentagon, plus a triangle whose area we cross-check against ½|base×height|.
@@ -371,7 +407,7 @@ A = np.array([[1.3, -0.7], [0.4, 1.1]])
 ratios = []
 for _ in range(6):
     p_, q_ = rng.normal(size=2), rng.normal(size=2)
-    ratios.append(wedge2(apply_lin(A, p_), apply_lin(A, q_)) / wedge2(p_, q_))
+    ratios.append(area2(apply_lin(A, p_), apply_lin(A, q_)) / area2(p_, q_))
 print("T(u)∧T(v) / (u∧v) for 6 random pairs:", np.round(ratios, 6))
 print("→ all equal; this constant is det T =", round(ratios[0], 6))
 
@@ -385,7 +421,7 @@ ops = {
 }
 e1, e2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
 for name, M in ops.items():
-    det = wedge2(apply_lin(M, e1), apply_lin(M, e2)) / wedge2(e1, e2)
+    det = area2(apply_lin(M, e1), apply_lin(M, e2)) / area2(e1, e2)
     print(f"  {name:<20} area factor (det) = {det:+.3f}")
 
 

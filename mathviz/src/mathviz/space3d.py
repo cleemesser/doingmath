@@ -317,7 +317,11 @@ class Space3D:
             vedo_display=vedo_display,
         )
 
-    def save(self, path):
+    def save(self, path, *, format=None):
+        """Write the scene to ``path`` (a filename or an open buffer).
+
+        ``format`` ("png", "svg", ...) is required for buffers, which have no suffix to infer from.
+        """
         return get_backend(self._backend).render(
-            P.Scene(self.view, list(self.primitives)), save=path
+            P.Scene(self.view, list(self.primitives)), save=path, format=format
         )

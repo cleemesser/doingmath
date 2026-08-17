@@ -1,11 +1,26 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.4
+# ---
+
+# %%
 import jax
 import jax.numpy as jnp
 import kingdon
 
+# %%
 # 1. Initialize a standard 2D Clifford Algebra space (p=2, q=0)
 alg = kingdon.Algebra(2, 0)
 
 
+# %%
 # 2. Define a pure function processing geometric algebra operations
 def geometric_loss(coeff_a, coeff_b):
     # Construct Multivectors inside the function using JAX arrays
@@ -19,10 +34,11 @@ def geometric_loss(coeff_a, coeff_b):
     return product["e12"]
 
 
+# %%
 # 3. Setup sample data arrays
 a = jnp.array([1.5, 2.5])
 b = jnp.array([3.0, -1.0])
-
+# %%
 # 4. Apply JAX transformations: JIT-compile and compute gradients
 grad_fn = jax.jit(jax.grad(geometric_loss, argnums=(0, 1)))
 grads_a, grads_b = grad_fn(a, b)

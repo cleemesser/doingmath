@@ -26,7 +26,7 @@ from .backends import (
     set_vedo_display,
 )
 from .maps import FLAG, UNIT_SQUARE, ProbeShape, unit_circle
-from .notebook import show_expr
+from .notebook import show_expr, show_md
 from .palette import BG, BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, YELLOW
 from .phase import phase_portrait
 from .plane import Plane
@@ -70,4 +70,4 @@ __all__ = [
     "BG",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

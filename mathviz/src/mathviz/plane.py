@@ -174,5 +174,13 @@ class Plane:
             self._scene(), interactive=interactive, vedo_display=vedo_display
         )
 
-    def save(self, path):
-        return get_backend(self._backend).render(self._scene(), save=path)
+    def save(self, path, *, format=None):
+        """Write the scene to ``path`` (a filename or an open buffer).
+
+        ``format`` ("png", "svg", ...) is required for buffers, which have no suffix to infer from.
+        SVG is the better choice for a scene that re-renders on every widget tick: it embeds
+        straight into the DOM, so there is no image asset to re-fetch and re-decode per frame.
+        """
+        return get_backend(self._backend).render(
+            self._scene(), save=path, format=format
+        )

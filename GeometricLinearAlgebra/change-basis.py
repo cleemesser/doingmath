@@ -73,9 +73,7 @@
 # b^{i},f(v_{j})\rangle \\ \text{Substitute\ our\ matrix\ entries\ }A\text{\
 # and\ }B:\quad \quad \quad \quad B_{ji}&=A_{ij}\end{aligned}
 # $$
-# $Because $B_{ji}
-# = A_{ij}$, the matrix B representing the dual map is the row-column swap of
-# the matrix A.
+# $Because $B_{ji}= A_{ij}$, the matrix B representing the dual map is the row-column swap of the matrix A.
 #
 # ### Summary
 # The traditional matrix transpose is not just an arbitrary
@@ -125,7 +123,7 @@ b2_mv = alg2.vector(newbasis_list[1])
 # newbasis_mv = alg2.vector(newbasis) broadcasted version
 mv.show_md(f"""Let's define our new coordinate system with basis vectors
 b1_mv, b2_mv: 
-$$b_1 = {b1_mv} \\
+$$b_1 = {b1_mv} \\\\
  b_2 = {b2_mv}$$""")
 
 mv.show_md("$b_1$ and $b_2$ when in expressed in matrix form in the standard basis are: ")

@@ -1,12 +1,12 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 3 -- dot and wedge, as a *reactive* marimo notebook.
@@ -16,7 +16,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/03_Dot_and_Wedge_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -51,26 +51,48 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, io, mo, mv, np
+    return TangleLatex, io, mo, mv, np, re
 
 
 @app.cell
-def _(io, mo, mv):
+def _(io, mo, mv, re):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
@@ -78,13 +100,13 @@ def _(io, mo, mv):
     def space(bounds=3.0, **kw):
         """A 3D scene on the *matplotlib* backend.
 
-        mathviz defaults Space3D to vedo, which renders this scene in ~0.97s against
+        clmmathtools defaults Space3D to vedo, which renders this scene in ~0.97s against
         mpl's ~0.28s. A reactive notebook re-renders on every drag, so the cheaper
         backend is the right default here -- and it keeps 2D and 3D on one renderer.
         """
         return mv.Space3D(bounds=bounds, backend="mpl", **kw)
 
-    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, png, space
+    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, space, svg
 
 
 @app.cell
@@ -95,8 +117,8 @@ def _(np):
     def norm(v):
         return np.sqrt(dot(v, v))
 
-    def wedge2(u, v):
-        """Signed area of the parallelogram spanned by u, v in the plane."""
+    def area2(u, v):
+        """Signed area of the parallelogram spanned by u, v."""
         u, v = np.asarray(u, float), np.asarray(v, float)
         return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
 
@@ -114,13 +136,13 @@ def _(np):
     def polygon_area(verts):
         """Signed area via the shoelace = half-sum of consecutive wedges."""
         verts = np.asarray(verts, float)
-        return 0.5 * np.sum(wedge2(verts, np.roll(verts, -1, axis=0)))
+        return 0.5 * np.sum(area2(verts, np.roll(verts, -1, axis=0)))
 
     def apply_lin(A, v):
         """Apply the 2x2 bookkeeping array A to a vector or a stack of row-vectors."""
         return np.asarray(v, float) @ np.asarray(A, float).T
 
-    return apply_lin, cross3, dot, norm, polygon_area, wedge2
+    return apply_lin, area2, cross3, dot, norm, polygon_area
 
 
 @app.cell(hide_code=True)
@@ -145,7 +167,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 1. The dot product, properly
+    ## 1. The dot product
 
     Define $\langle u,v\rangle = \lvert u\rvert\,\lvert v\rvert\,\cos\theta$. Three
     structural facts make it the unique sensible "ruler":
@@ -174,18 +196,42 @@ def _(TangleLatex, mo, theme):
                 r"v = \begin{bmatrix} \tangle{v1} \\[2pt] \tangle{v2} \end{bmatrix}"
             ),
             parameters={
-                "u1": {"value": 2.0, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, first component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "u2": {"value": 0.5, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, second component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "v1": {"value": 0.6, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, first component",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "v2": {"value": 1.7, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, second component",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "u1": {
+                    "value": 2.0,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, first component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "u2": {
+                    "value": 0.5,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, second component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "v1": {
+                    "value": 0.6,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, first component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "v2": {
+                    "value": 1.7,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, second component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -205,7 +251,7 @@ def _(duo, np):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREY, ORANGE, check, dot, mo, mv, norm, np, png, u, v):
+def _(BLUE, GREY, ORANGE, check, dot, mo, mv, norm, np, svg, u, v):
     _theta = np.arccos(np.clip(dot(u, v) / (norm(u) * norm(v)), -1, 1))
 
     _p = mv.Plane(extent=3.0)
@@ -215,7 +261,7 @@ def _(BLUE, GREY, ORANGE, check, dot, mo, mv, norm, np, png, u, v):
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     $$\langle u,v\rangle = {dot(u, v):+.3f} \qquad
@@ -253,6 +299,15 @@ def _(mo):
 
     $$u \wedge v = \lvert u\rvert\,\lvert v\rvert\,\sin\theta = u_x v_y - u_y v_x.$$
 
+    **Why *signed* area?** Because we want $\operatorname{Area}$ to be linear in each of its
+    arguments:
+    $\operatorname{Area}(\lambda u, v) = \operatorname{Area}(u, \lambda v) = \lambda\,\operatorname{Area}(u,v)$.
+    For $\lambda = 2$ that matches intuition — double one edge and the parallelogram doubles.
+    But the same rule at $\lambda = -1$ forces
+    $\operatorname{Area}(u,v) \to -\operatorname{Area}(u,v)$: the same parallelogram, the same
+    size, carrying the opposite sign. **Linearity leaves us no choice** — an area function
+    that is linear in its arguments has to be an *oriented* one.
+
     Its defining properties mirror the dot's:
 
     - **Antisymmetric**: $u\wedge v = -\,v\wedge u$. Swapping flips the orientation, hence
@@ -270,16 +325,18 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, norm, np, png, u, v, wedge2, dot):
-    _uv, _vu = wedge2(u, v), wedge2(v, u)
+def _(BLUE, GREEN, ORANGE, RED, area2, check, dot, mo, mv, norm, np, svg, u, v):
+    _uv, _vu = area2(u, v), area2(v, u)
     _theta = np.arccos(np.clip(dot(u, v) / (norm(u) * norm(v)), -1, 1))
 
     def _pane(a, b, area, la, lb, ca, cb):
         p = mv.Plane(extent=3.0)
-        p.parallelogram([0, 0], a, b, facecolor=(GREEN if area > 0 else RED), alpha=0.22)
+        p.parallelogram(
+            [0, 0], a, b, facecolor=(GREEN if area > 0 else RED), alpha=0.22
+        )
         p.vector(a, color=ca, label=la)
         p.vector(b, color=cb, label=lb)
-        return png(p, width=360)
+        return svg(p, width=360)
 
     mo.vstack(
         [
@@ -296,7 +353,7 @@ def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, norm, np, png, u, v, wedge2, dot)
     $$u \wedge v = {_uv:+.3f} \qquad\qquad v \wedge u = {_vu:+.3f}$$
 
     {check(r"**antisymmetric**, $u\wedge v = -\,v\wedge u$", np.allclose(_uv, -_vu))}
-    {check(r"**alternating**, $u\wedge u = 0$", np.allclose(wedge2(u, u), 0.0))}
+    {check(r"**alternating**, $u\wedge u = 0$", np.allclose(area2(u, u), 0.0))}
     {check(r"$u\wedge v = \lvert u\rvert\lvert v\rvert\sin\theta$", np.allclose(abs(_uv), norm(u) * norm(v) * np.sin(_theta)))}
     {check(r"the area is **positive** — $v$ is counter-clockwise from $u$", _uv > 0)}
     {check(r"$u$ and $v$ are parallel right now, so the area has collapsed to $0$", np.allclose(_uv, 0.0))}
@@ -309,6 +366,44 @@ def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, norm, np, png, u, v, wedge2, dot)
             ),
         ],
         gap=0.6,
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(BLUE, GREEN, ORANGE, RED, area2, check, mo, mv, np, svg, u, v):
+    _uv = area2(u, v)
+    _nuv = area2(-u, v)
+
+    _p = mv.Plane(extent=3.0)
+    _p.parallelogram([0, 0], -u, v, facecolor=(GREEN if _nuv > 0 else RED), alpha=0.22)
+    _p.vector(-u, color=BLUE, label="-u")
+    _p.vector(v, color=ORANGE, label="v")
+
+    mo.hstack(
+        [
+            svg(_p, width=360),
+            mo.md(
+                rf"""
+    **The $\lambda = -1$ case.** Negating one edge spans a parallelogram of exactly the same
+    size, reflected to the other side of $v$ — and the sign flips:
+
+    $$u \wedge v = {_uv:+.3f} \qquad (-u) \wedge v = {_nuv:+.3f}$$
+
+    {check(r"$(-u)\wedge v = -\,(u\wedge v)$ — linearity at $\lambda = -1$", np.allclose(_nuv, -_uv))}
+    {check(r"same size, $\lvert(-u)\wedge v\rvert = \lvert u\wedge v\rvert$", np.allclose(abs(_nuv), abs(_uv)))}
+    {check(r"this pane is **negatively** oriented (drawn red)", _nuv < 0)}
+
+    This is the picture behind the motivation above. Where the two panes before it flipped
+    the sign by reordering the *pair*, this one flips it by scaling a *single edge* — and
+    that is the case linearity cannot wriggle out of. Drag $u$ or $v$ anywhere: the first
+    two ticks never budge.
+    """
+            ),
+        ],
+        widths=[1, 1],
+        align="center",
+        gap=1.2,
     )
     return
 
@@ -333,8 +428,8 @@ def _(mo):
 
 
 @app.cell
-def _(check, dot, mo, norm, np, u, v, wedge2):
-    _lhs = dot(u, v) ** 2 + wedge2(u, v) ** 2
+def _(area2, check, dot, mo, norm, np, u, v):
+    _lhs = dot(u, v) ** 2 + area2(u, v) ** 2
     _rhs = dot(u, u) * dot(v, v)
 
     # The identity is not a fact about *these* two arrows -- confirm on random pairs too.
@@ -342,12 +437,14 @@ def _(check, dot, mo, norm, np, u, v, wedge2):
     _always = True
     for _ in range(5000):
         _p, _q = _rng.normal(size=2), _rng.normal(size=2)
-        _always &= np.allclose(dot(_p, _q) ** 2 + wedge2(_p, _q) ** 2, dot(_p, _p) * dot(_q, _q))
+        _always &= np.allclose(
+            dot(_p, _q) ** 2 + area2(_p, _q) ** 2, dot(_p, _p) * dot(_q, _q)
+        )
 
     mo.md(
         rf"""
     $$\underbrace{{({dot(u, v):+.3f})^2}}_{{\langle u,v\rangle^2}}
-      + \underbrace{{({wedge2(u, v):+.3f})^2}}_{{(u\wedge v)^2}}
+      + \underbrace{{({area2(u, v):+.3f})^2}}_{{(u\wedge v)^2}}
       = {_lhs:.4f}
       \qquad
       \lvert u\rvert^2\lvert v\rvert^2 = {norm(u) ** 2:.3f} \times {norm(v) ** 2:.3f}
@@ -390,12 +487,24 @@ def _(TangleLatex, mo, theme):
         TangleLatex(
             latex=r"v_3 = \begin{bmatrix} \tangle{x} \\[2pt] \tangle{y} \end{bmatrix}",
             parameters={
-                "x": {"value": 2.6, "min_value": -3, "max_value": 3, "step": 0.1,
-                      "digits": 1, "label": "third vertex, x",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "y": {"value": 1.8, "min_value": -3, "max_value": 3, "step": 0.1,
-                      "digits": 1, "label": "third vertex, y",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "x": {
+                    "value": 2.6,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "third vertex, x",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "y": {
+                    "value": 1.8,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "third vertex, y",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -407,9 +516,15 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, np, png, polygon_area, reverse, vert):
+def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, np, polygon_area, reverse, svg, vert):
     poly = np.array(
-        [[0.0, 0.0], [2.0, 0.3], [vert.values["x"], vert.values["y"]], [1.0, 2.6], [-0.5, 1.4]]
+        [
+            [0.0, 0.0],
+            [2.0, 0.3],
+            [vert.values["x"], vert.values["y"]],
+            [1.0, 2.6],
+            [-0.5, 1.4],
+        ]
     )
     if reverse.value:
         poly = poly[::-1]
@@ -419,7 +534,9 @@ def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, np, png, polygon_area, reverse, v
     # The fan of signed triangles from vertex 0 -- this is the shoelace sum, drawn.
     for _i in range(1, len(poly) - 1):
         _tri = np.array([poly[0], poly[_i], poly[_i + 1]])
-        _p.polygon(_tri, facecolor=(GREEN if polygon_area(_tri) > 0 else RED), alpha=0.16)
+        _p.polygon(
+            _tri, facecolor=(GREEN if polygon_area(_tri) > 0 else RED), alpha=0.16
+        )
     _p.curve(np.vstack([poly, poly[0]]), color=BLUE, width=3.0, closed=False)
     _p.points(poly, color=ORANGE, size=9.0)
 
@@ -428,7 +545,7 @@ def _(BLUE, GREEN, ORANGE, RED, check, mo, mv, np, png, polygon_area, reverse, v
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     $$\text{{signed area}} = \tfrac12\sum_i v_i \wedge v_{{i+1}} = {_area:+.4f}$$
@@ -485,15 +602,33 @@ def _(TangleLatex, mo, theme):
                 r"\qquad u = \begin{bmatrix} 2.0 \\[2pt] 0.4 \\[2pt] 0.3 \end{bmatrix}"
             ),
             parameters={
-                "a": {"value": 0.5, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                      "digits": 1, "label": "v, x-component",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "b": {"value": 1.8, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                      "digits": 1, "label": "v, y-component",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "c": {"value": 0.2, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                      "digits": 1, "label": "v, z-component",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "a": {
+                    "value": 0.5,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, x-component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "b": {
+                    "value": 1.8,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, y-component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "c": {
+                    "value": 0.2,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, z-component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -504,7 +639,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, ORANGE, check, cross3, dot, mo, norm, np, png, space, three):
+def _(BLUE, GREEN, ORANGE, check, cross3, dot, mo, norm, np, space, svg, three):
     u3 = np.array([2.0, 0.4, 0.3])
     v3 = np.array([three.values["a"], three.values["b"], three.values["c"]])
     n3 = cross3(u3, v3)
@@ -518,7 +653,7 @@ def _(BLUE, GREEN, ORANGE, check, cross3, dot, mo, norm, np, png, space, three):
 
     mo.hstack(
         [
-            png(_s, width=430),
+            svg(_s, width=430),
             mo.md(
                 rf"""
     $$u\times v = ({n3[0]:+.2f},\; {n3[1]:+.2f},\; {n3[2]:+.2f})
@@ -526,7 +661,7 @@ def _(BLUE, GREEN, ORANGE, check, cross3, dot, mo, norm, np, png, space, three):
 
     {check(r"$u\times v \perp u$", np.allclose(dot(n3, u3), 0))}
     {check(r"$u\times v \perp v$", np.allclose(dot(n3, v3), 0))}
-    {check(r"$\lvert u\times v\rvert^2 + \langle u,v\rangle^2 = \lvert u\rvert^2\lvert v\rvert^2$ — the same identity, in space", np.allclose(_area ** 2 + dot(u3, v3) ** 2, dot(u3, u3) * dot(v3, v3)))}
+    {check(r"$\lvert u\times v\rvert^2 + \langle u,v\rangle^2 = \lvert u\rvert^2\lvert v\rvert^2$ — the same identity, in space", np.allclose(_area**2 + dot(u3, v3) ** 2, dot(u3, u3) * dot(v3, v3)))}
     {check(r"antisymmetric in 3D too, $u\times v = -\,v\times u$", np.allclose(n3, -cross3(v3, u3)))}
     {check(r"$u$ and $v$ are parallel, so the patch has collapsed", np.allclose(_area, 0.0))}
 
@@ -573,18 +708,42 @@ def _(TangleLatex, mo, theme):
                 r"\tangle{c} & \tangle{d} \end{bmatrix}"
             ),
             parameters={
-                "a": {"value": 1.3, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "T, row 1 col 1",
-                      "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "b": {"value": -0.7, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "T, row 1 col 2",
-                      "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "c": {"value": 0.4, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "T, row 2 col 1",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "d": {"value": 1.1, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "T, row 2 col 2",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "a": {
+                    "value": 1.3,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "T, row 1 col 1",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "b": {
+                    "value": -0.7,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "T, row 1 col 2",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "c": {
+                    "value": 0.4,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "T, row 2 col 1",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "d": {
+                    "value": 1.1,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "T, row 2 col 2",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -595,7 +754,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, apply_lin, check, mo, mv, np, opw, png, wedge2):
+def _(BLUE, GREEN, apply_lin, area2, check, mo, mv, np, opw, svg):
     A = np.array(
         [[opw.values["a"], opw.values["b"]], [opw.values["c"], opw.values["d"]]]
     )
@@ -604,9 +763,9 @@ def _(BLUE, GREEN, apply_lin, check, mo, mv, np, opw, png, wedge2):
     _ratios = []
     for _ in range(6):
         _p, _q = _rng.normal(size=2), _rng.normal(size=2)
-        _w = wedge2(_p, _q)
+        _w = area2(_p, _q)
         if abs(_w) > 1e-9:
-            _ratios.append(wedge2(apply_lin(A, _p), apply_lin(A, _q)) / _w)
+            _ratios.append(area2(apply_lin(A, _p), apply_lin(A, _q)) / _w)
     _det = float(np.linalg.det(A))
     _constant = np.allclose(_ratios, _ratios[0])
 
@@ -621,7 +780,7 @@ def _(BLUE, GREEN, apply_lin, check, mo, mv, np, opw, png, wedge2):
 
     mo.hstack(
         [
-            png(_p2),
+            svg(_p2),
             mo.md(
                 rf"""
     ratios $\dfrac{{T(u)\wedge T(v)}}{{u\wedge v}}$ for six unrelated random pairs:
@@ -660,9 +819,11 @@ def _(mo):
 
 
 @app.cell
-def _(apply_lin, mo, np, wedge2):
+def _(apply_lin, area2, mo, np):
     _ops = {
-        "rotation 36°": np.array([[np.cos(0.6), -np.sin(0.6)], [np.sin(0.6), np.cos(0.6)]]),
+        "rotation 36°": np.array(
+            [[np.cos(0.6), -np.sin(0.6)], [np.sin(0.6), np.cos(0.6)]]
+        ),
         "uniform scale 1.6": np.array([[1.6, 0.0], [0.0, 1.6]]),
         "shear k=0.8": np.array([[1.0, 0.8], [0.0, 1.0]]),
         "projection onto x": np.array([[1.0, 0.0], [0.0, 0.0]]),
@@ -671,7 +832,7 @@ def _(apply_lin, mo, np, wedge2):
     _e1, _e2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
 
     def _row(name, M):
-        area = wedge2(apply_lin(M, _e1), apply_lin(M, _e2)) / wedge2(_e1, _e2)
+        area = area2(apply_lin(M, _e1), apply_lin(M, _e2)) / area2(_e1, _e2)
         note = {
             True: "preserves area",
             False: "changes area",

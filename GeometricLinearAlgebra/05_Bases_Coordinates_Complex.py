@@ -37,7 +37,7 @@
 # %%
 import numpy as np
 from scipy.linalg import expm
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -57,7 +57,7 @@ LABELC = 0xCCCCCC
 
 
 # %%
-# Thin adapters over the shared `mathviz` library, keeping this notebook's original drawing
+# Thin adapters over the shared `clmmathtools` library, keeping this notebook's original drawing
 # calls (new_plot / add_line / add_vector / add_points / show_operator) intact.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):
     return mv.Plane(extent=lim, grid=grid, axes=axes)

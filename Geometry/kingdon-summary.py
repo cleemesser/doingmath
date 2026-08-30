@@ -19,11 +19,12 @@
 # summary notebook based upon the documentation, a lot of copy/paste
 # %%
 import numpy as np
+import kingdon  # as kd?
 from kingdon import Algebra
 
 alg2 = Algebra(p=2, q=0, r=0)  # use 3D VGA for simple examples
 alg3 = Algebra(p=3, q=0, r=0)  # use 3D VGA for simple examples
-locals().update(alg3.blades)
+locals().update(alg3.blades)  # make VGA 3 the default but ok to use other algebras
 # %% [markdown]
 # ### Symbolic Multivectors
 # In order to create symbolical multivectors in an algebra, we can call multivector and explicitly pass a name argument. For example, let us create two symbolic vectors u and v in this algebra
@@ -34,7 +35,7 @@ u, v
 # %% [markdown]
 # this is an example for 2D VGA - alittle different from above
 # ```python
-# v = alg.multivector(name='v', grades=(1,))
+# v = alg2.multivector(name='v', grades=(1,))
 # u
 # u1 𝐞₁ + u2 𝐞₂
 # v
@@ -43,9 +44,9 @@ u, v
 # %% [markdown]
 # ### common operations, addition, (geometric) product
 # ```
-# >>> u + v
+# >>> u + v # (multi) vector addition
 # (u1 + v1) 𝐞₁ + (u2 + v2) 𝐞₂
-# >>> u * v
+# >>> u * v # geometric product
 # (u1*v1 + u2*v2) + (u1*v2 - u2*v1) 𝐞₁₂
 # ```
 # %%
@@ -85,7 +86,6 @@ u ^ v  # wedge
 # v = alg2.multivector(name='v', grades=(1,))
 # u,v
 # %%
-
 # conjugation in 2D VGA, conjugation by a vector u <-> reflection across the line defined by u
 u >> v
 # (-u1**2*v1 - 2*u1*u2*v2 + u2**2*v1) 𝐞₁ + (u1**2*v2 - 2*u1*u2*v1 - u2**2*v2) 𝐞₂
@@ -156,20 +156,109 @@ u * v * u.inv()
 # (0.1541) + (0.0886) 𝐞₁₂
 # ```
 #
-# A big performance bottleneck that we suffer from in Python, is that arrays over objects are very slow. So while we could make a numpy array filled with ~kingdon.multivector.MultiVector’s, this would tank our performance. kingdon gets around this problem by instead accepting numpy arrays as input. So to make a collection of 3 lines, we do
+# %%
+import numpy as np
+
+uvals, vvals = np.random.random((2, 2))
+u = alg2.vector(uvals)
+v = alg2.vector(vvals)
+u * v
+
+# %% [markdown]
 #
+# A big performance bottleneck that we suffer from in Python, is that arrays over objects are very slow. So while we could make a numpy array filled with ~kingdon.multivector.MultiVector’s, this would tank our performance. kingdon gets around this problem by instead accepting numpy arrays as input. So to make a collection of 3 lines, we do
+# ```python
 # import numpy as np
 # uvals = np.random.random((2, 3))
 # u = alg.vector(uvals)
 # u
 # ([0.82499172 0.71181276 0.98052928]) 𝐞₁ + ([0.53395072 0.07312351 0.42464341]) 𝐞₂
-# what is important here is that the first dimension of the array has to have the expected length: 2 for a vector. All other dimensions are not used by kingdon. Now we can reflect this multivector in the e1 line:
 #
+
+# %%
+import numpy as np
+
+uvals = np.random.random((2, 3))
+u = alg2.vector(uvals)
+u
+# ([0.82499172 0.71181276 0.98052928]) 𝐞₁ + ([0.53395072 0.07312351 0.42464341]) 𝐞₂
+
+# %%
+u**2  # returns a arrayified-grade0 multivector
+
+# %% [markdown]
+# ```
+#
+# what is important here is that the first dimension of the array has to have the expected length: 2 for a vector. All other dimensions are not used by kingdon. Now we can reflect this multivector in the e1 line:
+# ```python
 # v = alg.vector((1, 0))
 # v >> u
+#
 # ([0.82499172 0.71181276 0.98052928]) 𝐞₁ + ([-0.53395072 -0.07312351 -0.42464341]) 𝐞₂
+# ```
+#
+
+# %%
+v = alg2.vector((1, 0))
+v >> u
+
+
+# %% [markdown]
+#
 # Despite the different shapes, broadcasting is done correctly in the background thanks to the magic of numpy, and with only minor performance penalties.
 #
+#
+
+# %% [markdown]
+# ### The Shape of MultiVectors
+# The first dimension of a multivector is always the coefficients of the multivector. For example, to create a vector in ℝ3 we could do
+
+# %%
+from kingdon import Algebra
+import numpy as np
+
+alg3 = Algebra(3)
+xvals = np.random.rand(3)
+x = alg3.vector(xvals)
+x.shape
+# (3,)
+
+# %% [markdown]
+# Now if we look at x.shape, we see that it is (3,), the same as xvals.shape. However, the length of x is 0:
+
+# %%
+len(x)
+
+# %% [markdown]
+# This reflects that x is a single vector, and therefore not iterable. You might have expected iteration over a multivector to iterate over its coefficients, but in kingdon multivectors are treated as geometric numbers, similar to how complex numbers are treated in complex analysis.
+
+# %% [markdown]
+# Note
+# If you need to iterate over the coefficients anyway use x.map to map a function on all the coefficients of the multivector. For individual access, use attributes access instead, e.g. x.e1 returns the 𝐞1 coefficient.
+
+# %%
+x.e, x.e1, x.e2
+
+# %% [markdown]
+# Now lets make a collection of 𝑁 vectors, and see what changes:
+# ```python
+# N = 5
+# xvals = np.random.rand(3, N)
+# x = alg.vector(xvals)
+# x
+# [0.37454012 0.95071431 0.73199394 0.59865848 0.15601864] 𝐞₁ + [0.15599452 0.05808361 0.86617615 0.60111501 0.70807258] 𝐞₂ + [0.02058449 0.96990985 0.83244264 0.21233911 0.18182497] 𝐞₃
+# x.shape
+# (3, 5)
+# len(x)
+# 5
+# ```
+
+# %% [markdown]
+# Hence, we see that the length of the multivector is 5, and therefore we can iterate over the multivector to get the individual vectors in x:
+
+# %%
+
+# %% [markdown]
 #
 # ### Operators
 #
@@ -216,6 +305,7 @@ u * v * u.inv()
 # def proj(x, y):
 #     return (x | y) / y
 # ```
+
 # %% [markdown]
 # ## Graphing
 # - see separate notebook
@@ -275,7 +365,91 @@ e1.dual().undual()
 # cross product u x v
 (u ^ v).dual()
 
+
 # %%
+def toscalar(mvec: kingdon.MultiVector):
+    """take the grade0 "scalar" portion of a multi vector into a regular float
+    kingdon.MultiVector <-> kingdon.multivector.MultiVector
+
+    it threads over multivectors that are composed with arrays
+    """
+    return mvec.e
+    g0 = mvec.grade(0)
+    vals = g0.values()
+    # use g0.map instead ?
+    # use g0.e instead?
+    if vals:
+        r = vals[0]
+    else:
+        r = 0
+    return r
+
+
+# kingdon.MultiVector
+
+
+# %%
+epsilon = 10 ** (-4)
+print("basic [ok]" if toscalar(x**2) - 0.415 < epsilon else "error")
+print(
+    "threaded [ok]"
+    if np.allclose(toscalar(u**2), np.array([0.51851588, 0.14950576, 0.21833548]))
+    else "error!"
+)
+
+
+# %% [markdown]
+# ### Mapping `toscalar` over arbitrarily nested containers
+#
+# The subtlety is *not* the recursion, it is deciding what counts as a
+# container to descend into vs. a leaf to apply the function to.
+# `kingdon.MultiVector` defines `__getitem__` but no `__iter__`, so it is **not**
+# an `abc.Iterable`, yet `iter(mv)` still succeeds via the legacy sequence
+# protocol and yields *nothing* — a duck-typed `try: iter(x)` test would quietly
+# turn every multivector into `[]`. So test against the ABC, not `iter()`.
+
+# %%
+from collections.abc import Iterable
+
+# containers we descend into; everything else is a leaf
+ATOMIC = (str, bytes, bytearray, kingdon.MultiVector)
+
+
+def is_container(obj) -> bool:
+    return isinstance(obj, Iterable) and not isinstance(obj, ATOMIC)
+
+
+def _rebuild(obj, items):
+    """Repackage `items` as the same kind of container as `obj`."""
+    if isinstance(obj, np.ndarray):
+        # NB: `np.ndarray(items)` is the raw uninitialised-memory constructor
+        # (first arg is a *shape*), not a from-sequence factory. It does not
+        # raise, it returns garbage -- so ndarray must be special-cased.
+        return np.array(items)
+    if isinstance(obj, (tuple, set, frozenset)):
+        try:
+            return type(obj)(items)
+        except TypeError:
+            return type(obj)(*items)  # namedtuples take positional args
+    return list(items)  # lists, generators, ranges, dict_values
+
+
+def deep_map(func, obj):
+    """Apply `func` to every leaf of an arbitrarily nested iterable,
+    preserving the nesting structure and (where possible) the container type.
+
+    >>> deep_map(toscalar, [[e1 | e1, e1 | e2], [e2 | e1, e2 | e2]])
+    [[1, 0], [0, 1]]
+    """
+    if not is_container(obj):
+        return func(obj)
+    # materialise first: rebuilding must not half-consume a lazy iterator
+    return _rebuild(obj, [deep_map(func, x) for x in obj])
+
+
+def deep_toscalar(obj):
+    return deep_map(toscalar, obj)
+
 
 # %% [markdown]
 #

@@ -77,8 +77,8 @@ def _():
 
 @app.cell
 def _(np, plt, sp):
-    # Colors carried over from the mathviz original (see CLAUDE.md: named hex constants,
-    # reused for visual consistency). mathviz's vedo offscreen Plotter is replaced by matplotlib
+    # Colors carried over from the clmmathtools original (see CLAUDE.md: named hex constants,
+    # reused for visual consistency). clmmathtools's vedo offscreen Plotter is replaced by matplotlib
     # here -- marimo renders a returned Figure directly, and re-renders it on every drag,
     # which is what we want for a reactive notebook.
     GREY = "#888888"
@@ -213,11 +213,13 @@ def _(Matrix, check, cos, eye, mo, sin, sp, symbols, trigsimp):
 
     {check(r"$R^\top R = I$ — rotation is orthogonal", trigsimp(R.T * R) == I2)}
     {check(r"$\det R = 1$ — orientation and area preserved", trigsimp(R.det()) == 1)}
-    {check(
-        r"$R(\alpha)R(\beta) = R(\alpha{+}\beta)$ — the angle-sum identities for "
-        r"$\sin$ and $\cos$, falling out of matrix multiplication",
-        trigsimp(Ra * Rb - Rab) == sp.zeros(2),
-    )}
+    {
+            check(
+                r"$R(\alpha)R(\beta) = R(\alpha{+}\beta)$ — the angle-sum identities for "
+                r"$\sin$ and $\cos$, falling out of matrix multiplication",
+                trigsimp(Ra * Rb - Rab) == sp.zeros(2),
+            )
+        }
 
     Those three ticks are proofs **for every angle at once** — symbols went into the
     matrix, and the difference simplified to the zero matrix. Now pick one angle and
@@ -415,7 +417,12 @@ def _(
     _t = np.linspace(0, float(_a + _b), 200)
     _ax.plot(0.85 * np.cos(_t), 0.85 * np.sin(_t), color=GREY, lw=1.0, ls=":")
     arrow(_ax, [1, 0], color=GREY, alpha=0.45, label=r"$e_1$")
-    arrow(_ax, sp.matrix2numpy(Ra_x, dtype=float) @ [1, 0], color=ORANGE, label=r"$R_\alpha e_1$")
+    arrow(
+        _ax,
+        sp.matrix2numpy(Ra_x, dtype=float) @ [1, 0],
+        color=ORANGE,
+        label=r"$R_\alpha e_1$",
+    )
     arrow(
         _ax,
         sp.matrix2numpy(prod_x, dtype=float) @ [1, 0],
@@ -431,15 +438,19 @@ def _(
     $$R({sp.latex(_a)})\,R({sp.latex(_b)}) \;=\; {sp.latex(prod_x)}
       \;=\; R\big({sp.latex(sp.simplify(_a + _b))}\big)$$
 
-    {check(
-        rf"the product equals $R({sp.latex(sp.simplify(_a + _b))})$ exactly",
-        sp.simplify(prod_x - Rab_x) == sp.zeros(2),
-    )}
-    {check(
-        r"and it commutes, $R_\alpha R_\beta = R_\beta R_\alpha$ (rotations of a plane "
-        r"share an axis)",
-        sp.simplify(Ra_x * Rb_x - Rb_x * Ra_x) == sp.zeros(2),
-    )}
+    {
+                    check(
+                        rf"the product equals $R({sp.latex(sp.simplify(_a + _b))})$ exactly",
+                        sp.simplify(prod_x - Rab_x) == sp.zeros(2),
+                    )
+                }
+    {
+                    check(
+                        r"and it commutes, $R_\alpha R_\beta = R_\beta R_\alpha$ (rotations of a plane "
+                        r"share an axis)",
+                        sp.simplify(Ra_x * Rb_x - Rb_x * Ra_x) == sp.zeros(2),
+                    )
+                }
 
     Two turns, applied in sequence, land where one turn of the summed angle lands —
     which *is* the pair of angle-sum identities, with the bookkeeping done by matrix
@@ -624,7 +635,7 @@ def _(Matrix, check, mo, simplify, sp, symbols):
 
 @app.cell
 def _(u_sym, v_sym):
-    u_sym, v_sym, u_sym.T *v_sym
+    u_sym, v_sym, u_sym.T * v_sym
     return
 
 
@@ -637,14 +648,42 @@ def _(TangleLatex, mo, theme):
                 r"\qquad v = \begin{bmatrix}\tangle{v1}\\[2pt]\tangle{v2}\end{bmatrix}"
             ),
             parameters={
-                "u1": {"value": 2, "min_value": -3, "max_value": 3, "step": 0.25, "digits": 2,
-                       "label": "u_x", "color": {"light": "#b91c1c", "dark": "#f87171"}},
-                "u2": {"value": 0.5, "min_value": -3, "max_value": 3, "step": 0.25, "digits": 2,
-                       "label": "u_y", "color": {"light": "#b91c1c", "dark": "#f87171"}},
-                "v1": {"value": 0.75, "min_value": -3, "max_value": 3, "step": 0.25, "digits": 2,
-                       "label": "v_x", "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "v2": {"value": 1.75, "min_value": -3, "max_value": 3, "step": 0.25, "digits": 2,
-                       "label": "v_y", "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "u1": {
+                    "value": 2,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "u_x",
+                    "color": {"light": "#b91c1c", "dark": "#f87171"},
+                },
+                "u2": {
+                    "value": 0.5,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "u_y",
+                    "color": {"light": "#b91c1c", "dark": "#f87171"},
+                },
+                "v1": {
+                    "value": 0.75,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "v_x",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "v2": {
+                    "value": 1.75,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "v_y",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -752,7 +791,9 @@ def _(Matrix, check, eye, mo, simplify, sp, symbols):
     B_sym = Matrix([[me, mf], [mg, mh]])
     area_t = (eye(2) + t * A_sym).det()  # signed area of the image of the unit square
 
-    T_tri = Matrix([[1, 2], [0, 3]])  # concrete & triangular, so the matrix exp is clean
+    T_tri = Matrix(
+        [[1, 2], [0, 3]]
+    )  # concrete & triangular, so the matrix exp is clean
     exp_T = (t * T_tri).exp()
 
     kk = symbols("kappa", real=True)
@@ -841,17 +882,36 @@ def _(I2, J, check, mo, simplify, sp, symbols, trigsimp):
         rf"""
     $$(xI + yJ)(x_2 I + y_2 J) = {sp.latex(Z_prod)}$$
 
-    {check(
-        r"equals $Z(xx_2 - yy_2,\; xy_2 + x_2y)$ — *exactly* the rule "
-        r"$(x+iy)(x_2+iy_2) = (xx_2 - yy_2) + (xy_2 + x_2y)\,i$",
-        simplify(Z_prod - Z(zx * zx2 - zy * zy2, zx * zy2 + zx2 * zy)) == sp.zeros(2),
-    )}
-    {check(r"commutative, $Z_1Z_2 = Z_2Z_1$ (unusual for matrices!)", simplify(Z_prod - Z(zx2, zy2) * Z(zx, zy)) == sp.zeros(2))}
-    {check(rf"the modulus squared is the determinant, $\det Z = {sp.latex(sp.simplify(Z(zx, zy).det()))}$", simplify(Z(zx, zy).det() - (zx**2 + zy**2)) == 0)}
+    {
+            check(
+                r"equals $Z(xx_2 - yy_2,\; xy_2 + x_2y)$ — *exactly* the rule "
+                r"$(x+iy)(x_2+iy_2) = (xx_2 - yy_2) + (xy_2 + x_2y)\,i$",
+                simplify(Z_prod - Z(zx * zx2 - zy * zy2, zx * zy2 + zx2 * zy))
+                == sp.zeros(2),
+            )
+        }
+    {
+            check(
+                r"commutative, $Z_1Z_2 = Z_2Z_1$ (unusual for matrices!)",
+                simplify(Z_prod - Z(zx2, zy2) * Z(zx, zy)) == sp.zeros(2),
+            )
+        }
+    {
+            check(
+                rf"the modulus squared is the determinant, $\det Z = {sp.latex(sp.simplify(Z(zx, zy).det()))}$",
+                simplify(Z(zx, zy).det() - (zx**2 + zy**2)) == 0,
+            )
+        }
 
     $$e^{{\phi J}} = {sp.latex(exp_phiJ)}$$
 
-    {check(r"$e^{\phi J} = \cos\phi\,I + \sin\phi\,J = R(\phi)$ — Euler's formula $e^{i\phi} = \cos\phi + i\sin\phi$, as a matrix identity", trigsimp((phi * J).exp() - (sp.cos(phi) * I2 + sp.sin(phi) * J)) == sp.zeros(2))}
+    {
+            check(
+                r"$e^{\phi J} = \cos\phi\,I + \sin\phi\,J = R(\phi)$ — Euler's formula $e^{i\phi} = \cos\phi + i\sin\phi$, as a matrix identity",
+                trigsimp((phi * J).exp() - (sp.cos(phi) * I2 + sp.sin(phi) * J))
+                == sp.zeros(2),
+            )
+        }
     """
     )
     return (Z,)
@@ -868,12 +928,24 @@ def _(TangleLatex, mo, theme):
                 r"\;\longleftrightarrow\; \tangle{x} + \tangle{y}\,i"
             ),
             parameters={
-                "x": {"value": 1.5, "min_value": -3, "max_value": 3, "step": 0.25,
-                      "digits": 2, "label": "real part",
-                      "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "y": {"value": 1, "min_value": -3, "max_value": 3, "step": 0.25,
-                      "digits": 2, "label": "imaginary part",
-                      "color": {"light": "#a23b78", "dark": "#f08bc2"}},
+                "x": {
+                    "value": 1.5,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "real part",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "y": {
+                    "value": 1,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.25,
+                    "digits": 2,
+                    "label": "imaginary part",
+                    "color": {"light": "#a23b78", "dark": "#f08bc2"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -999,8 +1071,8 @@ def _(mo):
        expression*. The original's dozens of `print("claim:", bool)` lines are now a
        `check()` helper feeding into a single `mo.md(...)`, so the verdicts render as real
        math instead of monospace text. This is the same job
-       `mathviz.show_expr` does in the Jupyter version — marimo's `mo.md` plus
-       `sp.latex` covers it natively, so the notebook needs no `mathviz` import.
+       `clmmathtools.viz.show_expr` does in the Jupyter version — marimo's `mo.md` plus
+       `sp.latex` covers it natively, so the notebook needs no `clmmathtools` import.
     2. **Every global is defined exactly once.** Marimo builds a DAG from the variable
        names, so it forbids the notebook habit of rebinding `A`, `P`, and `a` in cell after
        cell. Hence `A_sym` / `A_similar` / `P_a` / `P_cob` / `a_vec`, and a leading

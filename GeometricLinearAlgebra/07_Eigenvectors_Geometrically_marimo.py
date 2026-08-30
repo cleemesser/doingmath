@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 #     "sympy>=1.14",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 7 -- eigenvectors, as a *reactive* marimo notebook.
@@ -18,7 +18,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/07_Eigenvectors_Geometrically_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -54,30 +54,52 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
     import sympy as sp
     from sympy import Matrix, Rational, simplify, symbols
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return Matrix, Rational, TangleLatex, io, mo, mv, np, simplify, sp, symbols
+    return Matrix, Rational, TangleLatex, io, mo, mv, np, re, simplify, sp, symbols
 
 
 @app.cell
-def _(io, mo, mv, np, sp):
+def _(io, mo, mv, np, re, sp):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY = mv.RED, mv.PURPLE, mv.GREY
 
     UNIT_CIRCLE = mv.unit_circle(160)
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
@@ -101,7 +123,19 @@ def _(io, mo, mv, np, sp):
                     out.append((float(vals[i].real), d / n))
         return out
 
-    return BLUE, GREEN, GREY, ORANGE, PURPLE, RED, UNIT_CIRCLE, check, png, real_eigen, tex
+    return (
+        BLUE,
+        GREEN,
+        GREY,
+        ORANGE,
+        PURPLE,
+        RED,
+        UNIT_CIRCLE,
+        check,
+        real_eigen,
+        svg,
+        tex,
+    )
 
 
 @app.cell(hide_code=True)
@@ -129,18 +163,42 @@ def _(TangleLatex, mo):
                 r"\tangle{c} & \tangle{d} \end{bmatrix}"
             ),
             parameters={
-                "a": {"value": 2.0, "min_value": -4, "max_value": 4, "step": 0.5,
-                      "digits": 1, "label": "A, row 1 col 1",
-                      "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "b": {"value": 1.0, "min_value": -4, "max_value": 4, "step": 0.5,
-                      "digits": 1, "label": "A, row 1 col 2",
-                      "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "c": {"value": 0.0, "min_value": -4, "max_value": 4, "step": 0.5,
-                      "digits": 1, "label": "A, row 2 col 1",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "d": {"value": 3.0, "min_value": -4, "max_value": 4, "step": 0.5,
-                      "digits": 1, "label": "A, row 2 col 2",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "a": {
+                    "value": 2.0,
+                    "min_value": -4,
+                    "max_value": 4,
+                    "step": 0.5,
+                    "digits": 1,
+                    "label": "A, row 1 col 1",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "b": {
+                    "value": 1.0,
+                    "min_value": -4,
+                    "max_value": 4,
+                    "step": 0.5,
+                    "digits": 1,
+                    "label": "A, row 1 col 2",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "c": {
+                    "value": 0.0,
+                    "min_value": -4,
+                    "max_value": 4,
+                    "step": 0.5,
+                    "digits": 1,
+                    "label": "A, row 2 col 1",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "d": {
+                    "value": 3.0,
+                    "min_value": -4,
+                    "max_value": 4,
+                    "step": 0.5,
+                    "digits": 1,
+                    "label": "A, row 2 col 2",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme="auto",
@@ -170,7 +228,7 @@ def _(Matrix, Rational, matw, np):
 
 
 @app.cell(hide_code=True)
-def _(A, BLUE, GREY, ORANGE, PURPLE, UNIT_CIRCLE, check, mo, mv, np, png, real_eigen):
+def _(A, BLUE, GREY, ORANGE, PURPLE, UNIT_CIRCLE, check, mo, mv, np, real_eigen, svg):
     _eig = real_eigen(A)
 
     _fan = mv.Plane(extent=4)
@@ -184,9 +242,7 @@ def _(A, BLUE, GREY, ORANGE, PURPLE, UNIT_CIRCLE, check, mo, mv, np, png, real_e
     _ell = mv.Plane(extent=4)
     _ell.curve(UNIT_CIRCLE, color=GREY, width=2.0, alpha=0.6)
     _ell.curve(UNIT_CIRCLE @ A.T, color=BLUE, width=3.0)
-    for _lam, _d, _c in [
-        (lam, d, c) for (lam, d), c in zip(_eig, (PURPLE, ORANGE))
-    ]:
+    for _lam, _d, _c in [(lam, d, c) for (lam, d), c in zip(_eig, (PURPLE, ORANGE))]:
         _ell.line([0, 0], _d, color=_c)
         _ell.vector(_d, color=_c)
         _ell.vector(_lam * _d, color=_c, alpha=0.6)
@@ -194,7 +250,7 @@ def _(A, BLUE, GREY, ORANGE, PURPLE, UNIT_CIRCLE, check, mo, mv, np, png, real_e
     mo.vstack(
         [
             mo.hstack(
-                [png(_fan, width=360), png(_ell, width=360)], widths=[1, 1], gap=1.0
+                [svg(_fan, width=360), svg(_ell, width=360)], widths=[1, 1], gap=1.0
             ),
             mo.md(
                 rf"""
@@ -395,10 +451,10 @@ def _(
     mo,
     mv,
     np,
-    png,
     real_eigen,
     regime,
     sp,
+    svg,
     tex,
 ):
     if regime.value == "sym":
@@ -413,7 +469,9 @@ def _(
     """
     elif regime.value == "shear":
         _M = Matrix([[1, 1], [0, 1]])
-        _title = "### (b) Shear ⇒ **defective**: a repeated eigenvalue, only one eigenvector"
+        _title = (
+            "### (b) Shear ⇒ **defective**: a repeated eigenvalue, only one eigenvector"
+        )
         _prose = r"""
     A shear fixes the $x$-axis and slides everything parallel to it. Its only invariant
     direction is that axis: $\lambda = 1$ is a **double** root of the characteristic
@@ -426,10 +484,14 @@ def _(
     """
     else:
         _M = Matrix(
-            [[sp.Rational(766, 1000), sp.Rational(-643, 1000)],
-             [sp.Rational(643, 1000), sp.Rational(766, 1000)]]
+            [
+                [sp.Rational(766, 1000), sp.Rational(-643, 1000)],
+                [sp.Rational(643, 1000), sp.Rational(766, 1000)],
+            ]
         )
-        _title = "### (c) Rotation ⇒ **complex** eigenvalues: no real eigenvector at all"
+        _title = (
+            "### (c) Rotation ⇒ **complex** eigenvalues: no real eigenvector at all"
+        )
         _prose = r"""
     A pure rotation turns *every* arrow, so it has **no** real eigenvector — the image
     circle coincides with the input circle, yet not one arrow stays on its line. Its
@@ -456,9 +518,7 @@ def _(
         _pl.vector(_Mn @ _u, color=BLUE, alpha=0.8)
 
     _disc = float(np.trace(_Mn) ** 2 - 4 * np.linalg.det(_Mn))
-    _orth = (
-        len(_eig) == 2 and abs(float(np.dot(_eig[0][1], _eig[1][1]))) < 1e-9
-    )
+    _orth = len(_eig) == 2 and abs(float(np.dot(_eig[0][1], _eig[1][1]))) < 1e-9
     try:
         _M.diagonalize()
         _diagable = True
@@ -470,7 +530,7 @@ def _(
             mo.md(_title),
             mo.hstack(
                 [
-                    png(_pl),
+                    svg(_pl),
                     mo.md(
                         rf"""
     {tex(_M)}

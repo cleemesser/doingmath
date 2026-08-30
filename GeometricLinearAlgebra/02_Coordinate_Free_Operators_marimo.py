@@ -1,12 +1,12 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 2 -- the coordinate-free operators, as a *reactive* marimo notebook.
@@ -16,7 +16,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/02_Coordinate_Free_Operators_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 #
 # NOTE: the jupytext original ends with ~10 scratch cells (an aborted experiment with a
@@ -50,57 +50,84 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
+    import sympy as sp
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, io, mo, mv, np
+    return TangleLatex, io, mo, mv, np, re, sp
 
 
-@app.cell
-def _(io, mo, mv):
+@app.cell(hide_code=True)
+def _(io, mo, mv, re):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a content
+        hash*, so every widget tick mints a fresh URL and the browser tears down the old <img> to
+        re-fetch it. That blank gap — plus an <img> with no reserved height collapsing the row —
+        is what made these cells flash while dragging. Inline SVG is DOM, not an asset, so it
+        swaps in the same paint as the rest of the cell output. It also renders in about half the
+        time and ships ~3x smaller than the PNG did.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
-        return f"- {'✅' if ok else '❌'} {claim}"
+        return f"- {'\u2705' if ok else '\u274c'} {claim}"
 
-    def operator_view(f, color, extent=2.5, width=430):
+    def operator_view(f, color, extent=2.5, width=430, overlay=None):
         """Faint domain grid + flag, overlaid with their bold image under `f`.
 
-        This is mathviz's own `show_operator` with the FLAG probe: the flag is asymmetric,
+        This is clmmathtools's own `show_operator` with the FLAG probe: the flag is asymmetric,
         so a reflection or a shear is legible at a glance in a way a square never is.
+
+        `overlay(plane)` hooks in extra primitives after the grid: use it to follow one
+        concrete vector through the map while the grid shows the map as a whole.
         """
         p = mv.Plane(extent=extent, grid=False, axes=True)
         p.show_operator(
             f,
-            #probe_shape=mv.FLAG,
-            #probe_shape_color=mv.PURPLE,
-            #probe_faint_color=mv.PURPLE,
-            #probe_faint_alpha=0.9,
+            # probe_shape=mv.FLAG,
+            # probe_shape_color=mv.PURPLE,
+            # probe_faint_color=mv.PURPLE,
+            # probe_faint_alpha=0.9,
             color=color,
             width=1.8,
             samples=40,
-
         )
-        return png(p, width=width)
+        if overlay is not None:
+            overlay(p)  # draw extra primitives on top of the warped grid
+        return svg(p, width=width)
 
-    return BLUE, GREEN, GREY, ORANGE, PURPLE, RED, check, operator_view, png
+    return BLUE, GREEN, GREY, ORANGE, PURPLE, RED, check, operator_view, svg
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np):
     # ── the metric toolkit: everything below is built from these four ──────────────
     def dot(u, v):
@@ -222,18 +249,42 @@ def _(TangleLatex, mo, theme):
                 r"v = \begin{bmatrix} \tangle{v1} \\[2pt] \tangle{v2} \end{bmatrix}"
             ),
             parameters={
-                "u1": {"value": 2.0, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, first component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "u2": {"value": 0.7, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, second component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "v1": {"value": 0.4, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, first component",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "v2": {"value": 1.8, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, second component",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "u1": {
+                    "value": 2.0,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, first component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "u2": {
+                    "value": 0.7,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, second component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "v1": {
+                    "value": 0.4,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, first component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "v2": {
+                    "value": 1.8,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, second component",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -258,7 +309,7 @@ def _(
     mv,
     norm,
     np,
-    png,
+    svg,
 ):
     u = np.array([duo.values["u1"], duo.values["u2"]])
     v = np.array([duo.values["v1"], duo.values["v2"]])
@@ -273,7 +324,7 @@ def _(
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     $$\langle u,v\rangle = {dot(u, v):.2f} \qquad
@@ -321,7 +372,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(TangleLatex, mo, theme):
     scal = mo.ui.anywidget(
         TangleLatex(
@@ -331,14 +382,28 @@ def _(TangleLatex, mo, theme):
                 r"S_{a,\mu}(v) = v + (\tangle{mu} - 1)\,\langle v,\hat a\rangle\,\hat a"
             ),
             parameters={
-                "lam": {"value": 1.6, "min_value": -2, "max_value": 3, "step": 0.1,
-                        "digits": 1, "display": "symbol", "symbol": r"\lambda",
-                        "label": "uniform scale factor",
-                        "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "mu": {"value": 2.0, "min_value": -2, "max_value": 3, "step": 0.1,
-                       "digits": 1, "display": "symbol", "symbol": r"\mu",
-                       "label": "directional scale factor (along the x-axis)",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "lam": {
+                    "value": 1.6,
+                    "min_value": -2,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "display": "symbol",
+                    "symbol": r"\lambda",
+                    "label": "uniform scale factor",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "mu": {
+                    "value": 2.0,
+                    "min_value": -2,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "display": "symbol",
+                    "symbol": r"\mu",
+                    "label": "directional scale factor (along the x-axis)",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             reveal_all_on_drag=True,
             editor="inline",
@@ -374,7 +439,9 @@ def _(
             mo.hstack(
                 [
                     operator_view(lambda w: scale_uniform(w, lam), BLUE, width=360),
-                    operator_view(lambda w: scale_dir(w, [1.0, 0.0], mu), ORANGE, width=360),
+                    operator_view(
+                        lambda w: scale_dir(w, [1.0, 0.0], mu), ORANGE, width=360
+                    ),
                 ],
                 widths=[1, 1],
                 gap=1.0,
@@ -426,7 +493,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(TangleLatex, mo, theme):
     proj = mo.ui.anywidget(
         TangleLatex(
@@ -436,15 +503,33 @@ def _(TangleLatex, mo, theme):
                 r"v = \begin{bmatrix} \tangle{w1} \\[2pt] \tangle{w2} \end{bmatrix}"
             ),
             parameters={
-                "axis": {"value": 30, "min_value": -90, "max_value": 90, "step": 5,
-                         "digits": 0, "label": "angle of the projection axis (degrees)",
-                         "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
-                "w1": {"value": 0.4, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, first component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "w2": {"value": 1.8, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, second component",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
+                "axis": {
+                    "value": 30,
+                    "min_value": -90,
+                    "max_value": 90,
+                    "step": 5,
+                    "digits": 0,
+                    "label": "angle of the projection axis (degrees)",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
+                "w1": {
+                    "value": 0.4,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, first component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "w2": {
+                    "value": 1.8,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, second component",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -454,7 +539,7 @@ def _(TangleLatex, mo, theme):
     return (proj,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     BLUE,
     GREEN,
@@ -468,10 +553,10 @@ def _(
     mv,
     np,
     operator_view,
-    png,
     proj,
     project,
     reject,
+    svg,
 ):
     _ang = np.radians(proj.values["axis"])
     a_proj = np.array([np.cos(_ang), np.sin(_ang)])
@@ -489,7 +574,7 @@ def _(
         [
             mo.hstack(
                 [
-                    png(_p, width=360),
+                    svg(_p, width=360),
                     operator_view(lambda z: project(z, a_proj), GREEN, width=360),
                 ],
                 widths=[1, 1],
@@ -542,10 +627,17 @@ def _(TangleLatex, mo, theme):
         TangleLatex(
             latex=r"R_\theta(v) \;=\; \cos \tangle{theta}^\circ\; v \;+\; \sin \tangle{theta}^\circ\; Jv",
             parameters={
-                "theta": {"value": 36, "min_value": -180, "max_value": 180, "step": 5,
-                          "digits": 0, "display": "symbol", "symbol": r"\theta",
-                          "label": "rotation angle (degrees)",
-                          "color": {"light": "#246bce", "dark": "#75a7ff"}},
+                "theta": {
+                    "value": 36,
+                    "min_value": -180,
+                    "max_value": 180,
+                    "step": 5,
+                    "digits": 0,
+                    "display": "symbol",
+                    "symbol": r"\theta",
+                    "label": "rotation angle (degrees)",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
             },
             reveal_all_on_drag=True,
             editor="inline",
@@ -627,9 +719,15 @@ def _(TangleLatex, mo, theme):
         TangleLatex(
             latex=r"H(v) \;=\; v \;+\; \tangle{k}\,\langle v, n\rangle\, d",
             parameters={
-                "k": {"value": 0.8, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "shear strength",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "k": {
+                    "value": 0.8,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "shear strength",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -679,7 +777,7 @@ def _(ORANGE, check, mo, np, operator_view, shear, shw, signed_area):
     return d_shear, kshear
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(mo):
     mo.md(r"""
     ## 6. Reflection
@@ -697,15 +795,21 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(TangleLatex, mo, theme):
     reflw = mo.ui.anywidget(
         TangleLatex(
             latex=r"F_a(v) \;=\; 2\,P_a(v) - v, \qquad a \text{ at } \tangle{mirror}^\circ",
             parameters={
-                "mirror": {"value": 22, "min_value": -90, "max_value": 90, "step": 5,
-                           "digits": 0, "label": "angle of the mirror line (degrees)",
-                           "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
+                "mirror": {
+                    "value": 22,
+                    "min_value": -90,
+                    "max_value": 90,
+                    "step": 5,
+                    "digits": 0,
+                    "label": "angle of the mirror line (degrees)",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -717,8 +821,11 @@ def _(TangleLatex, mo, theme):
 
 @app.cell(hide_code=True)
 def _(
+    BLUE,
     J,
     PURPLE,
+    RED,
+    angle_between,
     check,
     mo,
     norm,
@@ -727,30 +834,44 @@ def _(
     reflect,
     reflw,
     signed_area,
+    sp,
 ):
     _ang = np.radians(reflw.values["mirror"])
     a_refl = np.array([np.cos(_ang), np.sin(_ang)])
     _t = np.array([0.4, 1.8])
     _e1, _e2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
+    _sample_vec = np.array([1.5, -0.5])
     _Fe1, _Fe2 = reflect(_e1, a_refl), reflect(_e2, a_refl)
+    _Fsample_vec = reflect(_sample_vec, a_refl)
+
+    def _trace_e1(p):
+        """Follow one concrete vector through the mirror, on top of the warped grid."""
+        p.line((0.0, 0.0), a_refl, color=RED, width=1.5)  # the mirror line itself
+        p.vector(_sample_vec, color=BLUE, label=r"$\vec{v}$")
+        p.vector(_Fsample_vec, color=PURPLE, label=r"$F(\vec{v})$")
 
     mo.hstack(
         [
-            operator_view(lambda z: reflect(z, a_refl), PURPLE),
+            operator_view(lambda z: reflect(z, a_refl), PURPLE, overlay=_trace_e1),
             mo.md(
                 rf"""
-    Reflection across the line at ${reflw.values["mirror"]:.0f}^\circ$ — the flag comes out
-    **mirrored**, which no rotation can do.
+    Reflection across the red line at ${reflw.values["mirror"]:.0f}^\circ$.
+
+    Blue is the vector $v = {sp.latex(_sample_vec)}$; the purple vector is where the mirror sends it. The red line is the mirror.
 
     {check(r"preserves length, $\lvert Fv\rvert = \lvert v\rvert$", np.allclose(norm(reflect(_t, a_refl)), norm(_t)))}
     {check(r"is an **involution**, $F(Fv) = v$ — its defining property", np.allclose(reflect(reflect(_t, a_refl), a_refl), _t))}
     {check(r"fixes the mirror line, $F(a) = a$", np.allclose(reflect(a_refl, a_refl), a_refl))}
     {check(r"negates the perpendicular, $F(Ja) = -Ja$", np.allclose(reflect(J(a_refl), a_refl), -J(a_refl)))}
     {check(r"**reverses** orientation — the signed area of the image is negated", np.allclose(signed_area(_Fe1, _Fe2), -signed_area(_e1, _e2)))}
+    {check(rf"lands $e_1$ at ${2 * reflw.values['mirror']:.0f}^\circ$ — a mirror at $\theta$ **doubles** the angle", np.allclose(angle_between(_e1, _Fe1), abs(2 * _ang)))}
 
-    The last two ticks are the same fact seen twice. $F$ has eigenvalue $+1$ along the
+    The middle two ticks are the same fact seen twice. $F$ has eigenvalue $+1$ along the
     mirror and $-1$ across it, so it multiplies signed area by $(+1)(-1) = -1$. Rotation,
     shear and reflection all preserve *length*; only reflection flips the sign.
+
+    Drag the mirror and watch the last tick: $e_1$ always lands at twice the mirror's angle,
+    which is why composing *two* reflections gives a rotation by twice the angle between them.
     """
             ),
         ],
@@ -773,7 +894,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     a_proj,
     a_refl,
@@ -800,7 +921,7 @@ def _(
     return (OPERATORS,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(OPERATORS, mo, np):
     def is_linear(f, trials=400, seed=1):
         rng = np.random.default_rng(seed)
@@ -821,7 +942,10 @@ def _(OPERATORS, mo, np):
 
     mo.md(
         "\n".join(
-            ["| operator | additivity | homogeneity | fixes origin |", "|---|---|---|---|"]
+            [
+                "| operator | additivity | homogeneity | fixes origin |",
+                "|---|---|---|---|",
+            ]
             + [_row(n, f) for n, f in OPERATORS.items()]
         )
     )
@@ -845,7 +969,7 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(OPERATORS, mo):
     first = mo.ui.dropdown(
         options=list(OPERATORS.keys()), value="rotation by θ", label="apply first"
@@ -859,7 +983,7 @@ def _(OPERATORS, mo):
     return first, second
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(BLUE, GREEN, OPERATORS, check, first, mo, np, operator_view, second):
     _f = OPERATORS[first.value]
     _g = OPERATORS[second.value]
@@ -876,7 +1000,10 @@ def _(BLUE, GREEN, OPERATORS, check, first, mo, np, operator_view, second):
     mo.vstack(
         [
             mo.hstack(
-                [operator_view(_fg, BLUE, width=360), operator_view(_gf, GREEN, width=360)],
+                [
+                    operator_view(_fg, BLUE, width=360),
+                    operator_view(_gf, GREEN, width=360),
+                ],
                 widths=[1, 1],
                 gap=1.0,
             ),

@@ -2,12 +2,12 @@
 # requires-python = ">=3.14"
 # dependencies = [
 #     "marimo>=0.23.16",
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 1 -- Linearity, as a *reactive* marimo notebook.
@@ -17,13 +17,13 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/01_Linearity_Lines_to_Lines_marimo.py
 #
-# Unlike the 00 companion, this draws with `mathviz` -- the same Plane/Space3D scenes as
+# Unlike the 00 companion, this draws with `clmmathtools` -- the same Plane/Space3D scenes as
 # the paired jupytext notebook -- rather than re-implementing the plotting inline. Two ways
 # to run it, both fine:
 #
-#   * plain `marimo edit` (above), using the repo environment, where `marimo` and `mathviz`
+#   * plain `marimo edit` (above), using the repo environment, where `marimo` and `clmmathtools`
 #     are already dependencies of the root pyproject.toml. This is the tested path.
-#   * `marimo edit --sandbox`, using the PEP 723 header above, which pulls mathviz from the
+#   * `marimo edit --sandbox`, using the PEP 723 header above, which pulls clmmathtools from the
 #     sibling checkout via [tool.uv.sources]. The header must stay at the TOP of the file:
 #     marimo only reads inline script metadata before `import marimo`, so the same block
 #     placed inside a cell is inert.
@@ -34,7 +34,7 @@ __generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     # Geometric Linear Algebra 1 — Linearity: why lines go to lines
@@ -67,37 +67,59 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, io, mo, mv, np
+    return TangleLatex, io, mo, mv, np, re
 
 
-@app.cell
-def _(io, mo, mv, np):
-    # The palette is mathviz's, which is the same set of hex constants the whole series
+@app.cell(hide_code=True)
+def _(io, mo, mv, np, re):
+    # The palette is clmmathtools's, which is the same set of hex constants the whole series
     # uses (see CLAUDE.md) -- no need to redeclare them per notebook any more.
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image.
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG.
 
         `scene.display()` is the Jupyter path: it hands the figure to `IPython.display`
-        and returns None, which marimo would render as nothing. `scene.save(buf)` takes
-        the same figure through `savefig` into a BytesIO and hands the bytes back, so the
-        one adapter works for both `mv.Plane` (matplotlib) and `mv.Space3D` (mplot3d).
+        and returns None, which marimo would render as nothing. `scene.save(buf, ...)`
+        takes the same figure through `savefig` into a buffer and hands the markup back,
+        so the one adapter works for both `mv.Plane` (matplotlib) and `mv.Space3D`
+        (mplot3d).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
         """
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         """A one-line verdict, replacing the original's `print('...', bool)` lines."""
@@ -128,7 +150,7 @@ def _(io, mo, mv, np):
         p.points(np.atleast_2d(func(np.array([0.0, 0.0]))), color=GREEN, size=12.0)
         return p
 
-    return BLUE, FAINT, GREEN, ORANGE, PURPLE, RED, check, deformed, png
+    return BLUE, FAINT, GREEN, ORANGE, PURPLE, RED, check, deformed, svg
 
 
 @app.cell(hide_code=True)
@@ -165,18 +187,20 @@ def _(mo):
     A **linear combination** $a\,u + b\,v$ is the result of doing both. The whole of flat
     geometry is generated by these moves, so a map that *commutes with both* preserves the
     geometry. Drag the four numbers and watch the parallelogram follow.
+
+    Note, for convenience, we will chose a standard set of vectors in the plane ${\hat{e_1},\hat{e_2}}$ which define unit length and which are at right angles to one another, or orthogonal. This forms what is called a standard basis for the plane. We will put the little hats over symbols when we want to emphasize that they are unit length vectors.
     """)
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(TangleLatex, mo, theme):
     uv = mo.ui.anywidget(
         TangleLatex(
             latex=(
-                r"u = \begin{bmatrix} \tangle{u1} \\[2pt] \tangle{u2} \end{bmatrix}"
+                r"u = \tangle{u1} \hat{e_1} +  \tangle{u2} \hat{e_2}"
                 r" \qquad "
-                r"v = \begin{bmatrix} \tangle{v1} \\[2pt] \tangle{v2} \end{bmatrix}"
+                r"v = \tangle{v1} \hat{e_1} + \tangle{v2} \hat{e_2}"
             ),
             parameters={
                 "u1": {
@@ -225,7 +249,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, FAINT, GREEN, ORANGE, PURPLE, check, mo, mv, np, png, uv):
+def _(BLUE, FAINT, GREEN, ORANGE, PURPLE, check, mo, mv, np, svg, uv):
     # Reading `uv.values` here -- in a *different* cell from the one that defines the
     # widget, which marimo requires -- is what wires this whole cell to the mouse.
     u = np.array([uv.values["u1"], uv.values["u2"]])
@@ -239,12 +263,16 @@ def _(BLUE, FAINT, GREEN, ORANGE, PURPLE, check, mo, mv, np, png, uv):
     _add.vector(u, origin=v, color=FAINT)  # closing side
 
     _scale = mv.Plane(extent=3.5)
-    for _c, _col, _lab in [(1.5, GREEN, "1.5·u"), (1.0, BLUE, "u"), (-0.8, PURPLE, "-0.8·u")]:
+    for _c, _col, _lab in [
+        (1.5, GREEN, "1.5·u"),
+        (1.0, BLUE, "u"),
+        (-0.8, PURPLE, "-0.8·u"),
+    ]:
         _scale.vector(_c * u, origin=[0, 0], color=_col, label=_lab)
 
     mo.vstack(
         [
-            mo.hstack([png(_add), png(_scale)], widths=[1, 1], gap=1.0),
+            mo.hstack([svg(_add), svg(_scale)], widths=[1, 1], gap=1.0),
             mo.md(
                 rf"""
     **Left — addition, tip-to-tail.** $u + v = ({u[0] + v[0]:.1f}, {u[1] + v[1]:.1f})$ is
@@ -289,7 +317,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np):
     class LinearMap:
         """A linear operator on the plane, stored by its action. NOT yet 'a matrix with a
@@ -366,7 +394,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, ORANGE, check, mo, mv, np, oned, png):
+def _(BLUE, GREEN, ORANGE, check, mo, mv, np, oned, svg):
     _a, _b = oned.values["a"], oned.values["b"]
 
     def _lin1d(x):
@@ -385,7 +413,7 @@ def _(BLUE, GREEN, ORANGE, check, mo, mv, np, oned, png):
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     Blue is the **linear** part $x\mapsto {_a:.1f}x$; orange is the full **affine** map
@@ -440,13 +468,13 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(TangleLatex, mo, theme):
     mat = mo.ui.anywidget(
         TangleLatex(
             latex=(
-                r"T \;:\; e_1 \mapsto \begin{bmatrix} \tangle{a} \\[2pt] \tangle{c} \end{bmatrix},"
-                r"\quad e_2 \mapsto \begin{bmatrix} \tangle{b} \\[2pt] \tangle{d} \end{bmatrix}"
+                r"T \;:\; e_1 \mapsto  \tangle{a} \hat{e}_1 + \tangle{c} \hat{e}_2,"
+                r"\quad e_2 \mapsto  \tangle{b} \hat{e}_1 +\tangle{d}\hat{e}_2"
             ),
             parameters={
                 "a": {
@@ -495,7 +523,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, LinearMap, check, collinear, cross2, deformed, mat, mo, np, png):
+def _(BLUE, LinearMap, check, collinear, cross2, deformed, mat, mo, np, svg):
     T = LinearMap(
         [
             [mat.values["a"], mat.values["b"]],
@@ -520,7 +548,7 @@ def _(BLUE, LinearMap, check, collinear, cross2, deformed, mat, mo, np, png):
 
     mo.hstack(
         [
-            png(deformed(T, BLUE)),
+            svg(deformed(T, BLUE)),
             mo.md(
                 rf"""
     {check("the three sample points were collinear to begin with", collinear(A, B, C))}
@@ -594,7 +622,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(ORANGE, T, check, collinear, deformed, mo, np, png, shift):
+def _(ORANGE, T, check, collinear, deformed, mo, np, shift, svg):
     # `shift.values` is read here rather than in the cell above: marimo only re-runs a
     # cell when a value it *reads* changes, so a widget consumed in its own defining cell
     # would render once and then sit frozen under the mouse.
@@ -608,7 +636,7 @@ def _(ORANGE, T, check, collinear, deformed, mo, np, png, shift):
 
     mo.hstack(
         [
-            png(deformed(affine, ORANGE)),
+            svg(deformed(affine, ORANGE)),
             mo.md(
                 rf"""
     {check("still flat: collinear points stay collinear", collinear(affine(_A), affine(_B), affine(_C)))}
@@ -671,7 +699,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(RED, check, collinear, curve, deformed, mo, np, png):
+def _(RED, check, collinear, curve, deformed, mo, np, svg):
     def bend(w):
         w = np.asarray(w, float)
         x, y = w[..., 0], w[..., 1]
@@ -683,7 +711,7 @@ def _(RED, check, collinear, curve, deformed, mo, np, png):
 
     mo.hstack(
         [
-            png(deformed(bend, RED)),
+            svg(deformed(bend, RED)),
             mo.md(
                 rf"""
     {check("the three sample points were collinear to begin with", collinear(_A, _B, _C))}

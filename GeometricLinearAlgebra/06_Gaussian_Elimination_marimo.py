@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 #     "sympy>=1.14",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 6 -- Gaussian elimination, as a *reactive* marimo notebook.
@@ -17,7 +17,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/06_Gaussian_Elimination_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -59,13 +59,14 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
     import sympy as sp
     from sympy import Matrix, Rational, eye, linsolve, symbols
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
     return (
@@ -77,21 +78,43 @@ def _():
         linsolve,
         mo,
         mv,
+        re,
         sp,
         symbols,
     )
 
 
 @app.cell
-def _(io, mo, mv, sp):
+def _(io, mo, mv, re, sp):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY = mv.RED, mv.PURPLE, mv.GREY
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
@@ -110,7 +133,7 @@ def _(io, mo, mv, sp):
             return pl  # 0 = c is not a line at all
         return pl.line(p0, (-b, a), color=color)
 
-    return BLUE, GREEN, ORANGE, check, line_eq, png, tex
+    return BLUE, GREEN, ORANGE, check, line_eq, svg, tex
 
 
 @app.cell(hide_code=True)
@@ -233,7 +256,12 @@ def _(Matrix):
                 for r in range(col + 1, rows):
                     if M[r, col] != 0:
                         M = M.elementary_row_op("n<->m", row1=col, row2=r)
-                        steps.append((f"swap $R_{col} \\leftrightarrow R_{r}$ to get a nonzero pivot", M))
+                        steps.append(
+                            (
+                                f"swap $R_{col} \\leftrightarrow R_{r}$ to get a nonzero pivot",
+                                M,
+                            )
+                        )
                         break
             piv = M[col, col]
             if piv == 0:
@@ -260,8 +288,12 @@ def _(Matrix):
 @app.cell(hide_code=True)
 def _(SWEEP, mo):
     step = mo.ui.slider(
-        0, len(SWEEP) - 1, value=len(SWEEP) - 1, step=1,
-        label=f"elimination step (0–{len(SWEEP) - 1})", show_value=True,
+        0,
+        len(SWEEP) - 1,
+        value=len(SWEEP) - 1,
+        step=1,
+        label=f"elimination step (0–{len(SWEEP) - 1})",
+        show_value=True,
     )
     step
     return (step,)
@@ -391,15 +423,33 @@ def _(TangleLatex, mo):
                 r"\tangle{a}\,x + \tangle{b}\,y &= \tangle{c} \end{aligned}"
             ),
             parameters={
-                "a": {"value": 3, "min_value": -6, "max_value": 6, "step": 1,
-                      "digits": 0, "label": "second equation, x coefficient",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "b": {"value": -1, "min_value": -6, "max_value": 6, "step": 1,
-                      "digits": 0, "label": "second equation, y coefficient",
-                      "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "c": {"value": 5, "min_value": -8, "max_value": 8, "step": 1,
-                      "digits": 0, "label": "second equation, right-hand side",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "a": {
+                    "value": 3,
+                    "min_value": -6,
+                    "max_value": 6,
+                    "step": 1,
+                    "digits": 0,
+                    "label": "second equation, x coefficient",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "b": {
+                    "value": -1,
+                    "min_value": -6,
+                    "max_value": 6,
+                    "step": 1,
+                    "digits": 0,
+                    "label": "second equation, y coefficient",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "c": {
+                    "value": 5,
+                    "min_value": -8,
+                    "max_value": 8,
+                    "step": 1,
+                    "digits": 0,
+                    "label": "second equation, right-hand side",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme="auto",
@@ -421,7 +471,7 @@ def _(
     linsolve,
     mo,
     mv,
-    png,
+    svg,
     symbols,
     tex,
 ):
@@ -438,11 +488,20 @@ def _(
     _contradiction = 2 in _piv  # a pivot in the augmented column means [0 0 | nonzero]
     _n_pivots = len([p for p in _piv if p < 2])
     if _contradiction:
-        _case, _why = "NO SOLUTION", "the echelon form has a $[\\,0\\;0 \\mid \\text{nonzero}\\,]$ row, i.e. it asserts $0 = 1$ — the lines are **parallel and distinct**"
+        _case, _why = (
+            "NO SOLUTION",
+            "the echelon form has a $[\\,0\\;0 \\mid \\text{nonzero}\\,]$ row, i.e. it asserts $0 = 1$ — the lines are **parallel and distinct**",
+        )
     elif _n_pivots == 2:
-        _case, _why = "UNIQUE", "there is a pivot in **every** variable column — the lines **cross at one point**"
+        _case, _why = (
+            "UNIQUE",
+            "there is a pivot in **every** variable column — the lines **cross at one point**",
+        )
     else:
-        _case, _why = "INFINITELY MANY", "one variable column has no pivot, so it is **free** — the two equations describe the **same line**"
+        _case, _why = (
+            "INFINITELY MANY",
+            "one variable column has no pivot, so it is **free** — the two equations describe the **same line**",
+        )
 
     _pl = mv.Plane(extent=5)
     line_eq(_pl, 1, 2, 4, color=BLUE)
@@ -453,7 +512,7 @@ def _(
 
     mo.hstack(
         [
-            png(_pl),
+            svg(_pl),
             mo.md(
                 rf"""
     ### {_case}
@@ -516,7 +575,10 @@ def _(Matrix, Rational, check, eye, mo, tex):
                         r"the elementary matrix for $R_1 \to R_1 - \tfrac12 R_0$ — "
                         r"the identity with that one op applied:" + "\n\n" + tex(E)
                     ),
-                    mo.md("right half of $\\mathrm{rref}([A \\,\\rvert\\, I])$, i.e. $A^{-1}$:\n\n" + tex(Ainv)),
+                    mo.md(
+                        "right half of $\\mathrm{rref}([A \\,\\rvert\\, I])$, i.e. $A^{-1}$:\n\n"
+                        + tex(Ainv)
+                    ),
                 ],
                 widths=[1, 1],
                 align="center",
@@ -576,7 +638,9 @@ def _(Matrix, check, mo, tex):
             mo.hstack(
                 [
                     mo.md("**$B$**\n\n" + tex(B)),
-                    mo.md(rf"$$\xrightarrow{{\;{swaps}\text{{ swap}},\; 2\text{{ replacements}}\;}}$$"),
+                    mo.md(
+                        rf"$$\xrightarrow{{\;{swaps}\text{{ swap}},\; 2\text{{ replacements}}\;}}$$"
+                    ),
                     mo.md("**upper-triangular**\n\n" + tex(U)),
                 ],
                 justify="start",

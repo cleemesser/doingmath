@@ -8,6 +8,10 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
+#   kernelspec:
+#     display_name: doingmath (3.14.3.final.0)
+#     language: python
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -29,7 +33,7 @@
 # also show the project operator as defined by the dot product
 
 # %% [markdown]
-# The linear functions $f:V \rightarrow \mathbb{R}$ themselves form a vector space, called the dual space of $V$, written $V^{*}$. Its elements obey the same vector-space axioms as the original space, and when $V$ is finite-dimensional, $\dim V^* = \dim V$. The vectors in $V^*$ are usually called co-vectors; other names for them are "forms" or "1-forms".
+# The linear functions $f:V \rightarrow \mathbb{R}$ themselves form a vector space, called the dual space of $V$, written $V^{*}$. Its elements obey the same vector-space axioms as the original space, and when $V$ is finite-dimensional, $\dim V^* = \dim V$. The vectors in $V^*$ are sometimes called co-vectors; other names for them are "forms" or "1-forms".
 #
 # Given an inner product $\langle u,v \rangle$ there is a one-to-one mapping between the elements of $V$ and $V^*$ given by:
 # $$u^*(v) = \langle u,v \rangle$$
@@ -88,20 +92,63 @@
 # %% [markdown]
 # ### Linear transformations are $V \otimes V^*$
 #
-# Now combine the two ideas. Take $u \in V$ and a covector $\phi \in V^*$, and build the map
+# Now combine the two ideas. Take $u \in V$ and a covector $\phi$ in the dual space, $\phi \in V^*$, and build the map
 #
-# $$(u \otimes \phi)(v) \;=\; \phi(v)\, u .$$
+# $$L(v) = (u \otimes \phi)(v) \;=\; \phi(v)\, u .$$
 #
-# Read it left to right: $\phi$ **consumes** the input vector and returns a number; that number
-# scales $u$, which is **produced** as the output. This is a perfectly good linear map $V \to V$, and
-# in coordinates it is the *outer product* $u\,\phi^{\mathsf{T}}$ — a column times a row, giving a
-# matrix of rank one.
+# Read it left to right: $\phi$ **consumes** the input vector and returns a number in $\mathbb{R}$; the equation indicates that number
+# scales $u$, which is **produced** as the output. This is a perfectly good linear map $V \to V$. (Check, you should see that this is a linear function. When is it a projection ($L^2=1$)?.)
 #
-# Every linear map arises this way. Writing $\{b_i\}$ for a basis of $V$ and $\{\beta^j\}$ for the
+# With a choice of coordinates it is the *outer product* of the $n$ x 1 matrix $[u]$ and the 1 x $n$ matrix $[\phi]$ — a column times a row, giving a
+# matrix of rank one. For example, in $\mathbb{R}^3$, in matrix notation this would look like:
+# $$
+# u \otimes \phi
+# \;\longleftrightarrow\;
+# [u]\,[\phi]
+# \;=\;
+# \begin{bmatrix} u^1 \\ u^2 \\ u^3 \end{bmatrix}
+# \begin{bmatrix} \phi_1 & \phi_2 & \phi_3 \end{bmatrix}
+# \;=\;
+# \begin{bmatrix}
+# u^1\phi_1 & u^1\phi_2 & u^1\phi_3 \\
+# u^2\phi_1 & u^2\phi_2 & u^2\phi_3 \\
+# u^3\phi_1 & u^3\phi_2 & u^3\phi_3
+# \end{bmatrix}
+# $$
+# and applying it to $v$ recovers the defining formula, because matrix
+# multiplication is associative:
+# $$
+# \bigl(u\,\phi\bigr)v
+# \;=\;
+# u\,\bigl(\phi v\bigr)
+# \;=\;
+# \underbrace{\bigl(\phi_1 v^1 + \phi_2 v^2 + \phi_3 v^3\bigr)}_{\phi(v)\,\in\,\mathbb{R}}\,u .
+# $$
+#
+#
+#
+# We can build all the linear maps of $V \rightarrow V$ out of these simple tensors.  Writing $\{b_i\}$ for a basis of $V$ and $\{\beta^j\}$ for the
 # dual basis (the covectors that read off coordinates, $\beta^j(b_i) = \delta^j_i$), the maps
-# $b_i \otimes \beta^j$ are precisely the matrix units $E_{ij}$, and any $T$ expands as
+# $b_i \otimes \beta^j$ are precisely the standard basis for $V \otimes V^*$. To make this concrete, in R3, $b_1 \otimes \beta^1$ would be written in matrix formulation as:
+# $$
+# \begin{bmatrix} 1 \\ 0 \\ 0 \end{bmatrix}
+# \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}
+# \;=\;
+# \begin{bmatrix}
+# 1 & 0 & 0 \\
+# 0 & 0 & 0 \\
+# 0 & 0 & 0
+# \end{bmatrix}
+# $$
 #
-# $$T \;=\; \sum_{i,j} T^i{}_j \; b_i \otimes \beta^j .$$
+# Seeing this, I hope it makes it clear that we can make any matrix by adding up weighted combinations of the basis of simple vectors.
+# $$
+# L = a (b_1 \otimes \beta^1) + b (b_2 \otimes \beta^1) + c (b_3 \otimes \beta^1) + d (b_1 \otimes \beta^2) \ldots
+# $$
+#
+# and any linear transformation of $V$, given by $L$, expands as:
+#
+# $$L \;=\; \sum_{i,j} L^i{}_j \; b_i \otimes \beta^j .$$
 #
 # So the space of linear transformations of $V$ *is* $V \otimes V^*$, and the dimension count agrees:
 # $\dim V \cdot \dim V^* = n \cdot n = n^2$, the number of entries in an $n \times n$ matrix. This is
@@ -125,23 +172,134 @@
 # extended linearly to all of $V \otimes V^*$. Sanity check on the identity $I = \sum_i b_i \otimes \beta^i$:
 # its trace is $\sum_i \beta^i(b_i) = \sum_i 1 = n$, as it must be.
 #
-# This deserves emphasis because it is stronger than it looks. Notebook 4 defined the trace
+# "Extended linearly" hides the one step worth checking. A general $T$ is a *sum* of simple tensors,
+# and that sum is not unique — so why doesn't the answer depend on which decomposition you happened
+# to pick? Write $T = \sum_i u_i \otimes \phi_i$ in components, so that $T^a{}_b = \sum_i u_i^a (\phi_i)_b$,
+# and compute the candidate answer:
+#
+# $$\sum_i \phi_i(u_i) \;=\; \sum_i \sum_a (\phi_i)_a\, u_i^a \;=\; \sum_a \Bigl(\sum_i u_i^a (\phi_i)_a\Bigr) \;=\; \sum_a T^a{}_a .$$
+#
+# The summation index $i$ has vanished: the right-hand side mentions only $T$ itself. So any two
+# decompositions of the same tensor give the same number, and we get the coordinate formula
+# $\operatorname{tr} T = T^a{}_a$ thrown in for free. (This is the universal property of section 2
+# doing its job: the bilinear map $(u,\phi) \mapsto \phi(u)$ factors uniquely through $V \otimes V^*$.)
+#
+# More abstract note: This deserves emphasis because it is stronger than it looks. Notebook 4 defined the trace
 # coordinate-free *through volume*, as $\frac{d}{dt}\big\rvert_{t=0}\det(I + tT)$. Here we get it with
 # no volume form, no basis, and — crucially — **no inner product**: the pairing of $V$ against $V^*$
 # is already built into the space. Contrast this with trying to contract $V \otimes V$, which has no
-# canonical pairing at all; you would have to choose a metric first. The trace is free, the "trace"
-# of a $(2,0)$ tensor is not.
+# canonical pairing at all; you would have to choose a metric first. The trace is free, the "trace" of a tensor in $V \otimes V$ is not.
 
 # %%
-# TODO(human): numerical check, in the style of the rest of the series.
+import numpy as np
+
+rng = np.random.default_rng(0)
+
+# --- 1. simple tensors: tr(u ⊗ φ) = φ(u) ---------------------------------------
+# A covector is stored as a plain length-3 array of components. It is a *row*; there
+# is nothing to transpose, and no inner product has been used anywhere below.
+u = rng.normal(size=3)
+phi = rng.normal(size=3)
+P = np.outer(u, phi)  # the rank-one map v ↦ φ(v)·u
+
+print("tr(u ⊗ φ) = φ(u)      :", np.allclose(np.trace(P), phi @ u))
+print("rank(u ⊗ φ) = 1       :", np.linalg.matrix_rank(P) == 1)
+# the same scalar φ(u) decides idempotent vs. nilpotent:
+print("P² = φ(u)·P           :", np.allclose(P @ P, (phi @ u) * P))
+print(f"  here φ(u) = {phi @ u:+.4f}, so P is neither a projection nor nilpotent")
+
+
+# --- 2. non-simple tensors: the trace does not care how you decompose -----------
+def trace_by_contraction(us, phis):
+    """Σ_i φ_i(u_i) — the definition, extended linearly off the simple tensors."""
+    return sum(p @ v for v, p in zip(us, phis))
+
+
+M = rng.normal(size=(3, 3))  # a general element of V ⊗ V*, rank 3, not simple
+
+# (a) the lazy decomposition: M = Σ_a b_a ⊗ (a-th row of M)
+decomp_a = (list(np.eye(3)), list(M))
+
+# (b) the SVD: M = Σ_i σ_i u_i v_iᵀ — same tensor, completely different vectors
+U, S, Vt = np.linalg.svd(M)
+decomp_b = ([S[i] * U[:, i] for i in range(3)], [Vt[i, :] for i in range(3)])
+
+# (c) a deliberately wasteful one: five *arbitrary* vectors, plus whatever covectors
+#     are then forced on us to still reproduce M.  Nothing here is canonical.
+W = rng.normal(size=(3, 5))
+Phi = np.linalg.pinv(W) @ M  # W @ Phi == M exactly, since rank(W) = 3
+decomp_c = ([W[:, i] for i in range(5)], [Phi[i, :] for i in range(5)])
+
+for name, (us, phis) in [
+    ("(a) rows,      3 terms", decomp_a),
+    ("(b) SVD,       3 terms", decomp_b),
+    ("(c) arbitrary, 5 terms", decomp_c),
+]:
+    rebuilt = sum(np.outer(v, p) for v, p in zip(us, phis))
+    print(
+        f"{name}:  rebuilds M = {np.allclose(rebuilt, M)}"
+        f"   Σφ_i(u_i) = {trace_by_contraction(us, phis):+.6f}"
+    )
+print(f"{'    np.trace(M)':<22}:{'':<22}   tr M      = {np.trace(M):+.6f}")
+
+# The identity is the canonical non-simple tensor: Σ_a b_a ⊗ β^a needs all n terms,
+# because the minimum number of simple summands is exactly the rank.
+print("\nrank(I) = fewest simple terms :", np.linalg.matrix_rank(np.eye(3)))
+print("tr(I) = Σ_a β^a(b_a) = n      :", np.trace(np.eye(3)))
+
+
+# --- 3. why it must be V ⊗ V*, and not V ⊗ V -----------------------------------
+# `A` is a change of basis: its COLUMNS are the new basis vectors b'_a = Σ_c A^c_a b_c
+# written in the old coordinates.  Everything below follows from that one choice:
 #
-# Confirm that the tensor picture and the matrix picture agree.  Suggested shape:
+#     basis vectors        transform by  A        (by construction, above)
+#     vector components    transform by  A⁻¹      ("contra"variant: opposite the basis)
+#     covector components  transform by  A        ("co"variant: along with the basis)
 #
-#   rng = np.random.default_rng(0)
-#   u, phi = rng.normal(size=3), rng.normal(size=3)
-#   ...
-#
-# See the note in chat for which identities are worth checking and why.
+# So `Ainv` is not a computational convenience — it is the transformation law for an
+# UPPER index, exactly as `A` is the law for a LOWER one.  Read each line below
+# right-to-left against its index string; the array `M` is deliberately the same in
+# both, because 9 numbers do not know what kind of tensor they are.  What separates
+# V ⊗ V* from V ⊗ V is not the components, it is which law they obey.
+A = rng.normal(size=(3, 3))
+Ainv = np.linalg.inv(A)
+
+# one up, one down → one A⁻¹ and one A.  This is the ordinary similarity transform of
+# notebook 7: the same linear map, re-described in a new basis.
+mixed = Ainv @ M @ A  # T^a_b  ↦  (A⁻¹)^a_c T^c_d A^d_b
+# both up → two A⁻¹.  The `.T` is index bookkeeping, NOT a metric operation: hitting
+# the second index, Σ_d T^cd (A⁻¹)^b_d, is spelled `M @ Ainv.T` as a matrix product.
+contra = Ainv @ M @ Ainv.T  # T^ab   ↦  (A⁻¹)^a_c (A⁻¹)^b_d T^cd
+# tr(A⁻¹MA) = tr(MAA⁻¹) = tr(M) by cyclicity; the two factors in `contra` never meet,
+# so no such cancellation is available and the "trace" of a (2,0)-tensor is meaningless.
+
+print(
+    f"\ncontract up against down, T^a_a : {np.trace(M):+.6f} → {np.trace(mixed):+.6f}"
+)
+print(f"contract up against up,   T^aa  : {np.trace(M):+.6f} → {np.trace(contra):+.6f}")
+print(
+    "  trace on V ⊗ V* is basis-independent :",
+    np.allclose(np.trace(M), np.trace(mixed)),
+)
+print(
+    "  the same recipe on V ⊗ V is not      :",
+    not np.allclose(np.trace(M), np.trace(contra)),
+)
+
+# Control case, and the reason anyone gets away with ignoring all of this. Restrict
+# the change of basis to a ROTATION: then A⁻¹ = Aᵀ, so A⁻ᵀ = A and the two laws above
+# literally coincide — upper and lower indices become indistinguishable. Euclidean
+# linear algebra in orthonormal bases therefore never notices the difference between
+# V ⊗ V and V ⊗ V*. It only bites once shears and rescalings are allowed back in.
+Q, _ = np.linalg.qr(rng.normal(size=(3, 3)))  # a random orthogonal matrix
+Qinv = np.linalg.inv(Q)
+print("\nrestricted to an orthogonal change of basis Q:")
+print("  Q⁻ᵀ = Q, so the two laws agree :", np.allclose(Qinv.T, Q))
+print(
+    "  both 'traces' now preserved    :",
+    np.allclose(np.trace(Qinv @ M @ Q), np.trace(M))
+    and np.allclose(np.trace(Qinv @ M @ Qinv.T), np.trace(M)),
+)
 
 # %% [markdown]
 # ## 3. The wedge product and the exterior algebra, defined properly

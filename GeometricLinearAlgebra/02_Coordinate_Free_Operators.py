@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3)
 #     language: python
 #     name: python3
 # ---
@@ -37,7 +37,7 @@
 
 # %%
 import numpy as np
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 import sympy
 
 sympy.init_printing()
@@ -65,7 +65,7 @@ LABELC = 0xCCCCCC
 
 
 # %%
-# Thin adapters over the shared `mathviz` library, keeping this notebook's original
+# Thin adapters over the shared `clmmathtools` library, keeping this notebook's original
 # drawing calls (new_plot / add_line / add_vector / add_points / show_operator) intact.
 # k3d line/point sizes (world units) map to matplotlib widths/marker sizes.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):

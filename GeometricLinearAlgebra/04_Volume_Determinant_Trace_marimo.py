@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 #     "scipy>=1.10",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 4 -- volume, determinant, trace, as a *reactive* marimo notebook.
@@ -17,7 +17,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/04_Volume_Determinant_Trace_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -50,27 +50,49 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
     from scipy.linalg import expm
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, expm, io, mo, mv, np
+    return TangleLatex, expm, io, mo, mv, np, re
 
 
 @app.cell
-def _(io, mo, mv):
+def _(io, mo, mv, re):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
@@ -80,7 +102,7 @@ def _(io, mo, mv):
         when the scene re-renders on every drag."""
         return mv.Space3D(bounds=bounds, backend="mpl", **kw)
 
-    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, png, space
+    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, space, svg
 
 
 @app.cell
@@ -194,15 +216,33 @@ def _(TangleLatex, mo, theme):
                 r"\qquad v = \begin{bmatrix} 0.4 \\ 1.8 \\ 0.1 \end{bmatrix}"
             ),
             parameters={
-                "wx": {"value": 0.2, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "w, x-component",
-                       "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "wy": {"value": 0.5, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "w, y-component",
-                       "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "wz": {"value": 1.6, "min_value": -2.5, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "w, z-component",
-                       "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "wx": {
+                    "value": 0.2,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "w, x-component",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "wy": {
+                    "value": 0.5,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "w, y-component",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "wz": {
+                    "value": 1.6,
+                    "min_value": -2.5,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "w, z-component",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -213,7 +253,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, ORANGE, boxw, check, mo, np, png, space, wedge3):
+def _(BLUE, GREEN, ORANGE, boxw, check, mo, np, space, svg, wedge3):
     ubox = np.array([2.0, 0.3, 0.2])
     vbox = np.array([0.4, 1.8, 0.1])
     wbox = np.array([boxw.values["wx"], boxw.values["wy"], boxw.values["wz"]])
@@ -227,7 +267,7 @@ def _(BLUE, GREEN, ORANGE, boxw, check, mo, np, png, space, wedge3):
 
     mo.hstack(
         [
-            png(_s),
+            svg(_s),
             mo.md(
                 rf"""
     $$u\wedge v\wedge w \;=\; u\cdot(v\times w) \;=\; {_vol:+.4f}$$
@@ -295,18 +335,42 @@ def _(TangleLatex, mo, theme):
                 r"\end{bmatrix}"
             ),
             parameters={
-                "sx": {"value": 1.4, "min_value": -2, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "stretch along x",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "sy": {"value": 1.1, "min_value": -2, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "stretch along y",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "sz": {"value": 1.0, "min_value": -2, "max_value": 2.5, "step": 0.1,
-                       "digits": 1, "label": "stretch along z",
-                       "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "k": {"value": 0.0, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "shear (does not change the volume)",
-                      "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
+                "sx": {
+                    "value": 1.4,
+                    "min_value": -2,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "stretch along x",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "sy": {
+                    "value": 1.1,
+                    "min_value": -2,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "stretch along y",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "sz": {
+                    "value": 1.0,
+                    "min_value": -2,
+                    "max_value": 2.5,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "stretch along z",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "k": {
+                    "value": 0.0,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "shear (does not change the volume)",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -330,7 +394,7 @@ def _(np, opw):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, FAINT, T3, check, det_by_volume, mo, np, png, space, wedge3):
+def _(BLUE, FAINT, T3, check, det_by_volume, mo, np, space, svg, wedge3):
     _e1, _e2, _e3 = np.eye(3)
     _det = det_by_volume(T3)
 
@@ -353,7 +417,7 @@ def _(BLUE, FAINT, T3, check, det_by_volume, mo, np, png, space, wedge3):
 
     mo.hstack(
         [
-            png(_s),
+            svg(_s),
             mo.md(
                 rf"""
     $$\det T = {_det:+.4f}
@@ -397,7 +461,9 @@ def _(mo):
 def _(det_by_volume, mo, np):
     _th = 0.6
     _ops2d = {
-        "rotation θ=0.6": np.array([[np.cos(_th), -np.sin(_th)], [np.sin(_th), np.cos(_th)]]),
+        "rotation θ=0.6": np.array(
+            [[np.cos(_th), -np.sin(_th)], [np.sin(_th), np.cos(_th)]]
+        ),
         "uniform scale 1.6": 1.6 * np.eye(2),
         "shear k=0.8": np.array([[1.0, 0.8], [0.0, 1.0]]),
         "projection onto x": np.array([[1.0, 0.0], [0.0, 0.0]]),
@@ -489,7 +555,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, T3, check, divergence, mo, mv, np, png, tr_diag):
+def _(BLUE, T3, check, divergence, mo, mv, np, svg, tr_diag):
     _rng = np.random.default_rng(11)
     _pts = _rng.normal(size=(5, 3))
     _divs = [divergence(lambda x: T3 @ x, _x) for _x in _pts]
@@ -501,7 +567,7 @@ def _(BLUE, T3, check, divergence, mo, mv, np, png, tr_diag):
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     divergence of $x\mapsto Tx$, sampled at five unrelated points:
@@ -552,9 +618,15 @@ def _(TangleLatex, mo, theme):
         TangleLatex(
             latex=r"\det\!\big(e^{\tangle{t} T}\big) \;=\; e^{\,\tangle{t}\,\operatorname{tr}T}",
             parameters={
-                "t": {"value": 1.0, "min_value": -3, "max_value": 3, "step": 0.1,
-                      "digits": 1, "label": "time along the flow",
-                      "color": {"light": "#a03050", "dark": "#ff8fa8"}},
+                "t": {
+                    "value": 1.0,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "time along the flow",
+                    "color": {"light": "#a03050", "dark": "#ff8fa8"},
+                },
             },
             reveal_all_on_drag=True,
             editor="inline",

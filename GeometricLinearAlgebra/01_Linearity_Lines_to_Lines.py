@@ -47,7 +47,7 @@
 
 # %%
 import numpy as np
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 # Color palette shared across the whole series (k3d wants integer hex colors).
 BLUE = 0x4FC3F7
@@ -72,7 +72,7 @@ LABELC = 0xCCCCCC
 
 
 # %%
-# Thin adapters over the shared `mathviz` library, keeping this notebook's original drawing
+# Thin adapters over the shared `clmmathtools` library, keeping this notebook's original drawing
 # calls (new_plot / add_line / add_vector / add_points) intact. mv.Plane is a top-down view;
 # k3d line/point sizes (world units) map to matplotlib widths / marker sizes.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):

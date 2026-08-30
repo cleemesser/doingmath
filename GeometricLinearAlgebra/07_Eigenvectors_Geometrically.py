@@ -30,7 +30,7 @@
 # into — two real axes, a **defective** shear, and a **rotation** whose eigenvalues are complex
 # (closing the loop on the $J^2=-I$ story from the earlier notebooks).
 #
-# Pictures use the shared **`mathviz`** plane library (static renders in the $z=0$ plane);
+# Pictures use the shared **`clmmathtools`** plane library (static renders in the $z=0$ plane);
 # every algebraic claim is cross-checked with SymPy's exact arithmetic.
 
 # %%
@@ -40,7 +40,7 @@ from sympy import Matrix, Rational, symbols, I, simplify
 
 sp.init_printing()
 
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -52,7 +52,7 @@ YELLOW = 0xFFD54F
 BG = 0x0F0F0F
 
 
-# Plane drawing now comes from the shared `mathviz` library: mv.Plane(extent=…) gives a
+# Plane drawing now comes from the shared `clmmathtools` library: mv.Plane(extent=…) gives a
 # top-down view with grid+axes; .vector/.curve/.segment/.line/.display match what this
 # notebook used (the former inline Plane2D.eigenline(d) is mv.Plane.line([0, 0], d)).
 

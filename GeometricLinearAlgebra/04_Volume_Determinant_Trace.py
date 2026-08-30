@@ -32,7 +32,7 @@
 #    formula, and close the loop with $\det(e^{tT}) = e^{t\,\operatorname{tr}T}$ — the exact bridge from
 #    the infinitesimal (trace) to the finite (determinant) that the `LieGroups/` notebooks lean on.
 #
-# Figures use the shared `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
+# Figures use the shared `clmmathtools` library — 2D plots via matplotlib, 3D scenes via vedo.
 
 # %% [markdown]
 # May want to also add $\frac{d}{dt} det(I + t A) = tr(A)$ when evaluated at zero and also draw Arnold's picture for parallelogram.
@@ -44,7 +44,7 @@ import sympy as sp
 
 sp.init_printing()
 from scipy.linalg import expm
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -64,7 +64,7 @@ LABELC = 0xCCCCCC
 
 
 # %%
-# Thin adapters over the shared `mathviz` library — see the note in notebook 3. new_plot returns a
+# Thin adapters over the shared `clmmathtools` library — see the note in notebook 3. new_plot returns a
 # 2D mv.Plane (top_down) or a 3D mv.Space3D (top_down=False); the add_* helpers dispatch on the plot
 # type. Filled parallelograms/parallelepipeds use mv's Polygon (2D) / Mesh3D (3D) primitives.
 def new_plot(lim=3.0, top_down=True, axes=True, grid=True):

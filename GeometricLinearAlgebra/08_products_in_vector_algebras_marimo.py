@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 #     "sympy>=1.14",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 8 -- products in vector algebras, as a *reactive* marimo notebook.
@@ -21,7 +21,7 @@
 # rest of the series (every notebook verifies its own claims). Section 4 is left as an
 # explicit stub rather than invented. See the summary at the bottom for the full list.
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -60,6 +60,7 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
     from itertools import combinations
     from math import comb
 
@@ -67,27 +68,48 @@ def _():
     import numpy as np
     import sympy as sp
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, combinations, comb, io, mo, mv, np, sp
+    return TangleLatex, combinations, comb, io, mo, mv, np, re, sp
 
 
 @app.cell
-def _(io, mo, mv):
+def _(io, mo, mv, re):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
 
-    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, png
+    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, svg
 
 
 @app.cell(hide_code=True)
@@ -174,18 +196,42 @@ def _(TangleLatex, mo):
                 r"v = \begin{bmatrix} \tangle{vx} \\[2pt] \tangle{vy} \end{bmatrix}"
             ),
             parameters={
-                "ux": {"value": 1.6, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, x",
-                       "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
-                "uy": {"value": 0.8, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "u, y",
-                       "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
-                "vx": {"value": 0.5, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, x",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "vy": {"value": 2.0, "min_value": -3, "max_value": 3, "step": 0.1,
-                       "digits": 1, "label": "v, y",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
+                "ux": {
+                    "value": 1.6,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, x",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
+                "uy": {
+                    "value": 0.8,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "u, y",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
+                "vx": {
+                    "value": 0.5,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, x",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "vy": {
+                    "value": 2.0,
+                    "min_value": -3,
+                    "max_value": 3,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "v, y",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
             },
             editor="inline",
             theme="auto",
@@ -196,7 +242,7 @@ def _(TangleLatex, mo):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, FAINT, GREEN, PURPLE, RED, check, dualw, mo, mv, np, png):
+def _(BLUE, FAINT, GREEN, PURPLE, RED, check, dualw, mo, mv, np, svg):
     u1 = np.array([dualw.values["ux"], dualw.values["uy"]])
     v1 = np.array([dualw.values["vx"], dualw.values["vy"]])
     _uu = float(u1 @ u1)
@@ -217,7 +263,7 @@ def _(BLUE, FAINT, GREEN, PURPLE, RED, check, dualw, mo, mv, np, png):
 
     mo.hstack(
         [
-            png(_pl),
+            svg(_pl),
             mo.md(
                 rf"""
     $$u^*(v) = \langle u, v\rangle = {float(u1 @ v1):+.3f}
@@ -353,7 +399,9 @@ def _(check, comb, mo, np, u1):
     # A general T, expanded in the basis b_i (x) beta^j of matrix units.
     T = _rng.normal(size=(n, n))
     rebuilt = sum(
-        T[i, j] * np.outer(np.eye(n)[i], np.eye(n)[j]) for i in range(n) for j in range(n)
+        T[i, j] * np.outer(np.eye(n)[i], np.eye(n)[j])
+        for i in range(n)
+        for j in range(n)
     )
 
     # The projection of notebook 2, rebuilt as a rank-one tensor.

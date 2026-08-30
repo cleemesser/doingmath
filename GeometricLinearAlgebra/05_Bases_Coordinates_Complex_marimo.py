@@ -1,13 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "mathviz",
+#     "clmmathtools",
 #     "wigglystuff>=0.5.23",
 #     "scipy>=1.10",
 # ]
 #
 # [tool.uv.sources]
-# mathviz = { path = "../mathviz", editable = true }
+# clmmathtools = { path = "../clmmathtools", editable = true }
 # ///
 
 # Geometric Linear Algebra 5 -- coordinates, matrices, and the discovery of C, as a
@@ -17,7 +17,7 @@
 #
 #   uv run marimo edit GeometricLinearAlgebra/05_Bases_Coordinates_Complex_marimo.py
 #
-# Draws with `mathviz`, so it runs either in the repo environment (the tested path) or via
+# Draws with `clmmathtools`, so it runs either in the repo environment (the tested path) or via
 # `marimo edit --sandbox` using the PEP 723 header above; see 01_..._marimo.py for details.
 
 import marimo
@@ -47,27 +47,49 @@ def _(mo):
 @app.cell
 def _():
     import io
+    import re
 
     import marimo as mo
     import numpy as np
     from scipy.linalg import expm
 
-    import mathviz as mv  # shared plane-viz library (see ../mathviz)
+    import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
     from wigglystuff import TangleLatex
 
-    return TangleLatex, expm, io, mo, mv, np
+    return TangleLatex, expm, io, mo, mv, np, re
 
 
 @app.cell
-def _(io, mo, mv):
+def _(io, mo, mv, re):
     BLUE, ORANGE, GREEN = mv.BLUE, mv.ORANGE, mv.GREEN
     RED, PURPLE, GREY, FAINT = mv.RED, mv.PURPLE, mv.GREY, mv.FAINT
 
-    def png(scene, width=430):
-        """A mathviz scene -> a marimo image (see 01_..._marimo.py for why not .display())."""
-        buf = io.BytesIO()
-        scene.save(buf)
-        return mo.image(buf.getvalue(), width=width)
+    def svg(scene, width=430):
+        """A clmmathtools scene -> inline SVG (see 01_..._marimo.py for why not .display()).
+
+        Inline SVG rather than `mo.image()`: mo.image serves a PNG whose *filename is a
+        content hash*, so every widget tick mints a fresh URL and the browser tears down
+        the old <img> to re-fetch it. That blank gap -- plus an <img> with no reserved
+        height collapsing the row -- is what made the interactive cells flash while
+        dragging. Inline SVG is DOM, not an asset, so it swaps in the same paint as the
+        rest of the cell output; it also renders faster and ships smaller than the PNG.
+        """
+        buf = io.StringIO()
+        scene.save(buf, format="svg")
+        body = buf.getvalue()
+        body = body[
+            body.index("<svg") :
+        ]  # the XML declaration + DOCTYPE are illegal inline
+        body = re.sub(  # let the wrapper size it, not matplotlib's fixed pt dimensions
+            r'(<svg\b[^>]*?)\s*width="[\d.]+pt"\s*height="[\d.]+pt"',
+            r'\1 width="100%" height="100%" style="display:block"',
+            body,
+            count=1,
+        )
+        w, h = scene.view.size  # a fixed box => no reflow between frames
+        return mo.Html(
+            f'<div style="width:{width}px;height:{round(width * h / w)}px;flex:0 0 auto">{body}</div>'
+        )
 
     def check(claim, ok):
         return f"- {'✅' if ok else '❌'} {claim}"
@@ -76,12 +98,16 @@ def _(io, mo, mv):
         """Faint domain grid + flag, overlaid with their bold image under the matrix M."""
         p = mv.Plane(extent=extent, grid=False, axes=True)
         p.show_operator(
-            M, probe_shape=mv.FLAG, color=color, width=1.8, samples=40,
+            M,
+            probe_shape=mv.FLAG,
+            color=color,
+            width=1.8,
+            samples=40,
             probe_shape_color=color,
         )
-        return png(p, width=width)
+        return svg(p, width=width)
 
-    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, operator_view, png
+    return BLUE, FAINT, GREEN, GREY, ORANGE, PURPLE, RED, check, operator_view, svg
 
 
 @app.cell
@@ -160,18 +186,42 @@ def _(TangleLatex, mo, theme):
                 r"\qquad\text{(the arrow } v \text{ is fixed)}"
             ),
             parameters={
-                "b1x": {"value": 1.0, "min_value": -2, "max_value": 2, "step": 0.1,
-                        "digits": 1, "label": "b1, x-component",
-                        "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
-                "b1y": {"value": 0.0, "min_value": -2, "max_value": 2, "step": 0.1,
-                        "digits": 1, "label": "b1, y-component",
-                        "color": {"light": "#6f5cbd", "dark": "#b9a8ff"}},
-                "b2x": {"value": 0.6, "min_value": -2, "max_value": 2, "step": 0.1,
-                        "digits": 1, "label": "b2, x-component",
-                        "color": {"light": "#147a68", "dark": "#5ed5bd"}},
-                "b2y": {"value": 1.0, "min_value": -2, "max_value": 2, "step": 0.1,
-                        "digits": 1, "label": "b2, y-component",
-                        "color": {"light": "#147a68", "dark": "#5ed5bd"}},
+                "b1x": {
+                    "value": 1.0,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "b1, x-component",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
+                "b1y": {
+                    "value": 0.0,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "b1, y-component",
+                    "color": {"light": "#6f5cbd", "dark": "#b9a8ff"},
+                },
+                "b2x": {
+                    "value": 0.6,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "b2, x-component",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
+                "b2y": {
+                    "value": 1.0,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "b2, y-component",
+                    "color": {"light": "#147a68", "dark": "#5ed5bd"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -182,7 +232,7 @@ def _(TangleLatex, mo, theme):
 
 
 @app.cell(hide_code=True)
-def _(BLUE, GREEN, GREY, ORANGE, PURPLE, basw, check, coords_in, mo, mv, np, png):
+def _(BLUE, GREEN, GREY, ORANGE, PURPLE, basw, check, coords_in, mo, mv, np, svg):
     skew = np.array(
         [
             [basw.values["b1x"], basw.values["b1y"]],
@@ -209,7 +259,7 @@ def _(BLUE, GREEN, GREY, ORANGE, PURPLE, basw, check, coords_in, mo, mv, np, png
 
     mo.hstack(
         [
-            png(_p),
+            svg(_p),
             mo.md(
                 rf"""
     the **same** arrow $v = (1.8,\; 1.2)$, reported in two frames:
@@ -261,12 +311,24 @@ def _(TangleLatex, mo, theme):
         TangleLatex(
             latex=r"\text{rotate by } \tangle{ang}^\circ, \qquad \text{shear by } \tangle{k}",
             parameters={
-                "ang": {"value": 35, "min_value": -180, "max_value": 180, "step": 5,
-                        "digits": 0, "label": "rotation angle (degrees)",
-                        "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "k": {"value": 0.8, "min_value": -2, "max_value": 2, "step": 0.1,
-                      "digits": 1, "label": "shear strength",
-                      "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "ang": {
+                    "value": 35,
+                    "min_value": -180,
+                    "max_value": 180,
+                    "step": 5,
+                    "digits": 0,
+                    "label": "rotation angle (degrees)",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "k": {
+                    "value": 0.8,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "shear strength",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -368,9 +430,9 @@ def _(check, mo, np, skew):
     _yours_ok = False
     if abs(np.linalg.det(skew)) > 1e-9:
         _Byours = np.linalg.inv(skew.T) @ A @ skew.T
-        _yours_ok = np.allclose(np.linalg.det(_Byours), np.linalg.det(A)) and np.allclose(
-            np.trace(_Byours), np.trace(A)
-        )
+        _yours_ok = np.allclose(
+            np.linalg.det(_Byours), np.linalg.det(A)
+        ) and np.allclose(np.trace(_Byours), np.trace(A))
 
     mo.md(
         rf"""
@@ -426,18 +488,42 @@ def _(TangleLatex, mo, theme):
                 r"w = \tangle{wx}\,I + \tangle{wy}\,J"
             ),
             parameters={
-                "zx": {"value": 1.3, "min_value": -2, "max_value": 2, "step": 0.1,
-                       "digits": 1, "label": "z, real part",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "zy": {"value": 0.9, "min_value": -2, "max_value": 2, "step": 0.1,
-                       "digits": 1, "label": "z, imaginary part",
-                       "color": {"light": "#246bce", "dark": "#75a7ff"}},
-                "wx": {"value": 0.5, "min_value": -2, "max_value": 2, "step": 0.1,
-                       "digits": 1, "label": "w, real part",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
-                "wy": {"value": 1.4, "min_value": -2, "max_value": 2, "step": 0.1,
-                       "digits": 1, "label": "w, imaginary part",
-                       "color": {"light": "#b45b1b", "dark": "#ffad66"}},
+                "zx": {
+                    "value": 1.3,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "z, real part",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "zy": {
+                    "value": 0.9,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "z, imaginary part",
+                    "color": {"light": "#246bce", "dark": "#75a7ff"},
+                },
+                "wx": {
+                    "value": 0.5,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "w, real part",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
+                "wy": {
+                    "value": 1.4,
+                    "min_value": -2,
+                    "max_value": 2,
+                    "step": 0.1,
+                    "digits": 1,
+                    "label": "w, imaginary part",
+                    "color": {"light": "#b45b1b", "dark": "#ffad66"},
+                },
             },
             editor="inline",
             theme=theme.value,
@@ -523,9 +609,7 @@ def _(GREEN, Jm, Mw, Mz, check, expm, mo, np, operator_view, wvec, zvec):
     phi = float(np.arctan2(zvec[1], zvec[0]))
     _zw = Mz @ Mw
     _phi0 = 0.7
-    _R = np.array(
-        [[np.cos(_phi0), -np.sin(_phi0)], [np.sin(_phi0), np.cos(_phi0)]]
-    )
+    _R = np.array([[np.cos(_phi0), -np.sin(_phi0)], [np.sin(_phi0), np.cos(_phi0)]])
 
     mo.hstack(
         [
@@ -536,7 +620,7 @@ def _(GREEN, Jm, Mw, Mz, check, expm, mo, np, operator_view, wvec, zvec):
       \qquad \lvert z\rvert = {r:.4f}
       \qquad \arg z = {np.degrees(phi):.2f}^\circ$$
 
-    {check(rf"$\det = \lvert z\rvert^2 = {r ** 2:.4f}$ — the **area** factor", np.allclose(np.linalg.det(Mz), r ** 2))}
+    {check(rf"$\det = \lvert z\rvert^2 = {r**2:.4f}$ — the **area** factor", np.allclose(np.linalg.det(Mz), r**2))}
     {check(rf"$\operatorname{{tr}} = 2\,\mathrm{{Re}}\,z = {2 * zvec[0]:.2f}$", np.allclose(np.trace(Mz), 2 * zvec[0]))}
     {check(r"$\lvert zw\rvert = \lvert z\rvert\,\lvert w\rvert$ — **moduli multiply**", np.allclose(np.hypot(_zw[0, 0], _zw[1, 0]), np.hypot(*zvec) * np.hypot(*wvec)))}
     {check(r"$\arg(zw) = \arg z + \arg w$ — **arguments add**", np.allclose(np.exp(1j * np.arctan2(_zw[1, 0], _zw[0, 0])), np.exp(1j * (np.arctan2(zvec[1], zvec[0]) + np.arctan2(wvec[1], wvec[0])))))}

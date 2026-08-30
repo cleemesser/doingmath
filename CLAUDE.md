@@ -74,9 +74,9 @@ The `LieGroups/*_Lie_Theory.py` files (`SO2`, `SE2`, `SO3`, `SE3`) are **jupytex
 
 ## Helper libraries
 
-started a helper library, `mathviz`, to help to visualize vector functions and
+started a helper library, `clmmathtools`, to help to visualize vector functions and
 complex functions and other geometric concepts.
-this is in the mathviz/ directory
+this is in the clmmathtools/ directory
 
 ## Conventions seen in the code
 

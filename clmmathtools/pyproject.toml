@@ -1,0 +1,30 @@
+[project]
+name = "clmmathtools"
+version = "0.2.0"
+description = "Personal math tools: plane/complex-function visualization (clmmathtools.viz — linear maps, conformal maps, Wegert phase portraits over pluggable matplotlib/vedo backends) and basis-aware matrices (clmmathtools.typed_matrix2)."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.0",
+    "matplotlib>=3.9",
+    "vedo>=2026.6.1",
+    "pillow>=11.0.0",
+    "sympy>=1.14.0",
+    "pylatexenc",
+]
+
+[project.optional-dependencies]
+# animate.py imports these lazily: ipywidgets only in scrubber(), scipy only in the
+# expm/logm-based geodesic_path(). GIF export needs neither (pillow is already core).
+interactive = [
+    "ipywidgets>=7.6",
+    "scipy>=1.10",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["clmmathtools*"]

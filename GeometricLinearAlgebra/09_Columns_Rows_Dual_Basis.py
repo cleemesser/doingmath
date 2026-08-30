@@ -46,7 +46,7 @@
 
 # %%
 import numpy as np
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -109,8 +109,7 @@ def check(label, got, want, tol=1e-10):
 
 # %%
 # columns of B are the basis vectors b_1, b_2  (a skewed, non-orthonormal frame)
-B = np.array([[1.0, 0.6],
-              [0.0, 1.0]])
+B = np.array([[1.0, 0.6], [0.0, 1.0]])
 Beta = np.linalg.inv(B)  # ROWS are the dual covectors beta^1, beta^2
 
 print("b_1 =", B[:, 0], "   b_2 =", B[:, 1])
@@ -118,14 +117,18 @@ print("beta^1 =", Beta[0], "   beta^2 =", Beta[1])
 print("\ndefining property beta^i(b_j) = delta^i_j:")
 for i in range(2):
     for j in range(2):
-        print(f"  beta^{i+1}(b_{j+1}) = {Beta[i] @ B[:, j]:.4f}")
+        print(f"  beta^{i + 1}(b_{j + 1}) = {Beta[i] @ B[:, j]:.4f}")
 check("beta B = I", Beta @ B, np.eye(2))
 
 # The dual basis is NOT the original basis in disguise -- beta^1 is not parallel to b_1.
 cos = (B[:, 0] @ Beta[0]) / (np.linalg.norm(B[:, 0]) * np.linalg.norm(Beta[0]))
-print(f"\nangle between b_1 and beta^1: cos = {cos:.4f}  (would be 1.0 if they coincided)")
-print("beta^1 is orthogonal to b_2, not aligned with b_1:",
-      f"beta^1 . b_2 = {Beta[0] @ B[:, 1]:.4f}")
+print(
+    f"\nangle between b_1 and beta^1: cos = {cos:.4f}  (would be 1.0 if they coincided)"
+)
+print(
+    "beta^1 is orthogonal to b_2, not aligned with b_1:",
+    f"beta^1 . b_2 = {Beta[0] @ B[:, 1]:.4f}",
+)
 
 # %% [markdown]
 # That last line is the geometric content of the dual basis, and it is worth staring at:
@@ -157,11 +160,11 @@ p.display()
 # the pairing above nothing has to be converted, so nothing has to be chosen.
 
 # %%
-x = np.array([1.8, 1.2])          # a geometric vector, in standard coordinates
-phi_std = np.array([2.0, 1.0])    # a geometric covector, as a standard-coordinate row
+x = np.array([1.8, 1.2])  # a geometric vector, in standard coordinates
+phi_std = np.array([2.0, 1.0])  # a geometric covector, as a standard-coordinate row
 
-v = Beta @ x            # column components of x in basis B
-phi_B = phi_std @ B     # row components of phi in the dual basis
+v = Beta @ x  # column components of x in basis B
+phi_B = phi_std @ B  # row components of phi in the dual basis
 
 print("x  (standard coords)     =", x)
 print("v  (components in B)     =", v, "   -> x = B v :", B @ v)
@@ -179,16 +182,17 @@ check("pairing is basis-independent", phi_B @ v, phi_std @ x)
 # basis $B$ that is the similarity $[T]_B = B^{-1} T B$, which is just "convert in, act, convert out".
 
 # %%
-T = np.array([[1.0, -0.8],
-              [0.5, 1.2]])
+T = np.array([[1.0, -0.8], [0.5, 1.2]])
 T_B = Beta @ T @ B
 
 print("[T] in standard coords:\n", T)
 print("[T] in basis B:\n", T_B)
 print("\ncolumn j of [T]_B should be the B-coordinates of T b_j:")
 for j in range(2):
-    print(f"  T b_{j+1} = {T @ B[:, j]}  ->  coords {Beta @ (T @ B[:, j])}  vs column {T_B[:, j]}")
-    check(f"column {j+1}", T_B[:, j], Beta @ (T @ B[:, j]))
+    print(
+        f"  T b_{j + 1} = {T @ B[:, j]}  ->  coords {Beta @ (T @ B[:, j])}  vs column {T_B[:, j]}"
+    )
+    check(f"column {j + 1}", T_B[:, j], Beta @ (T @ B[:, j]))
 
 print()
 check("trace is basis-independent", np.trace(T_B), np.trace(T))
@@ -215,11 +219,10 @@ print(f"  trace = {np.trace(T):.6f},  det = {np.linalg.det(T):.6f}")
 # the observable pairings alone.
 
 # %%
-P = np.array([[1.0, 0.5],
-              [0.3, 1.0]])
-Bp = B @ P                       # the new basis
-vp = np.linalg.inv(Bp) @ x       # components of the SAME x in the new basis
-phi_Bp = phi_std @ Bp            # row components of the SAME phi in the new dual basis
+P = np.array([[1.0, 0.5], [0.3, 1.0]])
+Bp = B @ P  # the new basis
+vp = np.linalg.inv(Bp) @ x  # components of the SAME x in the new basis
+phi_Bp = phi_std @ Bp  # row components of the SAME phi in the new dual basis
 
 print("same arrow x, three sets of numbers:")
 print("  standard :", x)
@@ -295,8 +298,7 @@ check("lowering reproduces the inner product", lowered @ w_comp, x @ w)
 
 # Now redo it in an ORTHONORMAL basis and watch the distinction evaporate.
 theta = 0.7
-Q = np.array([[np.cos(theta), -np.sin(theta)],
-              [np.sin(theta), np.cos(theta)]])
+Q = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 g_orth = Q.T @ Q
 x_q = np.linalg.inv(Q) @ x
 print("\northonormal basis Q:  g =\n", g_orth)
@@ -328,7 +330,9 @@ check("spacing = 1/|phi|", spacing, 1 / np.sqrt(5))
 print("\nphi(v) counts pierced level lines:")
 for vec in ([1.0, 0.0], [0.0, 1.0], [1.5, 1.0], [2.0, 2.0]):
     vec = np.array(vec)
-    print(f"  phi . {vec} = {phi2 @ vec:5.2f}  -> pierces {abs(phi2 @ vec):.2f} unit lines")
+    print(
+        f"  phi . {vec} = {phi2 @ vec:5.2f}  -> pierces {abs(phi2 @ vec):.2f} unit lines"
+    )
 
 # %%
 # TODO(human): draw the covector `phi2` as a stack of level lines, together with a few

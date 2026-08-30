@@ -64,3 +64,8 @@ frontend (Lab/Notebook) — drag to orbit, scroll to zoom. The newer notebooks *
 **vedo** (VTK), as in the `Geometry/` notebooks, rendered **offscreen to static PNGs** embedded in the
 `.ipynb` — so their figures show up after a headless `jupytext --execute` and on GitHub, no live
 frontend needed.
+
+### Useful references
+- [math1a demos from
+  dtu](https://math1a.compute.dtu.dk/SymPy/demo1_matricesdeterminants.html)
+  - https://github.com/dtudk/dtumathtools

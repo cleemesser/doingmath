@@ -5,34 +5,43 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "altair>=6.2.2",
     "anywidget>=0.11.0",
     "bokeh>=3.9.1",
     "clifford>=1.5.1",
+    "eegml-neural-analysis[torch]",
+    "einops>=0.8.2",
     "ipykernel>=7.3.0",
     "ipyvtklink>=0.2.3",
     "ipywidgets>=7.8.5",
     "jupyter>=1.1.1",
+    "jupyterlab-myst>=2.7.0",
     "jupytext>=1.19.1",
     "k3d>=2.17.0",
     "kingdon>=2.1.1",
+    "kingdon-tensor",
     # marimo notebooks (GeometricLinearAlgebra/*_marimo.py) run in *this* environment
-    # rather than a --sandbox venv, so that they can `import mathviz as mv` and reuse
+    # rather than a --sandbox venv, so that they can `import clmmathtools.viz as mv` and reuse
     # the same Plane/Space3D scenes as the paired jupytext notebooks.
     "marimo>=0.23.3",
-    "mathviz",
+    "clmmathtools",
     "matplotlib>=3.11.0",
     "numpy>=2.4.6",
+    "ogrepy>=2.0.0",
     "pandas>=3.0.3",
     "pillow>=11.0.0",
     "plotly>=6.9.0",
+    "pylatexenc>=2.11",
     "pymupdf>=1.27.2.3",
     "pyvista-zstd>=0.2.4",
     "pyvista[all]>=0.48.4",
+    "scikit-learn>=1.9.0",
     "scipy>=1.17.1",
     "sympy>=1.14.0",
     # Pinned to the vue2 stack: vedo 2026.6.1's trame backend builds its UI with
     # the vue2 vuetify widgets and calls trame.app.jupyter.show, both of which
     # were removed in the trame 3.x / vue3 line. trame 2.5.2 is what vedo expects.
+    "sympy-plot-backends[all]>=4.2.0",
     "trame==2.5.2",
     "trame-vtk<2.6",
     "trame-vuetify<3",
@@ -64,7 +73,8 @@ dev = [
 conflicts = [[{ extra = "torch" }, { extra = "cpu" }, { extra = "cu129" }]]
 
 [tool.uv.sources]
-mathviz = { path = "mathviz", editable = true }
+kingdon-tensor = { path = "kingdon_tensor", editable = true }
+clmmathtools = { path = "clmmathtools", editable = true }
 torch = [
     # `torch` extra: auto-dispatch. Off macOS take the CUDA build; on macOS
     # there is no matching entry, so it falls through to PyPI -> MPS wheel.
@@ -73,6 +83,8 @@ torch = [
     { index = "pytorch-cpu", extra = "cpu" },
     { index = "pytorch-cu129", extra = "cu129" },
 ]
+eegml-neural-analysis = { workspace = true, editable = true }
+
 
 # `explicit = true` keeps these indexes from being consulted for anything other
 # than the packages that name them in [tool.uv.sources] above.
@@ -86,6 +98,20 @@ name = "pytorch-cu129"
 url = "https://download.pytorch.org/whl/cu129"
 explicit = true
 
+[tool.uv.workspace]
+members = [
+    "ext/neural_signal_analysis_notes",
+]
+
 [tool.pytest.ini_options]
-testpaths = ["mathviz/tests"]
+testpaths = ["kingdon_tensor/tests", "clmmathtools/tests"]
 addopts = "-q"
+
+# [tool.uv.override-dependencies]
+#"dtumathtools" = []
+
+# double bracket creates an array of tables
+# does not work
+# [[tool.uv.dependency-metadata]]
+#name = "dtumathtools"
+#requires-dist = []

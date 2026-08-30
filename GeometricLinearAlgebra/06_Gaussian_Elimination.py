@@ -41,7 +41,7 @@ from sympy import Matrix, Rational, symbols, eye, linsolve
 
 sp.init_printing()
 
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -52,7 +52,7 @@ PURPLE = 0xCE93D8
 BG = 0x0F0F0F
 
 
-# Plane drawing now comes from the shared `mathviz` library. mv.Plane gives a top-down
+# Plane drawing now comes from the shared `clmmathtools` library. mv.Plane gives a top-down
 # view with grid+axes; this one domain-specific helper draws the line a·x + b·y = c
 # (the "row picture" of an equation) via mv.Plane.line(point, direction).
 def line_eq(pl, a, b, c, color=BLUE):
@@ -88,7 +88,7 @@ show(
 )
 
 # %%
-scale0 = Matrix([[1/2, 0, 0], [0,1,0],[0,0,1]])
+scale0 = Matrix([[1 / 2, 0, 0], [0, 1, 0], [0, 0, 1]])
 scale0
 
 # %%

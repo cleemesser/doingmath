@@ -3,8 +3,9 @@
 # dependencies = [
 #     "marimo",
 #     "numpy",
-#     "scipy",
 #     "plotly",
+#     "sympy",
+#     "sympy-plot-backends",
 # ]
 # ///
 
@@ -17,6 +18,7 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import marimo as mo
+
 
     return (mo,)
 
@@ -62,21 +64,22 @@ def _(mo):
 
 @app.cell
 def _():
-    import sys
     import numpy as np
-    import mathviz as mv
-    from mathviz.palette import hexstr
     import plotly.graph_objects as go
     import plotly.io as pio
-    # sys.path.append('../ext/neural_signal_analysis_notes/code/')
-    import neural_analysis.synthetic as synthetic
-    BG, BLUE, ORANGE, GREEN, RED, PURPLE, YELLOW, GREY, FAINT = (
-        hexstr(c) for c in (
-            mv.palette.BG, mv.palette.BLUE, mv.palette.ORANGE, mv.palette.GREEN,
-            mv.palette.RED, mv.palette.PURPLE, mv.palette.YELLOW, mv.palette.GREY,
-            mv.palette.FAINT,
-        )
-    )
+
+    # Palette — literal hex values, inlined from `clmmathtools.viz.palette` so this
+    # notebook has no local-package dependency.
+    BG     = '#0f0f0f'
+    BLUE   = '#4fc3f7'
+    ORANGE = '#ffb74d'
+    GREEN  = '#81c784'
+    RED    = '#ef5350'
+    PURPLE = '#ce93d8'
+    YELLOW = '#ffd54f'
+    GREY   = '#888888'
+    FAINT  = '#3a3a4e'
+
     pio.templates['doingmath'] = go.layout.Template(
         layout=dict(
             paper_bgcolor=BG, plot_bgcolor=BG,
@@ -90,7 +93,333 @@ def _():
     pio.templates.default = 'doingmath'
     FS = 500.0   # sampling rate, Hz
     DUR = 240.0  # seconds — long enough to resolve the slow band and time-varying coupling
-    return BLUE, DUR, FS, GREEN, GREY, ORANGE, RED, go, np, synthetic
+    return BLUE, DUR, FS, GREEN, GREY, ORANGE, RED, go, np
+
+
+@app.cell
+def _(np):
+    # ---------------------------------------------------------------------------
+    # Synthetic signal generator — inlined from `neural_analysis.synthetic`
+    # (previously: `import neural_analysis.synthetic as synthetic`) so this
+    # notebook stands on its own with no local-package dependency.
+    #
+    # Only `generate_posterior_slow_waves` and the three private helpers it calls
+    # are reproduced here; the rest of that module is unused by this notebook.
+    # `np` comes from the imports cell above.
+    # ---------------------------------------------------------------------------
+    from types import SimpleNamespace
+    from typing import Optional, Tuple, Union
+
+    Number = Union[float, np.ndarray]
+
+
+    def _as_rng(seed: Optional[int]) -> np.random.Generator:
+        """Build a generator from an optional seed (None -> a fresh generator)."""
+        return np.random.default_rng(seed)
+
+
+    def _apply_nonlinearity(
+        signal: np.ndarray,
+        nonlinearity: str,
+        gain: float,
+    ) -> np.ndarray:
+        """Apply a nonlinear mixing term to a summed oscillation.
+
+        The nonlinearity is what turns a superposition of alpha oscillators into
+        slow (subharmonic-band) content:
+
+        * ``"linear"``  -- ``gain * S``. No new frequencies beyond the inputs.
+        * ``"quadratic"`` -- ``gain * S**2``. Contains the slowly varying
+          amplitude envelope ``A(t)**2 / 2`` and the second harmonic.
+        * ``"cubic"``   -- ``gain * S**3``. The low-frequency part is
+          ``(3/8) * A(t)**3``: the slow envelope of a phase-noisy, detuned alpha
+          sum, i.e. a slow wave whose frequency content sits in the subharmonic
+          band of alpha.
+        * ``"rectify"`` -- ``gain * max(S, 0)`` minus its mean. A hard
+          rectifier; strong low-frequency content from the envelope.
+
+        Parameters
+        ----------
+        signal : np.ndarray
+            Input (usually the sum of oscillators).
+        nonlinearity : {"linear", "quadratic", "cubic", "rectify"}
+            Nonlinearity to apply.
+        gain : float
+            Multiplicative gain.
+
+        Returns
+        -------
+        out : np.ndarray
+            Nonlinear output.
+        """
+        if nonlinearity == "linear":
+            out = gain * signal
+        elif nonlinearity == "quadratic":
+            out = gain * signal ** 2
+        elif nonlinearity == "cubic":
+            out = gain * signal ** 3
+        elif nonlinearity == "rectify":
+            out = gain * np.maximum(signal, 0.0)
+            out -= out.mean()
+        else:
+            raise ValueError(f"Unknown nonlinearity: {nonlinearity!r}")
+        return out
+
+
+    def _coupling_trace(
+        coupling: Number,
+        modulation: Optional[str],
+        coupling_tau: Optional[float],
+        t: np.ndarray,
+        n_samples: int,
+        dt: float,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        """Per-sample coupling-strength trace (time-varying coupling).
+
+        ``coupling`` may be a scalar, a 1-D array (length ``n_samples``), or a
+        callable ``coupling(t)``. ``modulation`` multiplies the base coupling by a
+        *slow* factor so the coupling strength -- and hence the strength of the
+        emergent slow (subharmonic) component -- varies over time. This is the
+        intended "comes and goes" driver of the slow wave:
+
+        * ``None``    -- use the base coupling verbatim (constant / given array /
+          callable).
+        * ``"slow"``  -- multiply by a slowly-varying Ornstein-Uhlenbeck factor
+          (timescale ``coupling_tau``), so coupling drifts in and out.
+        * ``"burst"`` -- multiply by a bursting gate: coupling is high during slow
+          positive excursions of an OU process and near zero between them.
+
+        A constant coupling gives almost no slow-band power relative to alpha; a
+        *time-varying* coupling is what makes the slow component emerge and fade.
+        """
+        if callable(coupling):
+            base = np.array([float(coupling(ti)) for ti in t], dtype=float)
+        elif np.isscalar(coupling):
+            base = np.full(n_samples, float(coupling))
+        else:
+            base = np.asarray(coupling, dtype=float)
+            if base.size != n_samples:
+                raise ValueError("coupling array must have length n_samples")
+
+        if modulation == "slow":
+            tau = coupling_tau if (coupling_tau is not None and coupling_tau > 0) else 20.0
+            a = np.exp(-dt / tau)
+            b = np.sqrt(1.0 - a * a)
+            f = np.zeros(n_samples)
+            f[0] = 1.0
+            for i in range(1, n_samples):
+                f[i] = a * f[i - 1] + b * rng.standard_normal()
+            f = np.abs(f)
+            f = f / (f.mean() + 1e-12)  # mean factor ~ 1
+            return base * f
+        if modulation == "burst":
+            tau = coupling_tau if (coupling_tau is not None and coupling_tau > 0) else 20.0
+            a = np.exp(-dt / tau)
+            b = np.sqrt(1.0 - a * a)
+            g = np.zeros(n_samples)
+            g[0] = 1.0
+            for i in range(1, n_samples):
+                g[i] = a * g[i - 1] + b * rng.standard_normal()
+            gate = (g > 0.0).astype(float)  # coupling high during positive excursions
+            return base * gate
+        return base
+
+
+    def generate_posterior_slow_waves(
+        center_freq: float = 10.0,
+        freq_spread: float = 1.5,
+        n_oscillators: int = 6,
+        sampling_rate: float = 1000.0,
+        duration: float = 60.0,
+        amplitudes: Number = 1.0,
+        phase_noise: float = 0.4,
+        phase_tau: float = 2.0,
+        white_noise: float = 0.0,
+        coupling: Number = 0.0,
+        coupling_modulation: Optional[str] = None,
+        coupling_tau: Optional[float] = 20.0,
+        nonlinearity: str = "cubic",
+        nonlinearity_gain: float = 1.0,
+        seed: Optional[int] = None,
+        record: bool = False,
+    ) -> Union[Tuple[np.ndarray, np.ndarray], dict]:
+        """
+        Generate the "posterior slow waves of youth" scenario -- a *system
+        definition* (no tuning, no injected features, no changing filters).
+
+        The slow (theta/delta) content of the output is a *subharmonic-band*
+        oscillation produced **by** the alpha generators, not an independent
+        low-frequency source. This is the emergent slow posterior rhythm associated
+        with youth. The signal is returned **raw**; isolate its slow component in
+        the experiments (``SignalProcessing/``) -- never by a changing filter.
+
+        Mechanism
+        ---------
+        1. **Similar resting frequencies.** ``n_oscillators`` oscillators are
+           detuned symmetrically around ``center_freq`` (alpha, ~10 Hz) by
+           ``freq_spread`` Hz. Close resting frequencies make the oscillators beat
+           at slow difference rates.
+        2. **Phase noise.** Each oscillator's phase wanders via an OU process
+           (``phase_noise`` radians, timescale ``phase_tau`` s). This broadens each
+           spectral peak and makes the beating slowly time-varying.
+        3. **Coupling (time-varying).** ``coupling`` pulls every oscillator's
+           phase toward the ensemble mean phase (a Kuramoto-style mean field).
+           ``coupling_modulation`` (``None`` / ``"slow"`` / ``"burst"``) makes the
+           coupling strength *vary over time* -- this is the driver of the slow
+           wave "coming and going". High coupling -> the slow component emerges;
+           low coupling -> it fades.
+        4. **Nonlinear interaction.** The summed oscillation is passed through
+           ``nonlinearity`` (``"cubic"`` by default). The cubic of a phase-noisy,
+           detuned alpha sum contains a slowly-varying envelope term
+           ``(3/8) * A(t)**3`` whose spectrum sits in the subharmonic band of
+           alpha.
+
+        What the model does and does not do (honest)
+        --------------------------------------------
+        * **Emergent but weak and broad.** Phase noise is an Ornstein-Uhlenbeck
+          (low-pass) process, so the slow content is *broad* and **dominated by
+          very low frequencies (< 1 Hz), not by ~5 Hz**. Measured: the slow band is
+          ~1000x weaker than the alpha peak and the emergent slow component never
+          forms a clean ~alpha/2 tone. This is a genuine, *non-injected* slow
+          component, but it is **not** a prominent, clean subharmonic.
+        * **A linear resonator cannot fix this.** A driven resonator at alpha/2
+          (an inter-octave / 1:2 internal-resonance) can only *sharpen* whatever
+          slow content is already present; it cannot *magnify* it, and because the
+          slow content has almost no power near alpha/2 it does not promote a 5 Hz
+          peak. (The previous ``subharmonic_hz``/``subharmonic_depth`` injection is
+          therefore removed, and a linear resonant mode is not included.)
+        * **A prominent, alpha-replacing subharmonic needs a bifurcation.** The
+          phenomenon the literature describes -- a *prominent* 5 Hz subharmonic that
+          *appears when the alpha rhythm disappears* -- is a **multistability /
+          mode-switch** result (Breakspear et al. 2011), not something a cubic or a
+          linear resonator produces. See ``SignalProcessing/posterior-slow-waves.*``
+          for that model and for the honest numbers of this emergent model.
+        * **Coupling is the "comes and goes" driver.** ``coupling_modulation``
+          (``"slow"`` / ``"burst"``) makes the slow-band power vary over time
+          (tens of fold across ~15 s windows), so the slow component emerges and
+          fades. The slow content is a **genuine feature of the raw signal** --
+          never a changing-filter artefact.
+
+        Parameters
+        ----------
+        center_freq : float
+            Center (resting alpha) frequency in Hz (default: 10.0).
+        freq_spread : float
+            Total spread of detuning across oscillators, in Hz (default: 1.5).
+        n_oscillators : int
+            Number of alpha oscillators (default: 6).
+        sampling_rate : float
+            Sampling rate in Hz (default: 1000.0).
+        duration : float
+            Duration of signal in seconds (default: 60.0). Longer is needed for
+            the slow band to be resolved.
+        amplitudes : float or sequence
+            Amplitude of each oscillator (default: 1.0 for all). A sequence must
+            match ``n_oscillators``.
+        phase_noise : float
+            Standard deviation (radians) of each oscillator's phase fluctuations
+            (default: 0.4).
+        phase_tau : float
+            OU correlation timescale (seconds) of the phase noise (default: 2.0).
+        white_noise : float
+            Standard deviation of additive white **amplitude** noise (default:
+            0.0). Flat spectrum; distinct from ``phase_noise``.
+        coupling : float, array, or callable
+            Strength of mean-field (Kuramoto-style) coupling toward the ensemble
+            mean phase (default: 0.0). A callable ``coupling(t)`` or a 1-D array of
+            length ``int(duration*sampling_rate)`` gives explicit time-varying
+            coupling.
+        coupling_modulation : {None, "slow", "burst"}, optional
+            Extra slow modulation of ``coupling`` so it varies over time
+            (default: None). ``"slow"`` multiplies by an OU factor (timescale
+            ``coupling_tau``); ``"burst"`` multiplies by a bursting gate. This is
+            the "comes and goes" driver of the slow component.
+        coupling_tau : float, optional
+            Timescale (seconds) of the ``coupling_modulation`` OU process
+            (default: 20.0).
+        nonlinearity : str
+            One of ``"linear"``, ``"quadratic"``, ``"cubic"`` (default),
+            ``"rectify"``.
+        nonlinearity_gain : float
+            Multiplicative gain on the nonlinear output (default: 1.0).
+        seed : int or None, optional
+            Random seed (default: None) for reproducibility.
+        record : bool, optional
+            If True, return a dict ``{t, signal, alpha_sum, coupling,
+            slow_component, phases}`` for the experiments (CFC, time-varying slow-
+            band power). Otherwise (default) return ``(t, signal)``.
+
+        Returns
+        -------
+        (t, signal) : tuple
+            Time vector and generated signal (default).
+        dict : np.ndarray
+            The record described above, when ``record=True``.
+        """
+        n_samples = int(duration * sampling_rate)
+        dt = 1.0 / sampling_rate
+        t = np.arange(n_samples) / sampling_rate
+        rng = _as_rng(seed)
+
+        # (1) Similar resting frequencies, symmetric around the center frequency.
+        idx = np.arange(n_oscillators)
+        if n_oscillators > 1:
+            offsets = (idx - (n_oscillators - 1) / 2.0) / (n_oscillators - 1)
+        else:
+            offsets = np.zeros(1)
+        freqs = center_freq + freq_spread * offsets
+
+        if np.isscalar(amplitudes):
+            amps = np.full(n_oscillators, amplitudes, dtype=float)
+        else:
+            amps = np.asarray(amplitudes, dtype=float)
+            if amps.size != n_oscillators:
+                raise ValueError("amplitudes must match n_oscillators")
+
+        # (2) Time-varying coupling trace (the "comes and goes" driver).
+        kappa = _coupling_trace(
+            coupling, coupling_modulation, coupling_tau, t, n_samples, dt, rng
+        )
+
+        # (3) Phase deviations: per-oscillator OU noise (phase noise) with a
+        # mean-field (Kuramoto) coupling toward the ensemble mean phase.
+        tau = phase_tau if (phase_tau is not None and phase_tau > 0) else 1.0
+        a = np.exp(-dt / tau)
+        b = phase_noise * np.sqrt(1.0 - a * a)
+        p = np.zeros((n_samples, n_oscillators))
+        p[0] = rng.standard_normal(n_oscillators) * phase_noise
+        for i in range(1, n_samples):
+            p[i] = a * p[i - 1] + b * rng.standard_normal(n_oscillators)
+            p[i] = p[i] - kappa[i] * dt * (p[i] - p[i].mean())
+
+        # (4) Deterministic phase + noise; sum the (amplitude-weighted) oscillators.
+        phase = 2 * np.pi * np.outer(t, freqs) + p
+        alpha_sum = (amps[None, :] * np.sin(phase)).sum(axis=1)
+
+        # (5) Nonlinear mixing produces the slow (subharmonic-band) content.
+        signal = _apply_nonlinearity(alpha_sum, nonlinearity, nonlinearity_gain)
+
+        if white_noise > 0:
+            signal = signal + rng.standard_normal(n_samples) * white_noise
+
+        if record:
+            return dict(
+                t=t,
+                signal=signal,
+                alpha_sum=alpha_sum,
+                coupling=kappa,
+                phases=p,
+            )
+        return t, signal
+
+
+    # Preserve the original `synthetic.generate_posterior_slow_waves(...)` call
+    # sites, which read as a named model rather than a bare local function.
+    synthetic = SimpleNamespace(
+        generate_posterior_slow_waves=generate_posterior_slow_waves,
+    )
+    return (synthetic,)
 
 
 @app.cell(hide_code=True)
@@ -587,6 +916,7 @@ def _(np, synthetic):
             self.n = int(dur * fs)
             self.dt = 1.0 / fs
             self.t = np.arange(self.n) / fs
+            self.seed = seed
             self.rng = np.random.default_rng(seed)
             self.alpha_branch = self._alpha_branch()
             self.sub_branch = self._subharmonic_branch()
@@ -650,11 +980,14 @@ def _(np, synthetic):
             occ = float(np.mean(self.x > 0))
             return n_sw, occ
 
-        def hysteresis(self, tilt_max=1.6, dwell=200.0, noise=0.04):
+        def hysteresis(self, tilt_max=1.6, dwell=200.0, noise=0.04, seed=None):
             """Ramp a *tilt* (a bias +tilt*x favouring x>0) up then down. The
             control value at which the mode switches up differs from the value
             at which it switches back => a hysteresis loop. Returns the tilt,
-            the state x, and the two switch thresholds."""
+            the state x, and the two switch thresholds.
+
+            Reproducible: uses its own generator, so repeated calls with the
+            same arguments return the same thresholds."""
             n = int(2 * dwell * self.fs)
             dt = 1.0 / self.fs
             half = n // 2
@@ -664,9 +997,13 @@ def _(np, synthetic):
             x = np.zeros(n)
             x[0] = -np.sqrt(1.0)   # start in the - well
             D = noise * noise
+            # Own generator, seeded independently of self.rng, so the thresholds
+            # depend only on the arguments -- not on how many draws the other
+            # methods have already taken from the shared instance stream.
+            rng = np.random.default_rng(self.seed + 1 if seed is None else seed)
             for i in range(1, n):
                 force = x[i - 1] - x[i - 1] ** 3 + tilt[i]
-                x[i] = x[i - 1] + force * dt + np.sqrt(2 * D * dt) * self.rng.standard_normal()
+                x[i] = x[i - 1] + force * dt + np.sqrt(2 * D * dt) * rng.standard_normal()
             # well-occupancy (fraction in + well) binned by tilt, up & down ramp
             up = tilt[:half]; dn = tilt[half:]
             su = np.sign(x[:half]); sd = np.sign(x[half:])
@@ -698,6 +1035,7 @@ def _(
     go,
     power_spectrum,
 ):
+
     bs_demo = BistableSubharmonicSwitch(cfg, FS, DUR, seed=3, noise=0.10, c0=1.0)
     n_switches, occ_sub = bs_demo.stats()
     _f, _P = power_spectrum(bs_demo.output)
@@ -705,6 +1043,7 @@ def _(
     ps_bistable = band_power(_f, _P, 4.8, 5.2)
     _m = bs_demo.t < 40
     _fig = go.Figure()
+    _a, _b = 0, 1000
     _fig.add_scatter(x=bs_demo.t[_m], y=bs_demo.output[_m], mode='lines',
                      line=dict(color=GREEN, width=0.8), name='bistable-model output')
     _fig.add_scatter(x=bs_demo.t[_m], y=bs_demo.mode[_m] * 2 - 1, mode='lines',
@@ -743,10 +1082,20 @@ def _(mo):
 @app.cell
 def _(GREEN, ORANGE, bs_demo, go):
     h_demo = bs_demo.hysteresis(tilt_max=1.6, dwell=200.0, noise=0.04)
+
+    # Display-only decimation. `h_demo` stays at full resolution, so the switch
+    # points reported in the title are still computed from all 200k samples.
+    # Plotting every sample serialises to ~11 MB and trips marimo's 8 MB output cap.
+    _step = max(1, h_demo['tilt'].size // 4000)
+    _tilt = h_demo['tilt'][::_step]
+    _x = h_demo['x'][::_step]
+    _lo, _hi = float(h_demo['tilt'].min()), float(h_demo['tilt'].max())
+
     _fig = go.Figure()
-    _fig.add_scatter(x=h_demo['tilt'], y=h_demo['x'], mode='lines',
+    _fig.add_scatter(x=_tilt, y=_x, mode='lines',
                      line=dict(color=GREEN, width=0.8), name='mode state x(t)')
-    _fig.add_scatter(x=h_demo['tilt'], y=h_demo['tilt'], mode='lines',
+    # The control trace is the line y = x by construction, so two points draw it.
+    _fig.add_scatter(x=[_lo, _hi], y=[_lo, _hi], mode='lines',
                      line=dict(color=ORANGE, width=1.0, dash='dash'), name='tilt (control)')
     _fig.update_layout(
         title=f"Hysteresis: switch-on at tilt {h_demo['c_up']:.2f}, switch-off at {h_demo['c_dn']:.2f} "
@@ -754,6 +1103,7 @@ def _(GREEN, ORANGE, bs_demo, go):
         xaxis_title='tilt (control parameter)', yaxis_title='mode state / control', height=360,
     )
     _fig
+
     return
 
 

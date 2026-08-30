@@ -28,15 +28,15 @@
 #
 # ## Scheme correspondence
 #
-# mathviz names its four Wegert schemes; spb uses single letters from a much longer menu
+# clmmathtools names its four Wegert schemes; spb uses single letters from a much longer menu
 # (`"a"`–`"o"`, plus `"k+log"`, plus any user callable `f(w) -> (rgb_img, colorscale)`):
 #
-# | mathviz `scheme` | spb `coloring` | shows |
+# | clmmathtools `scheme` | spb `coloring` | shows |
 # |---|---|---|
 # | `plane`          | `"a"`          | hue only — the bare phase *(spb default)* |
 # | `phase`          | `"d"`          | + iso-phase lines (constant $\arg f$) |
 # | `modulus`        | `"c"`          | + iso-modulus lines (constant $\lvert f\rvert$) |
-# | `enhanced`       | `"b"`          | **both** → conformal little squares *(mathviz default)* |
+# | `enhanced`       | `"b"`          | **both** → conformal little squares *(clmmathtools default)* |
 #
 # Beyond those four, spb also offers stripe colorings (`"e"`–`"h"`), chessboards (`"i"`, `"j"`),
 # pure-magnitude greyscale (`"k"`, `"k+log"`), and magnitude-blended variants (`"l"`–`"o"`) that
@@ -70,7 +70,7 @@ from spb import (
 z = symbols("z")
 
 # The square domain used throughout. spb takes a 3-tuple (symbol, min, max) with *complex*
-# endpoints, so one tuple fixes both axes — the analogue of mathviz's `extent=`.
+# endpoints, so one tuple fixes both axes — the analogue of clmmathtools's `extent=`.
 DOMAIN2 = (z, -2 - 2j, 2 + 2j)
 DOMAIN3 = (z, -3 - 3j, 3 + 3j)
 
@@ -110,7 +110,7 @@ plotgrid(*panels, nr=2, nc=2, size=(9, 8))
 # Because series factories return objects rather than pictures, the *same* data the renderer sees is
 # available for assertions. `ComplexDomainColoringSeries.get_data()` returns
 # `(x, y, abs, arg, rgb_img, colorscale)` — note that spb hands back the modulus and argument grids
-# too, which mathviz's `phase.colorize()` does not.
+# too, which clmmathtools's `phase.colorize()` does not.
 
 
 # %%
@@ -138,7 +138,7 @@ print("series exposes |f| and arg f grids, consistent with f(z) = z ✓")
 #
 # Note the titles. Every series carries a label derived from the expression, and
 # `series.get_label(use_latex=True)` hands back rendered LaTeX — so the panel titles below are not
-# hand-written strings that can drift out of sync with the function, as they were in the mathviz
+# hand-written strings that can drift out of sync with the function, as they were in the clmmathtools
 # version. (`graphics()` does not set a title on its own; it puts the label on the colorbar, which
 # we have turned off, so we lift it into `title=` explicitly.)
 
@@ -153,7 +153,7 @@ plotgrid(*[portrait(f) for f in gallery], nr=2, nc=3, size=(12, 8))
 # The number of times the hue cycles as you circle a point is the **winding number** of `f` there —
 # positive for a zero of that order, negative for a pole.
 #
-# mathviz could only check this **numerically**, by marching a lambda around a circle. With a
+# clmmathtools could only check this **numerically**, by marching a lambda around a circle. With a
 # symbolic expression in hand, spb's input lets us get the answer **exactly** first — factor the
 # rational function and read off root multiplicities — and then confirm it numerically. The exact
 # answer is what we annotate the plot with in the next cell.
@@ -196,7 +196,7 @@ print("portrait finite everywhere; pole shows white ✓")
 # %% [markdown]
 # ## Where the `graphics()` interface pays off: composing series
 #
-# This is the analogue of mathviz's `p.phase_portrait(...).text(...).grid(...)` chain, but built the
+# This is the analogue of clmmathtools's `p.phase_portrait(...).text(...).grid(...)` chain, but built the
 # other way round: instead of a `Plane` object accumulating primitives, independent series factories
 # each return a list, and `graphics()` splats them into one figure. Different *kinds* of series
 # (a raster domain coloring, two scatters) mix freely, and the markers are placed from the **exact**
@@ -226,11 +226,11 @@ graphics(
 )
 
 # %% [markdown]
-# ## Things spb gives you that mathviz's `Plane` does not
+# ## Things spb gives you that clmmathtools's `Plane` does not
 #
 # ### The analytic landscape, from the same expression
 #
-# mathviz needs a *different class* (`Space3D.landscape`) and a different backend (vedo) for this.
+# clmmathtools needs a *different class* (`Space3D.landscape`) and a different backend (vedo) for this.
 # In spb it is just another series factory over the same expression and range — `graphics()` notices
 # the series is 3D and configures the figure accordingly.
 
@@ -246,7 +246,7 @@ graphics(
 # ### The Riemann sphere, stereographically projected
 #
 # `riemann_sphere_2d` masks the portrait to the unit disk and annotates `0, 1, i, -i`; pass
-# `at_infinity=True` for the chart around `∞` (i.e. the portrait of `f(1/z)`). There is no mathviz
+# `at_infinity=True` for the chart around `∞` (i.e. the portrait of `f(1/z)`). There is no clmmathtools
 # equivalent at all — this is the payoff of a library whose author was reading the same Wegert book.
 
 # %%
@@ -276,7 +276,7 @@ plotgrid(
 # Schemes `"l"`–`"o"` blend the modulus into the brightness: bright means large $\lvert f\rvert$.
 # So a pole is a white blaze and a zero a dark pit, readable without tracing hue direction.
 # `"k"` / `"k+log"` drop hue entirely and show magnitude alone in greyscale.
-# mathviz has no counterpart; its four schemes all keep brightness independent of $\lvert f\rvert$
+# clmmathtools has no counterpart; its four schemes all keep brightness independent of $\lvert f\rvert$
 # — under `"b"` a zero and a pole are equally bright, and only the *direction* of the hue cycle
 # distinguishes them.
 
@@ -312,7 +312,7 @@ print(f'"l": zero {l_zero:.0f} vs pole {l_pole:.0f} — pole blazes white ✓')
 # %% [markdown]
 # ## Backends: the same series, four renderers
 #
-# mathviz's backend split is matplotlib vs vedo, chosen at `Plane(backend=...)` construction. spb's
+# clmmathtools's backend split is matplotlib vs vedo, chosen at `Plane(backend=...)` construction. spb's
 # is chosen at `graphics(backend=...)`, and the series are entirely backend-agnostic — the identical
 # `domain_coloring(...)` list feeds every one of them.
 #
@@ -343,7 +343,7 @@ graphics(
 # `params={sym: (default, min, max)}` and spb builds an ipywidgets (or panel) app that re-lambdifies
 # and re-renders on change. Watch the `k`-fold zero at the origin split hues as `k` moves.
 #
-# This has no mathviz analogue — with a Python callable you would rebuild and redraw by hand.
+# This has no clmmathtools analogue — with a Python callable you would rebuild and redraw by hand.
 #
 # Backend note: the widget app embeds the figure in an ipywidgets `Box`, so the figure must itself
 # *be* a widget. `PB` (plotly) satisfies that natively via `FigureWidget`. `MB` (matplotlib) only
@@ -373,7 +373,7 @@ graphics(
 # %% [markdown]
 # ## Recap — where each library wins
 #
-# | | `mathviz` | `spb` |
+# | | `clmmathtools` | `spb` |
 # |---|---|---|
 # | input | Python callable on `ndarray` | SymPy expression |
 # | non-symbolic `f` (data, iteration, numerics) | natural | needs a wrapper or is out of reach |
@@ -391,17 +391,17 @@ graphics(
 #
 # The short version: **spb is the better tool when the function is symbolic**, which for classical
 # complex analysis it usually is — you get exactness, LaTeX, four backends and widgets for free.
-# **mathviz stays the better tool when it is not** — an iterated map, a numerically-defined
+# **clmmathtools stays the better tool when it is not** — an iterated map, a numerically-defined
 # transform, a function you only have as samples — and when a portrait is one layer of a scene
 # you are assembling out of arbitrary primitives.
 # %% [markdown]
 # ### history
-# This is a port of `04_phase_portraits.py` from **mathviz** to **spb**
+# This is a port of `04_phase_portraits.py` from **clmmathtools** to **spb**
 # (`sympy-plot-backends`), so the two libraries can be compared on the same material.
 #
 # The single biggest difference is the *input type*:
 #
-# - `mathviz` takes a **Python callable** `f: ndarray[complex] -> ndarray[complex]`. It samples,
+# - `clmmathtools` takes a **Python callable** `f: ndarray[complex] -> ndarray[complex]`. It samples,
 #   it colors, it draws. Nothing knows what the function *is*.
 # - `spb` takes a **SymPy expression**. The expression is lambdified for sampling, but it is still
 #   available symbolically — so zeros, poles, orders, residues and derivatives can be computed

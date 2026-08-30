@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -17,9 +17,15 @@
 # # from linear maps of the plane to analytic functions and beyond
 #
 # A re-run of `maps-from-linear-to-complex-holomorphic.py` in which every map is **animated**: a
-# single parameter `t ∈ [0, 1]` and a builder `build(t) -> Plane`. `mathviz.animate` pre-renders the
+# single parameter `t ∈ [0, 1]` and a builder `build(t) -> Plane`. `clmmathtools.viz.animate` pre-renders the
 # frames offscreen to PNG bytes, then an ipywidgets `Play`/slider swaps the cached images — instant
 # scrubbing, and nothing depends on a live 3D notebook backend.
+#
+# ### Todo
+# - [ ] update text: move my notes on the animation technique to another document. (Don't want to introduce Lie groups here!)
+# - [ ] update text for learners: I anticipating using this notebook after having done quite a bit of intro to linear algebra and the transformations. I also assume that we have done our intro to the complex plane already
+# - [ ] make it so there is a standard size for the scurbber - probablly about 400 x 400, render the pixels at a higher resolution and increase the extent to add more squares with thinner lines
+# - [x] use purple as the default color, with green or blue for variety
 #
 # > **Run this notebook live.** The scrubbers below are ipywidgets; they render in a running Jupyter
 # > frontend (or VS Code), not in a static export. The GIF and the numeric checks show up anywhere.
@@ -32,11 +38,11 @@
 # or the holomorphic `homotopy` (a convex combination), and the degeneration is the mathematics rather
 # than an artifact.
 
-# %%
+# %% jupyter={"source_hidden": true}
 import numpy as np
-import mathviz as mv
-from mathviz import maps
-from mathviz.animate import (
+import clmmathtools.viz as mv
+from clmmathtools.viz import maps
+from clmmathtools.viz.animate import (
     animate_matrix,
     matrix_path,
     homotopy,
@@ -49,10 +55,10 @@ import tempfile
 from pathlib import Path
 from IPython.display import Image as IPyImage
 
-SHEAR = np.array([[1.0, 1.0], [0.0, 1.0]])   # det = 1
-SCALE = np.array([[2.0, 0.0], [0.0, 2.0]])   # det = 4
-ROT = maps.rotation(np.deg2rad(60.0))        # det = +1
-PROJ = maps.projection(np.pi / 6)            # det = 0 (singular)
+SHEAR = np.array([[1.0, 1.0], [0.0, 1.0]])  # det = 1
+SCALE = np.array([[2.0, 0.0], [0.0, 2.0]])  # det = 4
+ROT = maps.rotation(np.deg2rad(60.0))  # det = +1
+PROJ = maps.projection(np.pi / 6)  # det = 0 (singular)
 
 # %% [markdown]
 # ## 1. Linear maps — the geodesic one-parameter subgroup
@@ -62,14 +68,16 @@ PROJ = maps.projection(np.pi / 6)            # det = 0 (singular)
 # without the camera rescaling. The shear is a pure `gl(2,ℝ)` element, so its geodesic is the shear
 # flow `[[1, t], [0, 1]]`; a uniform scale flows to `t·c·I`.
 
-# %%
-mv.animate_matrix(SHEAR, kind="geodesic", extent=3, size=(460, 460), width=540, height=540, n=24)
+# %% jupyter={"source_hidden": true}
+mv.animate_matrix(
+    SHEAR, kind="geodesic", extent=3, size=(460, 460), width=400, height=400, n=24
+)
 
-# %%
-mv.animate_matrix(SCALE, kind="geodesic", extent=3, size=(460, 460), width=540, height=540, n=24)
+# %% jupyter={"source_hidden": true}
+mv.animate_matrix(SCALE, kind="geodesic", color=mv.GREEN, extent=3, width=540, height=540, n=24)
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 
 # the geodesic is a one-parameter subgroup: M(s)·M(t) = M(s+t), and det M(t) = exp(t·tr L) > 0
 for M in (SHEAR, SCALE):
@@ -87,17 +95,21 @@ for M in (SHEAR, SCALE):
 # logarithm at all** — no one-parameter subgroup reaches it. Only `lerp` (a straight line in matrix
 # space) gets there, and it does so by *collapsing* through the zero matrix at `t = 1/2`.
 
-# %%
-mv.animate_matrix(ROT, kind="geodesic", extent=3, size=(460, 460), width=500, height=500,
-                   n=24)
+# %% jupyter={"source_hidden": true}
+mv.animate_matrix(
+    ROT, kind="geodesic", color=mv.BLUE, extent=3, size=(460, 460), width=500, height=500, n=24
+)
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 
 # rotation: the geodesic det stays 1 for every t
 print(
     "rotation geodesic det == 1 throughout?",
-    np.allclose([np.linalg.det(matrix_path(ROT, "geodesic")(t)) for t in np.linspace(0, 1, 11)], 1.0),
+    np.allclose(
+        [np.linalg.det(matrix_path(ROT, "geodesic")(t)) for t in np.linspace(0, 1, 11)],
+        1.0,
+    ),
 )
 
 # %% [markdown]
@@ -105,14 +117,28 @@ print(
 # `lerp` is the only path that reaches it, and the collapse you see at `t = 1/2` is the mathematics,
 # not an artifact.
 
-# %%
-mv.animate_matrix(PROJ, kind="lerp", extent=3, size=(460, 460), width=340, height=340, n=24, ping_pong=False)
+# %% jupyter={"source_hidden": true}
+mv.animate_matrix(
+    PROJ,
+    kind="lerp",
+    extent=3,
+    size=(460, 460),
+    width=340,
+    height=340,
+    n=24,
+    ping_pong=False,
+)
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 
 # the projection is rank 1 (det = 0): the only reachable path is lerp, and it collapses through det 0
-print("projection rank 1 (det = 0):", np.linalg.matrix_rank(PROJ), "  det =", round(np.linalg.det(PROJ), 3))
+print(
+    "projection rank 1 (det = 0):",
+    np.linalg.matrix_rank(PROJ),
+    "  det =",
+    round(np.linalg.det(PROJ), 3),
+)
 
 # %% [markdown]
 # ## 3. Complex functions — `z²` and `1/z` are *not* Möbius, so no geodesic
@@ -123,27 +149,36 @@ print("projection rank 1 (det = 0):", np.linalg.matrix_rank(PROJ), "  det =", ro
 # `homotopy` `g_t = (1-t)·z + t·g(z)`: a convex combination of holomorphic maps, so every frame is a
 # genuine holomorphic map; conformality, however, can break where `g_t'` vanishes.
 
-# %%
+# %% jupyter={"source_hidden": true}
 mv.scrubber(
-    lambda t: mv.Plane(extent=6, grid=False, size=(460, 460)).apply_complex(homotopy(lambda z: z**2)(t), color=mv.GREEN, step=0.5),
+    lambda t: mv.Plane(extent=6, grid=False, size=(800, 800)).apply_complex(
+        homotopy(lambda z: z**2)(t), color=mv.PURPLE, step=0.5
+    ),
     n=30,
-    width=500,
-    height=500,
+    width=400,
+    height=400,
     label="t",
     fmt="{:.2f}",
 )
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 
 # the homotopy is holomorphic at every t and reaches the target at t = 1 (identity at t = 0)
 g = homotopy(lambda z: z**2)
 z = 0.5 + 0.5j
-print("homotopy z²:  g_0(z)==z?", np.isclose(g(0)(z), z), "  g_1(z)==z²?", np.isclose(g(1)(z), z**2))
+print(
+    "homotopy z²:  g_0(z)==z?",
+    np.isclose(g(0)(z), z),
+    "  g_1(z)==z²?",
+    np.isclose(g(1)(z), z**2),
+)
 
-# %%
+# %% jupyter={"source_hidden": true}
 mv.scrubber(
-    lambda t: mv.Plane(extent=3, grid=False, size=(460, 460)).apply_complex(homotopy(lambda z: 1 / z)(t), color=mv.ORANGE, step=0.5),
+    lambda t: mv.Plane(extent=3, grid=False, size=(460, 460)).apply_complex(
+        homotopy(lambda z: 1 / z)(t), color=mv.GREEN, step=0.5
+    ),
     n=18,
     width=500,
     height=500,
@@ -159,10 +194,12 @@ mv.scrubber(
 # `t ↦` the Möbius map of `exp(t·log A)`, the complex mirror of `geodesic_path`. The original
 # `f = (z − i)/(z + i)` has matrix `A = [[1, −i], [1, i]]`.
 
-# %%
+# %% jupyter={"source_hidden": true}
 A = np.array([[1.0, -1j], [1.0, 1j]])
 mv.scrubber(
-    lambda t: mv.Plane(extent=3, grid=False, size=(460, 460)).apply_complex(mobius_path(A)(t), color=mv.PURPLE, step=0.5),
+    lambda t: mv.Plane(extent=3, grid=False, size=(460, 460)).apply_complex(
+        mobius_path(A)(t), color=mv.PURPLE, step=0.5
+    ),
     n=18,
     width=500,
     height=500,
@@ -171,12 +208,15 @@ mv.scrubber(
 )
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 
 # mobius_path(A) reaches the Möbius map of A at t = 1 (the map is invariant under scaling A);
 # classify_mobius sorts the subgroup into the real/complex family
 z = 0.3 + 0.7j
-print("mobius_path(A)(1) == (z−i)/(z+i)?", np.isclose(mobius_path(A)(1)(z), (z - 1j) / (z + 1j)))
+print(
+    "mobius_path(A)(1) == (z−i)/(z+i)?",
+    np.isclose(mobius_path(A)(1)(z), (z - 1j) / (z + 1j)),
+)
 print("classify_mobius(A):", classify_mobius(A))
 
 # %% [markdown]
@@ -191,10 +231,12 @@ print("classify_mobius(A):", classify_mobius(A))
 # * **the twist `f(x,y) = (r, θ + k·r)`** — a straight-line sweep of its twist angle from 0 to k
 #   (at `t = 0` the twist angle is 0, i.e. the identity).
 
-# %%
+# %% jupyter={"source_hidden": true}
 # (a) z̄·z = |z|² via the homotopy: the grid morphs to the collapse onto the real axis
 mv.scrubber(
-    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).apply_complex(homotopy(lambda z: np.conj(z) * z)(t), color=mv.RED, step=0.5),
+    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).apply_complex(
+        homotopy(lambda z: np.conj(z) * z)(t), color=mv.PURPLE, step=0.5
+    ),
     n=18,
     width=340,
     height=340,
@@ -203,20 +245,25 @@ mv.scrubber(
 )
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 # at t = 1 the image is real-valued (imag ≈ 0) — the collapse, reached by a straight-line sweep
 g = homotopy(lambda z: np.conj(z) * z)
-print("homotopy z̄·z: imag part at t=1 ≈ 0?", np.allclose(np.imag(g(1)(np.linspace(-2, 2, 9) + 0.5j)), 0.0, atol=1e-9))
+print(
+    "homotopy z̄·z: imag part at t=1 ≈ 0?",
+    np.allclose(np.imag(g(1)(np.linspace(-2, 2, 9) + 0.5j)), 0.0, atol=1e-9),
+)
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 # (b) the shear: a straight-line sweep of its strength (non-linear ⇒ no geodesic)
 def shear_t(t):
     return lambda pts: np.c_[pts[:, 0] + t * pts[:, 1] ** 2, pts[:, 1]]
 
 
 mv.scrubber(
-    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).show_operator(shear_t(t), color=mv.GREEN, step=0.5),
+    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).show_operator(
+        shear_t(t), color=mv.GREEN, step=0.5
+    ),
     n=18,
     width=340,
     height=340,
@@ -225,12 +272,15 @@ mv.scrubber(
 )
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 # at t = 0 the map is the identity; at t = 1 it is the shear
-print("shear t=0 is identity?", np.allclose(shear_t(0)(np.array([[0.3, -0.7]])), [[0.3, -0.7]]))
+print(
+    "shear t=0 is identity?",
+    np.allclose(shear_t(0)(np.array([[0.3, -0.7]])), [[0.3, -0.7]]),
+)
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 # (c) the twist: a straight-line sweep of its twist angle (t=0 ⇒ no twist ⇒ the identity)
 def twist_t(t, k=1.5):
     def f(pts):
@@ -243,7 +293,9 @@ def twist_t(t, k=1.5):
 
 
 mv.scrubber(
-    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).show_operator(twist_t(t), color=mv.BLUE, step=0.5),
+    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).show_operator(
+        twist_t(t), color=mv.BLUE, step=0.5
+    ),
     n=18,
     width=500,
     height=500,
@@ -252,9 +304,12 @@ mv.scrubber(
 )
 
 
-# %%
+# %% jupyter={"source_hidden": true}
 # at t = 0 the twist angle is 0, so the map is the identity
-print("twist t=0 is identity?", np.allclose(twist_t(0)(np.array([[0.6, 0.5]])), [[0.6, 0.5]]))
+print(
+    "twist t=0 is identity?",
+    np.allclose(twist_t(0)(np.array([[0.6, 0.5]])), [[0.6, 0.5]]),
+)
 
 # %% [markdown]
 # ## Portable GIF export
@@ -262,11 +317,15 @@ print("twist t=0 is identity?", np.allclose(twist_t(0)(np.array([[0.6, 0.5]])), 
 # The same builder, written to an animated GIF — portable, renders on GitHub, needs no widget stack.
 # Here the geodesic shear flow.
 
-# %%
+# %% jupyter={"source_hidden": true}
 out = Path(tempfile.mkdtemp()) / "shear-geodesic.gif"
 mv.to_gif(
     lambda t: mv.Plane(extent=3, grid=False, size=(360, 360)).push(
-        matrix_path(SHEAR, "geodesic")(t), probe_shape=mv.UNIT_SQUARE, basis=True, samples=2
+        matrix_path(SHEAR, "geodesic")(t),
+        color=mv.PURPLE,
+        probe_shape=mv.UNIT_SQUARE,
+        basis=True,
+        samples=2,
     ),
     out,
     n=20,
@@ -283,4 +342,4 @@ IPyImage(filename=str(out))
 # `z²`/`1/z` and the non-holomorphic maps (not Möbius) — we fall back to `lerp` or the holomorphic
 # `homotopy`, and the degeneration / straight-line is the mathematics, not an artifact.
 
-# %%
+# %% jupyter={"source_hidden": true}

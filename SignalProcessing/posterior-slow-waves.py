@@ -52,8 +52,8 @@ import sys
 import numpy as np
 from scipy import signal as sp
 
-import mathviz as mv
-from mathviz.palette import hexstr
+import clmmathtools.viz as mv
+from clmmathtools.viz.palette import hexstr
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -61,7 +61,7 @@ import plotly.io as pio
 sys.path.append("../ext/neural_signal_analysis_notes/code/")
 import neural_analysis.synthetic as synthetic
 
-# mathviz stores palette entries as ints; plotly wants "#rrggbb" strings.
+# clmmathtools stores palette entries as ints; plotly wants "#rrggbb" strings.
 BG, BLUE, ORANGE, GREEN, RED, PURPLE, YELLOW, GREY, FAINT = (
     hexstr(c) for c in (
         mv.palette.BG, mv.palette.BLUE, mv.palette.ORANGE, mv.palette.GREEN,

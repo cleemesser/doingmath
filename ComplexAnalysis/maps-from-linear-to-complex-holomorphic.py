@@ -14,17 +14,17 @@
 # ---
 
 # %% [markdown]
-# # mathviz examples 2 — pushing the plane through maps
+# # clmmathtools examples 2 — pushing the plane through maps
 #
-# The unifying operation of `mathviz`: **push the domain grid (and shapes) through a map and draw the
+# The unifying operation of `clmmathtools`: **push the domain grid (and shapes) through a map and draw the
 # image.** The same machinery serves three worlds — linear algebra (`apply_matrix`), geometric
 # operators (`show_operator`), and complex analysis (`apply_complex`) — demonstrated and asserted below.
 
 # %%
 import numpy as np
-import mathviz as mv
-from mathviz import maps
-from mathviz import primitives as P
+import clmmathtools.viz as mv
+from clmmathtools.viz import maps
+from clmmathtools.viz import primitives as P
 
 # %% [markdown]
 # ## 1. Linear maps — `apply_matrix`
@@ -34,7 +34,7 @@ from mathviz import primitives as P
 
 # %%
 M = np.array([[1.0, 1.0], [0.0, 1.0]])  # a shear (det = 1)
-mv.Plane(extent=3, grid=False).apply_matrix(M).display()
+mv.Plane(extent=3, grid=False).apply_matrix(M, color=mv.PURPLE).display()
 
 # image of the unit square, area via the shoelace formula, equals det M
 img = maps.from_matrix(M)(mv.UNIT_SQUARE)
@@ -71,7 +71,7 @@ def projection_onto(a):
 
 mv.Plane(extent=3, grid=False).show_operator(
     projection_onto([1, 0.5]),
-    color=mv.ORANGE,
+    color=mv.PURPLE,
     probe_shape=mv.FLAG,
     probe_shape_color=mv.GREEN,
 ).display()
@@ -97,10 +97,10 @@ print("rotation is orthogonal ✓")
 
 # %%
 mv.Plane(extent=2, grid=False).apply_complex(
-    lambda z: z**2, color=mv.GREEN, step=0.5
+    lambda z: z**2, color=mv.PURPLE, step=0.5
 ).display()
 mv.Plane(extent=2, grid=False).apply_complex(
-    lambda z: 1 / z, color=mv.ORANGE, step=0.5
+    lambda z: 1 / z, color=mv.GREEN, step=0.5
 ).display()
 
 # conformality: a tiny circle maps to a near-circle under an analytic map
@@ -155,7 +155,7 @@ print("Möbius map ∘ inverse = identity ✓")
 # %%
 # (a) the degenerate case: f(z) = z̄·z = |z|² is real-valued ⇒ the grid collapses onto the real axis
 mv.Plane(extent=2, grid=False).apply_complex(
-    lambda z: np.conj(z) * z, color=mv.RED, step=0.5
+    lambda z: np.conj(z) * z, color=mv.PURPLE, step=0.5
 ).display()
 
 # check: the image is real-valued (imag ≈ 0), and a small circle collapses to a flat segment
@@ -168,7 +168,9 @@ z0, r = 0.6 + 0.5j, 1e-2
 c = z0 + r * np.exp(1j * np.linspace(0, 2 * np.pi, 200, endpoint=False))
 wc = g(np.c_[np.real(c), np.imag(c)])
 assert wc[:, 1].max() - wc[:, 1].min() < 1e-9 and wc[:, 0].max() - wc[:, 0].min() > 1e-6
-print("z̄·z = |z|²: real-valued ⇒ the grid collapses onto the real axis (imag ≈ 0; a circle → a flat segment) ✓")
+print(
+    "z̄·z = |z|²: real-valued ⇒ the grid collapses onto the real axis (imag ≈ 0; a circle → a flat segment) ✓"
+)
 
 # %% [markdown]
 # ### Measuring non-conformality: the "similarity deviation"
@@ -205,6 +207,7 @@ print("z̄·z = |z|²: real-valued ⇒ the grid collapses onto the real axis (im
 # corner angles drift even under a conformal map like `z²`. That is why we test the Jacobian, not a
 # finite square.
 
+
 # %%
 # (b) the smooth shear f(x, y) = (x + y², y): a clean, *pure* non-conformality. It is a horizontal
 # shear of strength 2y — area is preserved (det = 1) — but a right angle is distorted, so a square
@@ -222,8 +225,12 @@ mv.Plane(extent=2, grid=False).show_operator(shear, color=mv.GREEN, step=0.5).di
 # "similarity deviation" below is ≈ 0 for z² and large for any non-conformal map.
 def jac(F, p, h=1e-5):
     p = np.asarray(p, float).reshape(1, 2)
-    fx = (F(p + h * np.array([1.0, 0.0]))[0] - F(p - h * np.array([1.0, 0.0]))[0]) / (2 * h)
-    fy = (F(p + h * np.array([0.0, 1.0]))[0] - F(p - h * np.array([0.0, 1.0]))[0]) / (2 * h)
+    fx = (F(p + h * np.array([1.0, 0.0]))[0] - F(p - h * np.array([1.0, 0.0]))[0]) / (
+        2 * h
+    )
+    fy = (F(p + h * np.array([0.0, 1.0]))[0] - F(p - h * np.array([0.0, 1.0]))[0]) / (
+        2 * h
+    )
     return np.stack([fx, fy])  # rows = images of e₁, e₂
 
 
@@ -233,10 +240,16 @@ def sim_dev(J):
 
 
 # z² is conformal (dev ≈ 0); the shear preserves area (det = 1) but is non-conformal (dev ≫ 0)
-assert sim_dev(jac(lambda p: maps.from_complex(lambda z: z**2)(p), np.array([0.7, 0.5]))) < 0.05
+assert (
+    sim_dev(jac(lambda p: maps.from_complex(lambda z: z**2)(p), np.array([0.7, 0.5])))
+    < 0.05
+)
 J = jac(shear, np.array([0.7, 0.5]))
 assert np.isclose(np.linalg.det(J), 1.0, atol=1e-2) and sim_dev(J) > 1.0
-print(f"shear (x + y², y): area-preserving (det J = {np.linalg.det(J):.2f}) but non-conformal (sim-dev {sim_dev(J):.2f} ≫ 0) ✓")
+print(
+    f"shear (x + y², y): area-preserving (det J = {np.linalg.det(J):.2f}) but non-conformal (sim-dev {sim_dev(J):.2f} ≫ 0) ✓"
+)
+
 
 # %%
 # (c) the twist f(x, y) = (r, θ + k·r): a *prettier* non-holomorphic map that does NOT collapse.
@@ -256,7 +269,9 @@ mv.Plane(extent=2, grid=False).show_operator(twist, color=mv.BLUE, step=0.5).dis
 # reusing jac / sim_dev from cell (b): the twist is area-preserving (det = 1) but non-conformal
 J = jac(twist, np.array([0.7, 0.5]))
 assert np.isclose(np.linalg.det(J), 1.0, atol=1e-2) and sim_dev(J) > 1.0
-print(f"twist: area-preserving (det J = {np.linalg.det(J):.2f}) but non-conformal (sim-dev {sim_dev(J):.2f} ≫ 0) ✓")
+print(
+    f"twist: area-preserving (det J = {np.linalg.det(J):.2f}) but non-conformal (sim-dev {sim_dev(J):.2f} ≫ 0) ✓"
+)
 
 # %% [markdown]
 # **Recap.** `apply_matrix`, `show_operator`, and `apply_complex` are one push-forward. Every claim is

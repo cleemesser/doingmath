@@ -32,7 +32,7 @@
 # 4. **Change of basis and ℂ** (nb 5) — similarity preserves $\det$/$\operatorname{tr}$, and the
 #    "scale-and-rotate" algebra $xI+yJ$ **is** the complex numbers, shown by exact matrix arithmetic.
 #
-# A couple of `mathviz` pictures tie the symbols back to geometry.
+# A couple of `clmmathtools` pictures tie the symbols back to geometry.
 # $\newcommand{\Area}{\operatorname{Area}}$
 
 # %%
@@ -53,7 +53,7 @@ from sympy import (
 
 sp.init_printing()
 
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 GREY = 0x888888
 RED = 0xEF5350
@@ -65,7 +65,7 @@ PURPLE = 0xCE93D8
 BG = 0x000000  # white background?
 
 
-# Plane drawing now comes from the shared `mathviz` library: mv.Plane(extent=…) is a
+# Plane drawing now comes from the shared `clmmathtools` library: mv.Plane(extent=…) is a
 # top-down view whose .vector / .curve / .display match what this notebook used.
 
 

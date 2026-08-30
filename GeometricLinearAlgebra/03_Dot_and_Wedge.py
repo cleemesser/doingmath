@@ -1,6 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
@@ -32,13 +33,13 @@
 # We stay coordinate-free, build both products from their geometric meaning, and — for the first time
 # — step into **3D**, where the wedge of two arrows becomes an oriented *area element* (a bivector),
 # the thing that will give us volume and the determinant in notebook 4. Figures use the shared
-# `mathviz` library — 2D plots via matplotlib, 3D scenes via vedo.
-# $\newcommand{\Area}{\operatorname{Area}}$
+# `clmmathtools` library — 2D plots via matplotlib, 3D scenes via vedo.
+#
 #
 
 # %%
 import numpy as np
-import mathviz as mv  # shared plane-viz library (see ../mathviz)
+import clmmathtools.viz as mv  # shared plane-viz library (see ../clmmathtools)
 
 BLUE = 0x4FC3F7
 ORANGE = 0xFFB74D
@@ -58,7 +59,7 @@ LABELC = 0xCCCCCC
 
 
 # %%
-# Thin adapters over the shared `mathviz` library. new_plot returns a 2D mv.Plane (top_down)
+# Thin adapters over the shared `clmmathtools` library. new_plot returns a 2D mv.Plane (top_down)
 # or a 3D mv.Space3D (top_down=False); the add_* helpers dispatch on the plot type, so this
 # notebook's original 2D *and* 3D drawing calls both work unchanged. Filled parallelograms use
 # mv's Polygon (2D) / Mesh3D (3D) primitives.
@@ -162,6 +163,7 @@ print(
 
 # %% [markdown]
 # ## 2. The determinant: signed area and the wedge (exterior product)
+#
 # In 2D, we can develop the concept of the signed area created by the parallelogram spanned by two vectors $u$ and $v$. The sign will be defined by a choice of orientation. It is positive if going from $u$ to $v$ is in the clockwise rotation, this corresponds to the angle $\theta$ increasing from zero when progressing from $u$ to $v$. Using the standard basis, $\{\hat{e}_1,\hat{e}_2\}$, $\Area[\hat{e}_1,\hat{e}_2] = +1$ by definition in our convention.
 #
 # $$\Area[u,v] = |u|\,|v|\,\sin\theta$$
@@ -188,7 +190,7 @@ print(
 
 # %%
 def area2(u, v):
-    """Signed area of the parallelogram spanned by u, v."""
+    """Signed area of the parallelogram spanned by u, v for 2D plane."""
     u, v = np.asarray(u, float), np.asarray(v, float)
     return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
 
@@ -221,17 +223,17 @@ print(
 )
 
 # %% [markdown]
-# Motivating the wedge product. If we want the $\Area$ function to be linear in each of its argument, then it has to be signed or oriented. $\Area(\lambda u, v) = \Area(u,\lambda v) = \lambda \Area(u,v)$. This makes sense based upon the idea above. if $u \rightarrow 2u$ then the Area should also double in size in correspondence with our intuition. But if $\lambda = -1$, then $Area(u,v) \rightarrow -Area(u,v)$ so we need the concept of signed area. See below.
+# Motivating the wedge product. If we want the $\Area$ function to be linear in each of its argument, then it has to be signed or oriented. $\Area(\lambda u, v) = \Area(u,\lambda v) = \lambda \Area(u,v)$. This makes sense based upon the idea above. if $u \rightarrow 2u$ then the Area should also double in size in correspondence with our intuition. But if $\lambda = -1$, then $\Area(u,v) \rightarrow - \Area(u,v)$ so we need the concept of signed area. See below.
 
 # %%
 # multiplying a vector by negative -1 — same size parallelogram, but negative -- notice also opposite orientation (drawn red).
 p = new_plot(lim=3.0)
-add_parallelogram(p, [0, 0], -u, v, GREEN if area2(-2*u, v) > 0 else RED)
+add_parallelogram(p, [0, 0], -u, v, GREEN if area2(-u, v) > 0 else RED)
 add_vector(p, [0, 0], v, ORANGE, "v")
 add_vector(p, [0, 0], -u, BLUE, "-u")
 p.display()
 print(
-    f"signed area Area[v,u] = {area2(-2*u, v):+.3f}  (red = negative/clockwise — the orientation reversed)"
+    f"signed area Area[v,u] = {area2(-u, v):+.3f}  (red = negative/clockwise — the orientation reversed)"
 )
 
 # %%
@@ -332,11 +334,13 @@ p.display()
 
 
 # %% [markdown]
-# ## 5. Into 3D: the wedge as an oriented area element
+# ## 5. Into 3D: the cross product and the wedge prodcut as an oriented area element
 #
 # In space, the parallelogram spanned by $u$ and $v$ still has an area, but now it also has an
 # *orientation in 3D* — it tilts. The wedge $u\wedge v$ becomes a **bivector**: an oriented patch of
-# plane whose magnitude is the area and whose attitude is the plane it lies in. The classical
+# plane whose magnitude is the area and whose attitude is the plane it lies in.
+#
+# The classical
 # stand-in for that bivector is the **cross product** $u\times v$ — the vector perpendicular to the
 # plane whose length equals the area and whose direction (right-hand rule) encodes the orientation:
 #
@@ -348,6 +352,10 @@ p.display()
 
 # %%
 def cross3(u, v):
+    """the cross product is defined in 3D
+    takes two vectors and produces another vector
+    R^3 x R^3 -> R^3
+    """
     u, v = np.asarray(u, float), np.asarray(v, float)
     return np.array(
         [
@@ -382,18 +390,51 @@ p.display()
 
 
 # %% [markdown]
+# The wedge product in 3D is very similar to the cross product in 3D, but it maintains the focus on defining a particular oriented area in a plane, rather than producing a vector.
+# This is a different sort of object which has some features in common with a regular vector in 3D but some which differ under transformations.
+#
+# In 3 dimensions, $\mathbb{R}^3$, it still makes sense to define the area defined by the parallelogram made by two 3D vectors, that is still $|u||v| sin\theta$, but we also have the opton now to consider a 3 vectors which define an (oriented) volume. Three vectors define a parallelpiped as shown below.
+#
+
+# %%
+o = [0, 0, 0]
+a, b, c = [2, 0.3, 0], [0.4, 1.8, 0.2], [0.3, 0.5, 1.6]
+mv.Space3D(bounds=3).parallelepiped(
+    o, a, b, c, facecolor=mv.ORANGE
+).display()  # static — a normal embedded image
+
+# %% [markdown]
+#
+#
+#
+# Note that the wedge product is also much more general than the cross product; the cross product only works in 3D because there is only one direction that is orthogonal to a plane in 3D. But in higher dimensions, there are multiple directions which are in the orthogonal complement to a plane. The wedge is also has the nice property that it is associative, unlike the cross product. You can wedge more than two vectors together and
+#
+# $$
+# (u \wedge v) \wedge w = u \wedge (v \wedge w)
+# $$.
+#
+# In addition, it has the important aspect that this generalization leads to important concepts for how we characterize linear transformations in dimensions higher than 2D.
+#
+# For us to do this, we need to generalized our $\operatorname{Area}$ to higher number of input vectors as well. We will call this generalized function the determinant: For 3 vectors, $u,v,w$, the determinant $\det[u,v,w]$ calculates the signed volume of the parallelpiped spaned by $u,v,w$ (see figure below). For higher dimensions, $\det[v_1, v_2,...,v_n]$ calucates the hyper volume. Note that if the vector space $V$ has fewer than $n$ dimenions, then this hypervolume must be zero. For example, if you choice 3 vectors from the plane $\mathbb{R}^2$, their volume is zero.
+
+# %% [markdown]
 # ## 6. How operators act on area — the bridge to the determinant
 #
-# Here is the punchline that notebook 4 cashes in. Take *any* linear operator $T$ and feed a
+# ***Crucial Point*** Take *any* linear function $T$ as defined in chapter 1, and feed a
 # parallelogram through it. By bilinearity and antisymmetry of the wedge, the image area is the
-# original area times a factor that **does not depend on which $u,v$ you chose**:
+# original area times a factor that **does not depend on which $u,v$ you chose as long as they are not scalar multiples of each other**. This allows us to define a new variant of the $\operatorname{Area}$ function, one acting on any linear function $T:\mathbb{R}^2 \rightarrow \mathbb{R}^2$
 #
-# $$T(u)\wedge T(v) = \big(\det T\big)\;(u\wedge v).$$
+# $$
+# T(u)\wedge T(v) = \operatorname{Area}(T)\;(u\wedge v).
+# $$
 #
 # That universal factor is the **determinant** — defined right here, coordinate-free, as *the number
 # by which $T$ multiplies every signed area*. Let us see it is constant: pick a fixed $T$, throw
 # random pairs at it, and watch the ratio settle on one value. Then read it off for the operators of
 # notebook 2 — and the values match the determinant column we previewed there.
+#
+#
+#
 
 
 # %%

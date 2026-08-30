@@ -35,14 +35,14 @@ from scipy import signal
 
 sp.init_printing()
 
-import mathviz as mv
-from mathviz import palette as pal
-from mathviz.palette import hexstr
+import clmmathtools.viz as mv
+from clmmathtools.viz import palette as pal
+from clmmathtools.viz.palette import hexstr
 
 sys.path.append("../ext/neural_signal_analysis_notes/code/")
 import neural_analysis.synthetic
 
-# mathviz stores palette entries as ints (0x4FC3F7) because vedo/k3d want them that way;
+# clmmathtools stores palette entries as ints (0x4FC3F7) because vedo/k3d want them that way;
 # plotly wants "#4fc3f7" strings, so run them through the shipped converter.
 BG, BLUE, ORANGE, GREEN, RED, PURPLE, YELLOW, GREY, FAINT = (
     hexstr(c) for c in (pal.BG, pal.BLUE, pal.ORANGE, pal.GREEN,
@@ -55,7 +55,7 @@ import plotly.io as pio
 # %% [markdown]
 # ### Plot setup
 #
-# A dark plotly template built from the `mathviz` palette, so these figures sit next to the
+# A dark plotly template built from the `clmmathtools` palette, so these figures sit next to the
 # matplotlib figures in the rest of the repo without a style clash.
 #
 # `SHOW` guards `fig.show()`: inside Jupyter it renders, but under

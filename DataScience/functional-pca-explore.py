@@ -51,6 +51,31 @@ def _(mo):
     If that is so, then we should just be able to perform a SVD on this matrix and get our principle components and eigenvalues to asses for how much variance each component accounts for.
 
     We will try this below and then compare with the output of the scikit-fda package (scikit functional data analysis).
+
+    #### Mathematical Note
+    PCA is often defined by first formming the covariance matrix, $C$, which for the mean zero data matrix $X$.
+    $$ C = \operatorname{average}( X^T X )= \frac{X^T X}{n-1} $$
+    and then finding the eigenvectors and eigenvalues of $C$. These are the principal components.
+    with SVD
+    $$ X^{c} = U S V^T $$
+
+    where if $X^{c}$ is mxn, $U$ is a mxm orthogonal matrix (a rotation), $S$ is
+    the scaling diagonal matrix of "singular values" in decreasing order. And
+    $V$ is the nxn orthogonal matrix which is another rotation. For complex
+    matrices, substitute unitary for orthogonal and conjugate transpose for the
+    regular adjoint operation See for example, [wikipedia
+    SVD](https://en.wikipedia.org/wiki/Singular_value_decomposition)
+
+    $$ \frac{1}{n-1}(U S V^T)^T (U S V^T) = \frac{1}{n-1}V S U^T U S V^T $$
+
+    $$ U^T U = I $$
+    so the above equals:
+
+
+    $$  V \frac{S^2}{n-1} V^T $$
+
+    which is the solution to the eigvectors for $C$ where the columns (and rows)
+    of $V$ are the eigenvectors of $C$ and diagnonal $$ are the eigenvalues.
     """)
     return
 
@@ -81,7 +106,7 @@ def _(Xg):
 def _(mo):
     mo.md(r"""
     #### The Berkeley growth dataset
-    We have imported skfda and imported the Berkley Growth dataset. This has 93 children as subjects with their height measured in centimeters at 31 times as described below by Xg.grid_points (starts at age 1.0, then 1.25, ...). I will grab the growth data as a numpy array and remove the unused dimension to create a 2D matrix in Xarr, while storing the time grid points in Tarr.
+    We have imported skfda and imported the Berkley Growth dataset. This has 93 children as subjects with their height measured in centimeters at 31 times as described below by Xg.grid_points (starts at age 1.0, then 1.25, ...). I will grab the growth data as a numpy array and remove the unused dimension to create a 2D matrix in Xarr, while storing the time grid points in Tarr (shown below):
     """)
     return
 
@@ -294,11 +319,11 @@ def _():
 def _(Xarr, np, plt, sign_resolved_svd):
     Xarr_m = Xarr.mean(axis=0)
     Xarr_c = Xarr - Xarr_m
-    U, s, Vt = sign_resolved_svd(Xarr_c, method='max_ucoef_pos',  
+    U, s, Vt = sign_resolved_svd(Xarr_c, method='max_ucoef_pos',
                                  #method="bak"
                                 )
-
-    var = s**2 / (Xarr.shape[0] - 1)
+    print(f'{Xarr.shape=}')
+    var = s**2 / (Xarr.shape[0] - 1) # var = S**2 /(n_subjects-1)
     var_percent = var / var.sum()
 
     # can plot a lot of things to show similar information
@@ -353,7 +378,11 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(Tarr, plt, x1, x1_recon):
+def _(Tarr, Vt, Xarr, Xarr_m, plt):
+
+    x1 = Xarr_m + Xarr[0]
+    x1_recon = Xarr_m + (Xarr[0].T @ Vt[0])* Vt[0] + (Xarr[0] @ Vt[1]) * Vt[1]
+
     plt.plot(Tarr, x1, label="original")
     plt.plot(Tarr, x1_recon, label="reconstructed from 2 PC")
     plt.legend()
@@ -546,7 +575,7 @@ def _(Vt, Xarr, fPCA, mo, np):
     _eps = 0.025
     _the_same = np.allclose(np.abs(_corr_arr), np.ones(_corr_arr.shape),rtol=_eps)
     # _the_same = np.abs(_corr_arr)
-    mo.md("- ".join(_msg_list)  +     f"all the absolute cross correlation are within {_eps} of 1.0" if _the_same else None ) 
+    mo.md("- ".join(_msg_list)  +     f"all the absolute cross correlation are within {_eps} of 1.0" if _the_same else None )
     return
 
 

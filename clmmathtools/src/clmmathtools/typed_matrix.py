@@ -300,10 +300,24 @@ class TMatrix:
 
         return one(self.row), one(self.col)
 
+    @property
+    def _collapse(self) -> bool:
+        """Print one label instead of two, cartesian-tensor style.
+
+        Only legal when *both* slots live in the same self-dual basis: then
+        variance carries no information and [A]_E says everything. A mixed
+        object like a change of basis (row in e, column in f) must keep both
+        labels -- collapsing it would print P as though it were a matrix in
+        the f basis alone.
+        """
+        if self.row is None or not self.row.basis.self_dual:
+            return False
+        return self.col is None or self.col.basis == self.row.basis
+
     def _block(self, body_lines) -> str:
         left, right = self._labels()
         # Self-dual basis: collapse to a single label, cartesian-tensor style.
-        if left is not None and self.row.basis.self_dual:
+        if left is not None and self._collapse:
             if right is None:
                 right, left = left, None
             else:
@@ -351,7 +365,7 @@ class TMatrix:
         out = ""
         # For a self-dual (Euclidean orthonormal) basis, fall back to the usual
         # cartesian-tensor notation [A]_E: one subscript, no variance shown.
-        if left is not None and not self.row.basis.self_dual:
+        if left is not None and not self._collapse:
             _, tex, var, _sd = left
             out += r"{}%s{%s}\!" % ("^" if var == "up" else "_", tex)
         out += r"\left[" + body + r"\right]"
@@ -361,7 +375,7 @@ class TMatrix:
                 out += r"_{%s}" % tex
             else:
                 out += r"%s{%s}" % ("^" if var == "up" else "_", tex)
-        elif left is not None and self.row.basis.self_dual:
+        elif left is not None and self._collapse:
             out += r"_{%s}" % left[1]
         return out
 

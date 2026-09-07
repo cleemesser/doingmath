@@ -345,16 +345,33 @@ class TMatrix:
 
     # ---- algebra ---------------------------------------------------------
 
+    @staticmethod
+    def _collapse_if_scalar(t: "TMatrix"):
+        """Hand back a plain sympy scalar once an operation uses up every slot.
+
+        A contraction with nothing left over *is* a number -- an inner product,
+        a pairing, a trace -- so returning a 1x1 TMatrix would only make the
+        caller unwrap it, and a 1x1 sympy Matrix is a poor stand-in for a number
+        (``M == 5`` is silently False). The cost is that the return type of
+        ``*`` is a union: TMatrix while slots remain, sympy Expr when they run
+        out. That is the same bargain ``Matrix.dot`` makes.
+        """
+        return t.scalar if (t.row is None and t.col is None) else t
+
     def __mul__(self, other):
         if isinstance(other, (int, float, sp.Expr)):
-            return TMatrix(self.mat * other, self.row, self.col)
+            return self._collapse_if_scalar(
+                TMatrix(self.mat * other, self.row, self.col)
+            )
         if not isinstance(other, TMatrix):
             return NotImplemented
         if self.col is None or other.row is None:
             raise FrameMismatch("cannot contract over a trivial axis")
         if not self.col.contracts_with(other.row):
             raise FrameMismatch(self._why_not(self.col, other.row))
-        return TMatrix(self.mat * other.mat, self.row, other.col)
+        return self._collapse_if_scalar(
+            TMatrix(self.mat * other.mat, self.row, other.col)
+        )
 
     @staticmethod
     def _why_not(a: Slot, b: Slot) -> str:
@@ -381,7 +398,7 @@ class TMatrix:
         )
 
     def __rmul__(self, other):
-        return TMatrix(self.mat * other, self.row, self.col)
+        return self._collapse_if_scalar(TMatrix(self.mat * other, self.row, self.col))
 
     def __add__(self, other):
         if not isinstance(other, TMatrix):
@@ -390,19 +407,23 @@ class TMatrix:
             raise FrameMismatch(
                 f"cannot add ({self.row!r},{self.col!r}) to ({other.row!r},{other.col!r})"
             )
-        return TMatrix(self.mat + other.mat, self.row, self.col)
+        return self._collapse_if_scalar(
+            TMatrix(self.mat + other.mat, self.row, self.col)
+        )
 
     @property
     def scalar(self):
         """The sympy scalar of a fully contracted result.
 
-        A contraction that uses up every slot still comes back as a TMatrix
-        wrapping a 1x1 sympy Matrix, and a 1x1 Matrix is emphatically *not* a
-        number: ``M + 1`` and ``float(M)`` raise, and -- the trap -- ``M == 5``
+        Contraction already does this for you -- ``u.T * v`` hands back a sympy
+        number, not a 1x1 TMatrix -- so this is the explicit route, for a
+        zero-slot TMatrix built directly, and the guard is the useful part: a
+        leftover slot means the answer is a vector or an operator, not a number.
+
+        The unwrapping matters because a 1x1 sympy Matrix is emphatically *not*
+        a number. ``M + 1`` and ``float(M)`` raise, and -- the trap -- ``M == 5``
         returns False rather than erroring, so a test against a 1x1 silently
-        always fails. Unwrapping here rather than reaching for ``.mat[0, 0]``
-        also checks that the contraction really did finish: a leftover slot
-        means the answer is a vector or an operator, not a number.
+        always fails.
         """
         if self.row is not None or self.col is not None:
             raise FrameMismatch(

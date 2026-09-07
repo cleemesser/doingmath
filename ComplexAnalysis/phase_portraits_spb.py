@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: doingmath (3.14.3)
 #     language: python
 #     name: python3
 # ---

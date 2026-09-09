@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.5
+#       jupytext_version: 1.19.4
 #   kernelspec:
 #     display_name: doingmath (3.14.3)
 #     language: python
@@ -66,6 +66,16 @@ from clmmathtools.typed_matrix3 import (
 )
 
 # %% [markdown]
+# <div hidden>
+# latex commands:
+# $$
+# \providecommand{\E}{\mathbb{E}}
+# \providecommand{\rv}[1]{\mathbf{#1}}
+# $$
+# </div>
+#
+
+# %% [markdown]
 # ## Spaces first, then frames
 # Note what each line is responsible for: `VectorSpace` says what geometry
 # exists, `frame` says how we are going to write it down.
@@ -80,7 +90,7 @@ f = Bare.frame("f")
 SpaceTime = VectorSpace.pseudo_euclidean("M", [1, -1])  # g = diag(1, -1)
 M = SpaceTime.frame("M")
 
-City, E, Bare, f, SpaceTime, M
+City, E, Bare, f, SpaceTime, M, 
 
 # %%
 # is_orthonormal and self_dual are now relations between a frame and its space's

@@ -136,3 +136,4 @@ __marimo__/
 
 # direnv
 .direnv/
+.agents/

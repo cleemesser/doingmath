@@ -1,0 +1,2 @@
+all:
+	jupytext --sync *.py

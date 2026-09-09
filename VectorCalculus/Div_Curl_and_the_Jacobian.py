@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.4
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -1525,6 +1525,15 @@ plt.show()
 # components are $\mathbf E$ and $\mathbf B$ — three "electric" and three "magnetic" only because
 # $\binom{4}{2} = 3 + 3$. The cross product and the vector curl are $n=3$ coincidences; the
 # antisymmetric matrix — equivalently the 2-form of §6 — is the invariant object.
+#
+# The counting above is correct but thin: it says a vector curl *cannot* exist elsewhere without
+# saying what does exist instead. [`The_Antisymmetric_Part_of_DF`](The_Antisymmetric_Part_of_DF.py)
+# takes this section as its starting point and answers that — the spin bivector as
+# $\lfloor n/2\rfloor$ rotation planes, the sharper reason $n=3$ is alone (a bivector needs *one*
+# plane **and** a normal line, which is why $n=5$ does not sneak through), $\mathbf E$ and $\mathbf B$
+# as one bivector in $\mathbb{R}^{1,3}$, and $\nabla F = \nabla\cdot F + \nabla\wedge F$ as the
+# single operator behind both. It also settles the question this section invites: $\mathbb{R}^7$ does
+# have a cross product, but it is not $SO(7)$-equivariant, so it gives no curl.
 
 # %%
 print("n×n matrices:  n² = 1 (dilation) + [n(n+1)/2 − 1] (shear) + n(n−1)/2 (rotation)")

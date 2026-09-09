@@ -645,9 +645,9 @@ print(
 #
 # Now the two projections behave very differently:
 #
-# * $\operatorname{tr}(PJP^{-1}) = \operatorname{tr}J$ for **every** invertible $P$. The trace is a
-#   invariant under **every** invertible change of coordinates. Divergence therefore survives
-#   arbitrary changes of frame — it needs only a notion of *volume*, not of length or angle.
+# * $\operatorname{tr}(PJP^{-1}) = \operatorname{tr}J$ for **every** invertible $P$ — the trace does
+#   not care which coordinates you use. Divergence therefore survives arbitrary changes of frame; it
+#   needs only a notion of *volume*, not of length or angle.
 # * $\operatorname{skew}(PJP^{-1}) = P\,\operatorname{skew}(J)\,P^{-1}$ **only if** $P^{\mathsf T}P \propto I$.
 #   The transpose is defined by the inner product, so the symmetric/antisymmetric split is a
 #   *metric* notion. Curl needs a metric — and, to be a vector rather than a 2-form, an orientation
@@ -1382,7 +1382,7 @@ for n in range(2, 8):
     print(
         f"  n = {n}:  {n * n:3d} = {a} + {b:2d} + {c:2d}"
         f"   curl is a {'scalar' if c == 1 else 'vector' if c == n else f'{c}-component 2-form'}"
-        f"{'   ← the only n with dim Λ² = n' if c == n and n > 2 else ''}"
+        f"{'   ← the only n with as many antisymmetric matrices as dimensions' if c == n and n > 2 else ''}"
     )
 
 # in 2D the whole antisymmetric part is one number, and it IS the scalar curl
@@ -1731,6 +1731,7 @@ print(
 #
 # | question | answer | where it lives in $DF$ |
 # |---|---|---|
+# | What is $\operatorname{grad}f$? | the vector representing $Df$ under an inner product | not a part of $DF$ — it *builds* fields with $A=0$ |
 # | What is $\operatorname{div}F$? | $\operatorname{tr}DF$ | the isotropic part $\tfrac{\operatorname{tr}J}{n}I$ |
 # | What is $\operatorname{curl}F$? | $2\,\mathrm{vee}(\operatorname{skew}DF)$, i.e. $dF^\flat$ | the antisymmetric part $A$ |
 # | What do they miss? | the rate of strain $S_0$ | the trace-free symmetric part — 5 of 9 components in $\mathbb{R}^3$ |
@@ -1738,12 +1739,15 @@ print(
 # | Why the $\tfrac12$ in curl? | $A$ *is* the angular velocity; curl is $2A$ | mean spin of material line elements |
 # | What structure does each need? | $\operatorname{grad}$, $\operatorname{curl}$: an inner product ($+$ an orientation for a vector curl). $\operatorname{div}$: only a volume | trace survives any change of frame; transpose does not |
 # | Why is curl a vector only in 3D? | antisymmetric $n\times n$ matrices number $\binom{n}{2}$, and $\binom{n}{2}=n$ only at $n=3$ | the hat/vee bijection |
-# | What is the invariant statement? | $d\,\iota_F\mu=(\operatorname{div}F)\mu$ and $dF^\flat=2A$ | one operator $d$, two degrees |
+# | Why is $\operatorname{curl}\operatorname{grad}=0$? | $D(\nabla f)=\operatorname{Hess}f$ is symmetric | a gradient field has no antisymmetric part |
+# | Why is $\Delta=\operatorname{div}\operatorname{grad}$? | $\operatorname{tr}\operatorname{Hess}f$ | the same trace, one step further along |
+# | What is the invariant statement? | $df$, $dF^\flat=2A$, and $d\,\iota_F\mu=(\operatorname{div}F)\mu$ | one operator $d$, three degrees |
 #
-# The single sentence: **$DF(p)$ is an endomorphism of the tangent space, endomorphisms decompose into
-# dilation $\oplus$ strain $\oplus$ spin under the orthogonal group, and divergence and curl are the
-# first and third projections** — a complete account of $DF$ only if the strain vanishes, and a
-# complete account of $F$ only after adding global (topological) information.
+# The single sentence: **$DF(p)$ is a square matrix acting on the tangent space; every square matrix
+# splits into dilation $+$ strain $+$ spin; divergence reads the first part and curl the third, while
+# gradient is the operator that manufactures the fields whose third part is zero.** That is a complete
+# account of $DF$ only when the strain vanishes, and a complete account of $F$ only after adding
+# global (topological) information — and §10 shows there is no fourth operator waiting to be found.
 #
 # ## References
 #

@@ -17,9 +17,13 @@ Each `*.py` is the source of truth (jupytext "percent" format); the paired `.ipy
 
 ## Notebooks
 
+The same material exists in two versions. They share section numbering, prose and figures; they
+differ in how the numbers are produced, and each is worth running for a different reason.
+
 | # | Notebook | What it does |
 |---|----------|--------------|
 | 1 | [`Div_Curl_and_the_Jacobian`](Div_Curl_and_the_Jacobian.py) | Splits $DF$ into **dilation ⊕ strain ⊕ spin** and identifies $\operatorname{div}F=\operatorname{tr}DF$ with the first piece and $\operatorname{curl}F=2\,\mathrm{vee}(\operatorname{skew}DF)$ with the third. **Gradient** enters from the other end: $D(\nabla f)$ is the Hessian, symmetric by Clairaut, so a gradient field has no spin part at all ($\operatorname{curl}\nabla f=0$) and $\operatorname{div}\nabla f=\operatorname{tr}\operatorname{Hess}f=\Delta f$. Then: Liouville ($\operatorname{div}$ = log-rate of volume change), Cauchy–Stokes ($\operatorname{curl}$ = twice the mean angular velocity of material line elements), the Spivak/forms picture ($d\iota_F\mu=(\operatorname{div}F)\mu$ and $dF^\flat=2A$, proven symbolically), Stokes' theorem as the coordinate-free *definition* (with the $O(r^2)$ error coefficient predicted and checked), why curl is a vector only when $n=3$, what the two operators are blind to, and a closing note proving via Schur's lemma that div and curl are the **only** operators of their kind. |
+| 1b | [`Div_Curl_and_the_Jacobian_autodiff`](Div_Curl_and_the_Jacobian_autodiff.py) | The same notebook with every numerical derivative computed by **automatic differentiation** ([`autograd`](https://github.com/HIPS/autograd)) rather than finite differences — exact to machine precision, no step size. Three results become available only in this version: **Clairaut's theorem as a measurement** (the AD Hessian is not symmetric by construction, so its antisymmetric part is a genuine observation — version 1's centred stencil forced the symmetry); **the flow Jacobian by differentiating the RK4 solver itself**, compared against integrating the variational equation, with the gap shrinking as $4^{-4}$ per step refinement, i.e. exactly at the integrator's order; and **divergence without ever forming a Jacobian**, via Jacobian–vector products, with a scaling measurement showing where the stochastic estimator overtakes the exact one. Adds Appendix A on forward versus reverse mode. |
 
 ## The thread
 
@@ -105,10 +109,29 @@ linear algebra course** and never use that vocabulary.
 - [`LieGroups/SO3_Lie_Theory`](../LieGroups/SO3_Lie_Theory.py) — the hat map from $\mathbb{R}^3$ to
   antisymmetric matrices, which turns the antisymmetric part of $DF$ into $\tfrac12\operatorname{curl}F$.
 
+## Finite differences or autodiff?
+
+Neither version is the "real" one; they fail in different places, and seeing both is the point.
+
+- **Finite differences** need nothing of the function but the ability to evaluate it, so they work on
+  a black box, a table of measurements, or a simulator you cannot see inside. They cost a step size:
+  too large and truncation error dominates, too small and cancellation does, and the best you can do
+  for a second derivative is roughly $\sqrt[3]{\varepsilon}$ relative accuracy.
+- **Automatic differentiation** gives the exact derivative *of the program*, with no step size, but
+  demands that the program be written in its own numpy (`anp`) and stay free of in-place assignment.
+  It also differentiates the code you actually wrote — which is a feature when you want the
+  derivative of your discretization, and a trap when you wanted the derivative of the equation your
+  discretization approximates. §4 of the autodiff notebook puts both side by side.
+- **Symbolic differentiation** (SymPy) is a third thing again, and both notebooks use it unchanged:
+  only a symbolic derivative over generic functions can prove an identity for *all* $f$, which is
+  what §2 and §6 need. AD evaluates at a point; it proves nothing.
+
 ## Workflow
 
 ```bash
-uv run jupytext --sync VectorCalculus/Div_Curl_and_the_Jacobian.py             # code/markdown only
-uv run jupytext --sync --execute VectorCalculus/Div_Curl_and_the_Jacobian.py   # + fresh figures
-MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian.py       # headless numerics check
+uv sync                                                                          # brings in autograd
+uv run jupytext --sync VectorCalculus/Div_Curl_and_the_Jacobian.py               # code/markdown only
+uv run jupytext --sync --execute VectorCalculus/Div_Curl_and_the_Jacobian.py     # + fresh figures
+MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian.py         # headless check
+MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian_autodiff.py
 ```

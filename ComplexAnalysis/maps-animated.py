@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: doingmath (3.14.3.final.0)
 #     language: python
 #     name: python3
 # ---
@@ -197,7 +197,7 @@ mv.scrubber(
 # %% jupyter={"source_hidden": true}
 A = np.array([[1.0, -1j], [1.0, 1j]])
 mv.scrubber(
-    lambda t: mv.Plane(extent=3, grid=False, size=(460, 460)).apply_complex(
+    lambda t: mv.Plane(extent=5, grid=False, size=(460, 460)).apply_complex(
         mobius_path(A)(t), color=mv.PURPLE, step=0.5
     ),
     n=18,
@@ -293,7 +293,7 @@ def twist_t(t, k=1.5):
 
 
 mv.scrubber(
-    lambda t: mv.Plane(extent=2, grid=False, size=(460, 460)).show_operator(
+    lambda t: mv.Plane(extent=5, grid=False, size=(460, 460)).show_operator(
         twist_t(t), color=mv.BLUE, step=0.5
     ),
     n=18,

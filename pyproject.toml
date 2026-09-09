@@ -48,6 +48,9 @@ dependencies = [
     "vedo>=2026.6.1",
     "wigglystuff>=0.5.23",
     "xarray>=2026.4.0",
+    "multimethod==1.10", # needs to be pinned back for scikit-fda to work
+    "scikit-fda>=0.10.1",
+    "pydantic-ai>=2.40.0",
 ]
 
 [project.optional-dependencies]

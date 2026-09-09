@@ -51,6 +51,7 @@ dependencies = [
     "multimethod==1.10", # needs to be pinned back for scikit-fda to work
     "scikit-fda>=0.10.1",
     "pydantic-ai>=2.40.0",
+    "passagemath-standard>=10.8.10",
 ]
 
 [project.optional-dependencies]

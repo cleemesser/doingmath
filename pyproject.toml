@@ -21,6 +21,14 @@ dependencies = [
     "jupyter>=1.1.1",
     "jupyterlab-myst>=2.7.0",
     "jupytext>=1.19.1",
+    # jax + tensorly: VectorCalculus/Div_Curl_and_the_Jacobian_tensorly.py writes its vector
+    # fields against tensorly's backend-agnostic `tl.*` and gets derivatives from whichever
+    # framework is selected. tensorly abstracts arrays only -- it has no autodiff API -- so jax
+    # is the default differentiable backend and is needed for that notebook to run at all.
+    # The pytorch backend also works and is exercised in its Appendix B when the torch extra
+    # is installed; Appendix B skips any backend it cannot import.
+    "jax>=0.11",
+    "tensorly>=0.9.0",
     "k3d>=2.17.0",
     "kingdon>=2.1.1",
     "kingdon-tensor",

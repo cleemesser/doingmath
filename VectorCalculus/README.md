@@ -17,13 +17,14 @@ Each `*.py` is the source of truth (jupytext "percent" format); the paired `.ipy
 
 ## Notebooks
 
-The same material exists in two versions. They share section numbering, prose and figures; they
+The same material exists in three versions. They share section numbering, prose and figures; they
 differ in how the numbers are produced, and each is worth running for a different reason.
 
 | # | Notebook | What it does |
 |---|----------|--------------|
 | 1 | [`Div_Curl_and_the_Jacobian`](Div_Curl_and_the_Jacobian.py) | Splits $DF$ into **dilation ⊕ strain ⊕ spin** and identifies $\operatorname{div}F=\operatorname{tr}DF$ with the first piece and $\operatorname{curl}F=2\,\mathrm{vee}(\operatorname{skew}DF)$ with the third. **Gradient** enters from the other end: $D(\nabla f)$ is the Hessian, symmetric by Clairaut, so a gradient field has no spin part at all ($\operatorname{curl}\nabla f=0$) and $\operatorname{div}\nabla f=\operatorname{tr}\operatorname{Hess}f=\Delta f$. Then: Liouville ($\operatorname{div}$ = log-rate of volume change), Cauchy–Stokes ($\operatorname{curl}$ = twice the mean angular velocity of material line elements), the Spivak/forms picture ($d\iota_F\mu=(\operatorname{div}F)\mu$ and $dF^\flat=2A$, proven symbolically), Stokes' theorem as the coordinate-free *definition* (with the $O(r^2)$ error coefficient predicted and checked), why curl is a vector only when $n=3$, what the two operators are blind to, and a closing note proving via Schur's lemma that div and curl are the **only** operators of their kind. |
 | 1b | [`Div_Curl_and_the_Jacobian_autodiff`](Div_Curl_and_the_Jacobian_autodiff.py) | The same notebook with every numerical derivative computed by **automatic differentiation** ([`autograd`](https://github.com/HIPS/autograd)) rather than finite differences — exact to machine precision, no step size. Three results become available only in this version: **Clairaut's theorem as a measurement** (the AD Hessian is not symmetric by construction, so its antisymmetric part is a genuine observation — version 1's centred stencil forced the symmetry); **the flow Jacobian by differentiating the RK4 solver itself**, compared against integrating the variational equation, with the gap shrinking as $4^{-4}$ per step refinement, i.e. exactly at the integrator's order; and **divergence without ever forming a Jacobian**, via Jacobian–vector products, with a scaling measurement showing where the stochastic estimator overtakes the exact one. Adds Appendix A on forward versus reverse mode. |
+| 1c | [`Div_Curl_and_the_Jacobian_tensorly`](Div_Curl_and_the_Jacobian_tensorly.py) | The same content again, written **against no particular array library**: every field is spelled in [TensorLy](https://tensorly.org)'s backend-agnostic `tl.*`, and one line (`BACKEND = "jax"` / `"pytorch"`) decides what actually runs. **Note what TensorLy does and does not abstract** — it covers the *array* layer and has no `grad`, `jacobian`, `hessian` or `jvp` anywhere in its API (the notebook asserts this rather than claiming it), so the differentiation layer is a small adapter written here that dispatches on `tl.get_backend()`. Adds §0.5 on the two-layer design, including the trap that TensorLy's **numpy** backend paired with `autograd` returns a Jacobian of **silent zeros** rather than raising; and Appendix B, which re-runs the headline quantities under every installed backend — JAX and PyTorch come out **bit-for-bit identical**, including one number that ends a 400-step RK4 integration. |
 
 ## The thread
 
@@ -109,9 +110,9 @@ linear algebra course** and never use that vocabulary.
 - [`LieGroups/SO3_Lie_Theory`](../LieGroups/SO3_Lie_Theory.py) — the hat map from $\mathbb{R}^3$ to
   antisymmetric matrices, which turns the antisymmetric part of $DF$ into $\tfrac12\operatorname{curl}F$.
 
-## Finite differences or autodiff?
+## Which version to read
 
-Neither version is the "real" one; they fail in different places, and seeing both is the point.
+None of the three is the "real" one; they fail in different places, and that is the point.
 
 - **Finite differences** need nothing of the function but the ability to evaluate it, so they work on
   a black box, a table of measurements, or a simulator you cannot see inside. They cost a step size:
@@ -122,9 +123,20 @@ Neither version is the "real" one; they fail in different places, and seeing bot
   It also differentiates the code you actually wrote — which is a feature when you want the
   derivative of your discretization, and a trap when you wanted the derivative of the equation your
   discretization approximates. §4 of the autodiff notebook puts both side by side.
-- **Symbolic differentiation** (SymPy) is a third thing again, and both notebooks use it unchanged:
-  only a symbolic derivative over generic functions can prove an identity for *all* $f$, which is
-  what §2 and §6 need. AD evaluates at a point; it proves nothing.
+- **Symbolic differentiation** (SymPy) is a third thing again, and all three notebooks use it
+  unchanged: only a symbolic derivative over generic functions can prove an identity for *all* $f$,
+  which is what §2 and §6 need. AD evaluates at a point; it proves nothing.
+
+And one lesson that belongs to the third version specifically: **a backend abstraction abstracts an
+interface, not a capability.** `tl.sin` looks the same on every backend, but only some backends can
+be differentiated, and the combination that cannot (numpy + `autograd`) fails by returning zeros
+instead of raising. The adapter in `_tensorly.py` therefore refuses the numpy backend outright, which
+is the only safe design: a differentiation layer that silently produces plausible wrong numbers is
+worse than one that does not exist.
+
+The three versions agree numerically wherever they overlap — the same
+$\Delta(\operatorname{div}F) = -2.008597054518664$ and $\det D\varphi_T = 4.657903971532783$ come out
+of finite differences, `autograd`, JAX and PyTorch — which is the best cross-check any of them has.
 
 ## Workflow
 
@@ -134,4 +146,9 @@ uv run jupytext --sync VectorCalculus/Div_Curl_and_the_Jacobian.py              
 uv run jupytext --sync --execute VectorCalculus/Div_Curl_and_the_Jacobian.py     # + fresh figures
 MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian.py         # headless check
 MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian_autodiff.py
+MPLBACKEND=Agg uv run python VectorCalculus/Div_Curl_and_the_Jacobian_tensorly.py
 ```
+
+The TensorLy version needs `tensorly` plus at least one differentiable backend. JAX is the default
+and is a base dependency; PyTorch lives behind the `torch` extra (`uv sync --extra torch`), and
+Appendix B simply skips any backend it cannot import.

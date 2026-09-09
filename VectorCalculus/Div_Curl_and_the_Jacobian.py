@@ -29,11 +29,42 @@
 # is the source of everything below.
 #
 # Any square matrix splits into a symmetric and an antisymmetric part, and the symmetric part splits
-# again into a multiple of the identity plus a trace-free remainder. That gives three pieces:
+# again into a multiple of the identity plus a trace-free remainder. In words, that gives three pieces:
 #
-# $$DF \;=\; \underbrace{\tfrac{1}{n}(\operatorname{tr} DF)\,I}_{\text{isotropic dilation}}
-#            \;+\; \underbrace{S_0}_{\substack{\text{trace-free symmetric}\\ \text{(pure shear / strain)}}}
+# $$DF \;=\; (\text{isotropic scaling}) \;+\; (\text{trace-free symmetric part}) \;+\; (\text{antisymmetric part})$$
+#
+# and explicitly:
+#
+# $$DF \;=\; \underbrace{\tfrac{1}{n}(\operatorname{tr} DF)\,I}_{\substack{\text{isotropic scaling}\\ \text{(uniform dilation)}}}
+#            \;+\; \underbrace{S_0}_{\substack{\text{trace-free symmetric}\\ \text{(anisotropic stretch)}}}
 #            \;+\; \underbrace{A}_{\substack{\text{antisymmetric}\\ \text{(infinitesimal rotation)}}}$$
+#
+# The word *isotropic* is carrying real weight there. $\tfrac{1}{n}(\operatorname{tr}DF)I$ is not "the
+# diagonal of $DF$"; it is the diagonal's **average**, copied into every diagonal slot. Any way in
+# which the stretching is direction-dependent is a deviation from that average, and those deviations
+# live in $S_0$, whose own diagonal is nonzero in general. Scaling is therefore split across the first
+# *and* second pieces --- only the isotropic part of it is in the first.
+#
+# **An example in $\mathbb{R}^3$.** Take $F(x,y,z) = (3x,\,0,\,0)$ --- material pulled along the
+# $x$-axis and left alone in $y$ and $z$. Its derivative is constant, and splits as
+#
+# $$DF \;=\; \begin{pmatrix}3&0&0\\0&0&0\\0&0&0\end{pmatrix}
+# \;=\; \underbrace{\begin{pmatrix}1&0&0\\0&1&0\\0&0&1\end{pmatrix}}_{\tfrac{1}{3}(\operatorname{tr}DF)\,I}
+# \;+\; \underbrace{\begin{pmatrix}2&0&0\\0&-1&0\\0&0&-1\end{pmatrix}}_{S_0}
+# \;+\; \underbrace{\vphantom{\begin{pmatrix}1\\1\\1\end{pmatrix}}0}_{A}$$
+#
+# Read the two nonzero pieces: the first says *expand uniformly at rate $1$ in every direction*, the
+# second says *and on top of that, stretch at rate $2$ along $x$ while contracting at rate $1$ in $y$
+# and $z$*. Neither is a description of $F$; only the sum is. Notice in particular that the first
+# piece assigns motion to $y$ and $z$, where $F$ moves nothing at all --- the average of $(3,0,0)$
+# knows nothing about which direction was the stretched one.
+#
+# Now compare $G(x,y,z) = (x,y,z)$, a uniform radial expansion. Both fields have
+# $\operatorname{div} = 3$ and $\operatorname{curl} = 0$, so div and curl report them as the same
+# field. Both multiply volume at the identical rate $e^{3t}$ along their flows --- that *is* what the
+# divergence measures. But $G$ inflates a ball into a larger ball while $F$ draws it out into a cigar,
+# and the whole of that difference is $S_0 = \operatorname{diag}(2,-1,-1)$, the piece neither operator
+# sees.
 #
 # and the claim of this notebook is that
 #
@@ -227,9 +258,129 @@ def curl2(F, p, h=1e-6):
 # i.e. $\operatorname{curl}F = 2\,\mathrm{vee}(A)$. Divergence *is* the trace; curl *is* (twice) the
 # antisymmetric part, repackaged as a vector by the hat map. Nothing else about $DF$ appears.
 
+# %% [markdown]
+# ### What the first piece is *not*
+#
+# It is tempting to read $\tfrac{\operatorname{tr}J}{n}I$ as "the diagonal of $J$" and $S_0$ as "the
+# off-diagonal part". Both halves of that are wrong, and the error matters here because it would make
+# divergence look like a complete account of the stretching.
+#
+# In the plane, $\operatorname{diag}(2,0)$ --- stretch $x$, leave $y$ alone --- and
+# $\operatorname{diag}(1,1)$ --- expand uniformly in every direction --- have the **same** divergence
+# $2$. What separates them is $S_0 = \operatorname{diag}(1,-1)$: diagonal, traceless, and invisible to
+# div and curl alike. Non-isotropic scaling is not in the first piece at all.
+#
+# And "diagonal versus off-diagonal" is not a property of the map, only of the basis it was written
+# in. Rotating $\operatorname{diag}(1,-1)$ by $45^\circ$ gives
+# $\left(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right)$ --- the same deformation viewed in a
+# turned frame. That is precisely why the splitting below is by isotropic / trace-free /
+# antisymmetric, which rotations preserve, rather than by where the entries happen to sit.
 
 # %%
-# A field with all three parts nonzero: dilation + shear + swirl, plus nonlinearity.
+print("same div, different geometry -- the first piece cannot tell these apart:")
+for Jd, name in (
+    (np.diag([1.0, 1.0]), "diag( 1, 1)  uniform expansion"),
+    (np.diag([2.0, 0.0]), "diag( 2, 0)  stretch x only"),
+    (np.diag([3.0, -1.0]), "diag( 3,-1)  stretch x, squeeze y"),
+):
+    print(
+        f"  {name:34s} div = {np.trace(Jd):+.0f}"
+        f"   iso diag = {np.diag(iso(Jd))}   S0 diag = {np.diag(dev(Jd))}"
+    )
+
+# S0 carries a diagonal of its own: the deviations of diag J from its average
+Janis = np.array([[3.0, 1.0], [0.5, -1.0]])
+print("\nJ =", Janis.tolist())
+print("  diag J   :", np.diag(Janis))
+print("  iso diag :", np.diag(iso(Janis)), "  <- the average of diag J, repeated")
+print("  S0  diag :", np.diag(dev(Janis)), "  <- the deviations from that average")
+assert np.allclose(np.diag(iso(Janis)) + np.diag(dev(Janis)), np.diag(Janis))
+
+# the R^3 example from the introduction: a uniaxial stretch is not a pure dilation
+J3 = np.diag([3.0, 0.0, 0.0])  # F(x,y,z) = (3x, 0, 0)
+G3 = np.eye(3)  # G(x,y,z) = (x,  y,  z)
+print("\nR^3:  F = (3x,0,0)   vs   G = (x,y,z)")
+print(f"  div F = {np.trace(J3):+.0f}   div G = {np.trace(G3):+.0f}   -> identical")
+print("  S0 of F diag :", np.diag(dev(J3)), "  S0 of G diag :", np.diag(dev(G3)))
+assert np.allclose(iso(J3), np.eye(3))
+assert np.allclose(dev(J3), np.diag([2.0, -1.0, -1.0]))
+assert np.allclose(skew(J3), 0.0)
+assert np.isclose(np.trace(J3), np.trace(G3))  # same div, different geometry
+
+# and 'diagonal' is basis-dependent: 45 degrees turns one strain atom into the other
+_th = np.pi / 4
+R45 = np.array([[np.cos(_th), -np.sin(_th)], [np.sin(_th), np.cos(_th)]])
+print(
+    "\nR(45) diag(1,-1) R(45)^T =\n", np.round(R45 @ np.diag([1.0, -1.0]) @ R45.T, 12)
+)
+assert np.allclose(
+    R45 @ np.diag([1.0, -1.0]) @ R45.T, np.array([[0.0, 1.0], [1.0, 0.0]])
+)
+
+
+# %% [markdown]
+# ### The general case, symbolically
+#
+# The uniaxial example was one matrix; the same accounting can be made once and for all. Write a
+# completely general Jacobian and let $m$ be the mean of its diagonal:
+#
+# $$DF = \begin{pmatrix}a&b&c\\d&e&f\\g&h&i\end{pmatrix},
+#   \qquad m \;=\; \tfrac{1}{3}\operatorname{tr}DF \;=\; \tfrac{a+e+i}{3}.$$
+#
+# Define $\sigma_1,\sigma_2,\sigma_3$ --- the diagonal of $S_0$ --- as the departure of each diagonal
+# entry from that mean:
+#
+# $$\sigma_1 = a - m = \tfrac{2a-e-i}{3}, \qquad
+#   \sigma_2 = e - m = \tfrac{2e-a-i}{3}, \qquad
+#   \sigma_3 = i - m = \tfrac{2i-a-e}{3}.$$
+#
+# The diagonal of $DF$ is then $(m+\sigma_1,\; m+\sigma_2,\; m+\sigma_3)$, and the $\sigma_k$ obey
+#
+# $$\sigma_1 + \sigma_2 + \sigma_3 = 0$$
+#
+# identically, so they carry **two** independent numbers, not three.
+#
+# That is the whole accounting, and it settles the question this subsection opened with. The diagonal
+# of $DF$ holds three degrees of freedom. The divergence captures exactly **one** of them --- the mean
+# $m$ --- and the other two are the $\sigma_k$, sitting in $S_0$ where neither div nor curl reaches.
+# The off-diagonal entries split the same way: their symmetric halves $\tfrac{b+d}{2}$,
+# $\tfrac{c+g}{2}$, $\tfrac{f+h}{2}$ also join $S_0$, giving it $2 + 3 = 5$ components --- the $5$ in
+# $9 = 1 + 5 + 3$ --- while their antisymmetric halves are the curl.
+
+# %%
+# Generic entries, so the identities below are proofs rather than spot checks.
+syms = sp.symbols("a b c d e f g h i", real=True)
+Jg = sp.Matrix(3, 3, syms)
+m_g = sp.Rational(1, 3) * Jg.trace()
+
+iso_g = m_g * sp.eye(3)
+S0_g = sp.simplify((Jg + Jg.T) / 2 - iso_g)
+A_g = sp.simplify((Jg - Jg.T) / 2)
+sigma = [sp.simplify(S0_g[k, k]) for k in range(3)]
+
+print("mean of the diagonal   m =", m_g)
+for k, s_k in enumerate(sigma, start=1):
+    print(f"  sigma_{k} = J[{k - 1},{k - 1}] - m =", s_k)
+print("\ndiagonal of DF = (m + sigma_1, m + sigma_2, m + sigma_3) =")
+print("  ", [sp.simplify(m_g + s_k) for s_k in sigma])
+print(
+    "\nsigma_1 + sigma_2 + sigma_3 =",
+    sp.simplify(sum(sigma)),
+    " -> 2 free numbers, not 3",
+)
+print("div DF =", sp.expand(Jg.trace()), " -> touches the diagonal only through m")
+
+assert sp.simplify(Jg - (iso_g + S0_g + A_g)).is_zero_matrix  # the split is exact
+assert sp.simplify(sum(sigma)) == 0  # only two sigmas are free
+assert sp.simplify(S0_g.trace()) == 0  # S0 is trace-free
+assert sp.simplify(S0_g - S0_g.T).is_zero_matrix  # ... and symmetric
+assert sp.simplify(A_g + A_g.T).is_zero_matrix  # A is antisymmetric
+assert sp.simplify(Jg.trace() - 3 * m_g) == 0  # div fixes m, and nothing more
+S0_g
+
+
+# %%
+# A field with all three parts nonzero: dilation + strain + swirl, plus nonlinearity.
 def F3(p):
     x, y, z = p
     return np.array(
@@ -304,14 +455,15 @@ print(
 # %%
 atoms = [
     (np.array([[1.0, 0.0], [0.0, 1.0]]), "dilation   J = I", BLUE),
-    (np.array([[1.0, 0.0], [0.0, -1.0]]), "shear      J = diag(1,−1)", ORANGE),
-    (np.array([[0.0, 1.0], [1.0, 0.0]]), "shear      J = [[0,1],[1,0]]", YELLOW),
+    (np.array([[1.0, 0.0], [0.0, -1.0]]), "strain S₀  J = diag(1,−1)", ORANGE),
+    (np.array([[0.0, 1.0], [1.0, 0.0]]), "strain S₀  J = [[0,1],[1,0]]", YELLOW),
     (np.array([[0.0, -1.0], [1.0, 0.0]]), "rotation   J = [[0,−1],[1,0]]", GREEN),
 ]
 
 fig, axes = plt.subplots(1, 4, figsize=(18, 5.4))
 fig.suptitle(
-    "The three atoms of DF:  dilation (div ≠ 0),  two shears (div = curl = 0),  rotation (curl ≠ 0)"
+    "The three atoms of DF:  isotropic scaling (div ≠ 0),  two strains — the same one 45° apart"
+    "  (div = curl = 0),  rotation (curl ≠ 0)"
     "\nblue circle = material points at t = 0;  colored curve = the same points at t = 0.4",
     color="white",
     fontsize=11,

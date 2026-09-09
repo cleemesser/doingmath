@@ -19,32 +19,48 @@ Each `*.py` is the source of truth (jupytext "percent" format); the paired `.ipy
 
 | # | Notebook | What it does |
 |---|----------|--------------|
-| 1 | [`Div_Curl_and_the_Jacobian`](Div_Curl_and_the_Jacobian.py) | Splits $DF$ into **dilation ⊕ strain ⊕ spin** — the decomposition of $\mathfrak{gl}(n)$ into irreducible $SO(n)$ representations — and identifies $\operatorname{div}F=\operatorname{tr}DF$ with the first summand and $\operatorname{curl}F=2\,\mathrm{vee}(\operatorname{skew}DF)$ with the third. Then: Liouville ($\operatorname{div}$ = log-rate of volume change), Cauchy–Stokes ($\operatorname{curl}$ = twice the mean angular velocity of material line elements), the Spivak/forms picture ($d\iota_F\mu=(\operatorname{div}F)\mu$ and $dF^\flat=2A$, proven symbolically), Stokes' theorem as the coordinate-free *definition* (with the $O(r^2)$ error coefficient predicted and checked), why curl is a vector only when $n=3$, and what the two operators are blind to. |
+| 1 | [`Div_Curl_and_the_Jacobian`](Div_Curl_and_the_Jacobian.py) | Splits $DF$ into **dilation ⊕ strain ⊕ spin** and identifies $\operatorname{div}F=\operatorname{tr}DF$ with the first piece and $\operatorname{curl}F=2\,\mathrm{vee}(\operatorname{skew}DF)$ with the third. **Gradient** enters from the other end: $D(\nabla f)$ is the Hessian, symmetric by Clairaut, so a gradient field has no spin part at all ($\operatorname{curl}\nabla f=0$) and $\operatorname{div}\nabla f=\operatorname{tr}\operatorname{Hess}f=\Delta f$. Then: Liouville ($\operatorname{div}$ = log-rate of volume change), Cauchy–Stokes ($\operatorname{curl}$ = twice the mean angular velocity of material line elements), the Spivak/forms picture ($d\iota_F\mu=(\operatorname{div}F)\mu$ and $dF^\flat=2A$, proven symbolically), Stokes' theorem as the coordinate-free *definition* (with the $O(r^2)$ error coefficient predicted and checked), why curl is a vector only when $n=3$, what the two operators are blind to, and a closing note proving via Schur's lemma that div and curl are the **only** operators of their kind. |
 
 ## The thread
 
-**Div and curl are two of the three irreducible pieces of $DF$, not a complete description of it.**
+**Div and curl read two of the three pieces of $DF$; they are not a complete description of it.**
 
 $$DF \;=\; \underbrace{\tfrac{1}{n}(\operatorname{tr}DF)I}_{\text{divergence}}
-        \;\oplus\; \underbrace{S_0}_{\text{rate of strain — invisible}}
-        \;\oplus\; \underbrace{A}_{\text{curl}},
+        \;+\; \underbrace{S_0}_{\text{rate of strain — invisible}}
+        \;+\; \underbrace{A}_{\text{curl}},
 \qquad n^2 = 1 + \left(\tfrac{n(n+1)}{2}-1\right) + \tbinom{n}{2}.$$
 
-In $\mathbb{R}^3$ that is $9 = 1 + 5 + 3$: the middle summand holds the *majority* of the components
-and neither operator reports it. Two consequences the notebook makes concrete:
+In $\mathbb{R}^3$ that is $9 = 1 + 5 + 3$: the middle piece holds the *majority* of the components
+and neither operator reports it. Three consequences the notebook makes concrete:
 
 - **$F(x,y)=(y,x)$ has $\operatorname{div}=0$ and $\operatorname{curl}=0$ everywhere, yet $DF\neq0$.**
   Pointwise, div and curl are far from determining the derivative. Globally they nearly do — that is
   Helmholtz, and the leftover ambiguity is harmonic, hence (by Hodge) topological.
-- **$\operatorname{div}$ needs less structure than $\operatorname{curl}$.** Trace is a $GL$-invariant,
-  so divergence survives *any* change of frame and needs only a volume form. The transpose — hence the
-  symmetric/antisymmetric split — is defined by the inner product, so curl needs a metric, and an
-  orientation on top of that to be a vector rather than a 2-form. The notebook exhibits a pure
-  rotation acquiring a strain part under a non-orthogonal change of coordinates while its divergence
-  does not move.
+- **$\operatorname{div}$ needs less structure than $\operatorname{grad}$ or $\operatorname{curl}$.**
+  The trace is unchanged by *every* invertible change of frame, so divergence needs only a notion of
+  volume. The transpose — hence the symmetric/antisymmetric split — is defined by the inner product,
+  so curl needs a metric, plus an orientation to be a vector at all. Gradient meets the same fact one
+  step earlier: $Df$ is a linear functional, and turning it into an arrow requires an inner product,
+  so the *same* function has different gradients under different metrics ($\nabla_{\!M}f=M^{-1}\nabla f$).
+  The notebook exhibits both — a gradient arrow moving when the metric changes, and a pure rotation
+  acquiring a strain part under a non-orthogonal change of coordinates while its divergence does not
+  move.
+- **A gradient field is exactly the case $A=0$.** $D(\nabla f)=\operatorname{Hess}f$ is symmetric, so
+  $\operatorname{curl}\nabla f=0$ is not a computation but the symmetry of second partials; and
+  $\operatorname{div}\nabla f=\Delta f$ makes the Laplacian the trace of the Hessian, the same
+  projection one step along. Harmonic $f$ kills the dilation piece too, leaving pure strain — which is
+  where the "invisible" fields above come from.
 
-The other half of the thread is Spivak's: there is one operator, $d$, applied in two degrees, and the
-metric and orientation are what disguise it as two.
+The other half of the thread is Spivak's: there is one operator, $d$, applied in three degrees, and
+the metric and orientation are what disguise it as grad, curl and div.
+
+A closing section (§10, and only §10) names the structure in group-representation language —
+$\mathfrak{gl}(n)=\mathbb{R}I\oplus\operatorname{Sym}_0(n)\oplus\mathfrak{so}(n)$ as irreducible
+$SO(n)$ representations — and uses Schur's lemma to upgrade "natural" to "unique": divergence is the
+only rotation-invariant scalar and curl the only equivariant vector that a first derivative of a
+vector field can produce. Both multiplicities are *measured* numerically, by averaging the conjugation
+action over random rotations and reading off a rank. **Sections 1–9 need only a first undergraduate
+linear algebra course** and never use that vocabulary.
 
 ## Reference reading
 
@@ -73,6 +89,12 @@ metric and orientation are what disguise it as two.
 - G. K. Batchelor, *An Introduction to Fluid Dynamics*, CUP, 1967 — §2.3, the paddle-wheel reading of
   Stokes 1845.
 
+**For the closing note (§10)**
+
+- H. Weyl, *The Classical Groups*, Princeton, 1939 — tensor representations of the orthogonal group.
+- W. Fulton and J. Harris, *Representation Theory: A First Course*, Springer, 1991 — §§1–3 for Schur's
+  lemma and multiplicity counting.
+
 ## Related notebooks in this repository
 
 - [`GeometricLinearAlgebra/04_Volume_Determinant_Trace`](../GeometricLinearAlgebra/04_Volume_Determinant_Trace.py)
@@ -80,8 +102,8 @@ metric and orientation are what disguise it as two.
   This directory is its nonlinear continuation.
 - [`LieGroups/VectorField_View_Lie_Theory`](../LieGroups/VectorField_View_Lie_Theory.py) — flows, the
   Jacobi–Lie bracket, $\exp$ as a flow.
-- [`LieGroups/SO3_Lie_Theory`](../LieGroups/SO3_Lie_Theory.py) — the hat map
-  $\mathbb{R}^3\to\mathfrak{so}(3)$ that turns the antisymmetric part of $DF$ into $\tfrac12\operatorname{curl}F$.
+- [`LieGroups/SO3_Lie_Theory`](../LieGroups/SO3_Lie_Theory.py) — the hat map from $\mathbb{R}^3$ to
+  antisymmetric matrices, which turns the antisymmetric part of $DF$ into $\tfrac12\operatorname{curl}F$.
 
 ## Workflow
 

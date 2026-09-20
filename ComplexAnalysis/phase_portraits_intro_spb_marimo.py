@@ -17,15 +17,13 @@
 
 import marimo
 
-
-__generated_with = "0.24.0"
+__generated_with = "0.24.2"
 app = marimo.App(app_title="Intro to Phase Portraits", auto_download=["ipynb"])
 
 
 @app.cell
 def _():
     import marimo as mo
-
 
     return (mo,)
 
@@ -121,7 +119,6 @@ def _():
         riemann_sphere_2d,
         roots,
         sin,
-        symbols,
         together,
         z,
     )
@@ -232,8 +229,13 @@ def _(DOMAIN3, domain_coloring, graphics, mo, z):
     # how to enable matplotlib interactive pan/zoom/save
     mo.mpl.interactive(
         graphics(
-            *domain_coloring(z**2, DOMAIN3, coloring="b", n=2500, colorbar=False),
-            grid=False, axis=False, aspect="equal", show=False,
+            *domain_coloring(
+                z**2, DOMAIN3, coloring="b", n=2500, colorbar=False
+            ),
+            grid=False,
+            axis=False,
+            aspect="equal",
+            show=False,
         ).fig
     )
     return
@@ -243,7 +245,9 @@ def _(DOMAIN3, domain_coloring, graphics, mo, z):
 def _(DOMAIN2, DOMAIN3, MB, domain_coloring, graphics, z):
     def portrait(f, domain=DOMAIN3, coloring="b", n=500, **kwargs):
         """One titled domain-coloring panel, titled from the expression itself."""
-        series = domain_coloring(f, domain, coloring=coloring, n=n, colorbar=False)
+        series = domain_coloring(
+            f, domain, coloring=coloring, n=n, colorbar=False
+        )
         kwargs.setdefault("title", series[0].get_label(use_latex=True))
         return graphics(
             *series,
@@ -255,10 +259,11 @@ def _(DOMAIN2, DOMAIN3, MB, domain_coloring, graphics, z):
             **kwargs,
         )
 
-
     def coloring_image(code, expr=z, domain=DOMAIN2, n=200):
         """RGB image (float, 0-255) for one coloring scheme - straight off the series."""
-        (series,) = domain_coloring(expr, domain, coloring=code, n=n, colorbar=False)
+        (series,) = domain_coloring(
+            expr, domain, coloring=code, n=n, colorbar=False
+        )
         return series.get_data()[4].astype(float)
 
     return coloring_image, portrait
@@ -517,12 +522,21 @@ def _(mo):
 def _(BB, DOMAIN3, MB, PB, R, domain_coloring, graphics):
     series = domain_coloring(R, DOMAIN3, coloring="b", n=400, colorbar=False)
 
+    results = []
     for backend in (MB, PB, BB):
-        p = graphics(
-            *series, backend=backend, grid=False, show=False, aspect="equal"
-        )
-        print(f"{backend.__name__:20s} -> {type(p.fig).__module__}")
-    print("one series list, three figure types ✓")
+        try:
+            p = graphics(
+                *series, backend=backend, grid=False, show=False, aspect="equal"
+            )
+            results.append(
+                f"{backend.__name__:20s} -> {type(p.fig).__module__}"
+            )
+        except AttributeError as e:
+            results.append(
+                f"{backend.__name__:20s} -> SKIPPED ({e.__class__.__name__}: {e})"
+            )
+
+    print("\n".join(results))
     return (series,)
 
 
@@ -535,78 +549,6 @@ def _(PB, graphics, series):
         grid=False,
         title="plotly: hover reports modulus and argument",
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Interactive exploration with widgets
-
-    Because the expression is symbolic, a *parameter* can stay symbolic too. Pass
-    `params={sym: (default, min, max)}` and spb builds an ipywidgets (or panel) app that re-lambdifies
-    and re-renders on change. Watch the `k`-fold zero at the origin split hues as `k` moves.
-
-    This has no clmmathtools analogue — with a Python callable you would rebuild and redraw by hand.
-
-    Backend note: the widget app embeds the figure in an ipywidgets `Box`, so the figure must itself
-    *be* a widget. `PB` (plotly) satisfies that natively via `FigureWidget`. `MB` (matplotlib) only
-    does under `%matplotlib widget` (ipympl) — with the default inline/Agg canvas it raises
-    `TraitError: ... expected a Widget, not the FigureCanvasAgg`.
-    """)
-    return
-
-
-@app.cell
-def _(DOMAIN2, PB, domain_coloring, graphics, symbols, z):
-    # this attempt at using a widget does not work
-    k = symbols("k", positive=True)
-
-    graphics(
-        *domain_coloring(
-            z**k * (z - 1) / (z + 1),
-            DOMAIN2,
-            coloring="b",
-            n=300,
-            colorbar=False,
-            params={k: (2.0, 1.0, 5.0)},
-        ),
-        grid=False,
-        aspect="equal",
-        backend=PB,
-        imodule="ipywidgets",
-        title="z^k (z-1)/(z+1)",
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Recap — where each library wins
-
-    | | `clmmathtools` | `spb` |
-    |---|---|---|
-    | input | Python callable on `ndarray` | SymPy expression |
-    | non-symbolic `f` (data, iteration, numerics) | natural | needs a wrapper or is out of reach |
-    | exact zeros / poles / residues to annotate with | you compute them yourself | `roots`, `residue`, `diff` on the same object |
-    | labels | hand-written strings | LaTeX from the expression, automatic |
-    | Wegert schemes | 4 (`plane`/`phase`/`modulus`/`enhanced`) | 16 + user callable, incl. magnitude-blended |
-    | composition model | `Plane` object, chained mutators | series factories + `graphics(*series)` |
-    | multi-panel | one figure per `display()` | `plotgrid()` |
-    | 3D landscape | separate `Space3D` class | another series factory, same call shape |
-    | Riemann sphere | — | `riemann_sphere_2d` / `_3d` |
-    | widgets | — | `params={sym: (init, lo, hi)}` |
-    | backends | matplotlib, vedo | matplotlib, plotly, bokeh, k3d, mayavi |
-    | data introspection | `phase.colorize()` returns RGB | `series.get_data()` returns `x, y, abs, arg, rgb` |
-    | control over the drawing | full — it is your code | `rendering_kw` passthrough, then the series API's edge |
-
-    The short version: **spb is the better tool when the function is symbolic**, which for classical
-    complex analysis it usually is — you get exactness, LaTeX, four backends and widgets for free.
-    **clmmathtools stays the better tool when it is not** — an iterated map, a numerically-defined
-    transform, a function you only have as samples — and when a portrait is one layer of a scene
-    you are assembling out of arbitrary primitives.
-    """)
     return
 
 

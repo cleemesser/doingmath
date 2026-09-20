@@ -7,7 +7,7 @@
 #     "matplotlib",
 #     "plotly",
 #     "bokeh",
-#     "spb (sympy-plot-backends)",
+#     "sympy-plot-backends",
 #     "k3d",
 #     "ipympl",
 #     "ipywidgets",
@@ -16,6 +16,7 @@
 # maybe can cut down on these dependencies
 
 import marimo
+
 
 __generated_with = "0.24.0"
 app = marimo.App(app_title="Intro to Phase Portraits", auto_download=["ipynb"])

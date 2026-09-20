@@ -7,7 +7,7 @@
 #     "matplotlib",
 #     "plotly",
 #     "bokeh",
-#     "sympy-plot-backends",
+#     "sympy_plot_backends", # spb package
 #     "k3d",
 #     "ipympl",
 #     "ipywidgets",

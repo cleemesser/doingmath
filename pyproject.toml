@@ -62,7 +62,7 @@ dependencies = [
     "xarray>=2026.4.0",
     "multimethod==1.10", # needs to be pinned back for scikit-fda to work
     "scikit-fda>=0.10.1",
-    "pydantic-ai>=2.40.0",
+    "pydantic-ai>=2.40.0",# for marimo AI integration
 ]
 
 [project.optional-dependencies]

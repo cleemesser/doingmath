@@ -1,15 +1,15 @@
 # Vector Calculus — what $\operatorname{div}$ and $\operatorname{curl}$ say about $DF$
 
-A vector field $F:\mathbb{R}^n\to\mathbb{R}^n$ is unusual among smooth maps: its derivative at a
+A vector field $F:\mathbb{R}^n\to\mathbb{R}^n$ is unusual among smooth maps. Its derivative at a
 point is an **endomorphism of the tangent space**, $DF(p):T_p\mathbb{R}^n\to T_p\mathbb{R}^n$. For a
-general $f:M\to N$ the derivative maps between two *different* spaces and has no trace, no
-eigenvalues, no symmetric part. Everything classical vector calculus does with div and curl follows
-from that one identification.
+general $f:M\to N$ the derivative maps between two *different* spaces, and such a thing has no trace,
+no eigenvalues and no symmetric part. Everything classical vector calculus does with div and curl
+follows from that one identification.
 
 Like the sibling [`LieGroups/`](../LieGroups/README.md) and
 [`GeometricLinearAlgebra/`](../GeometricLinearAlgebra/README.md) sets, each notebook *computes* what
-it describes and cross-checks its own claims — numerically with `np.allclose`, and where the claim is
-an identity for *all* fields, symbolically with SymPy over generic functions, which is a proof rather
+it describes and checks its own claims — numerically with `np.allclose`, and, where the claim is an
+identity for *all* fields, symbolically with SymPy over generic functions, which is a proof rather
 than a spot check.
 
 Each `*.py` is the source of truth (jupytext "percent" format); the paired `.ipynb` is generated with
@@ -17,8 +17,8 @@ Each `*.py` is the source of truth (jupytext "percent" format); the paired `.ipy
 
 ## Notebooks
 
-Notebook 1 exists in three versions (1, 1b, 1c). They share section numbering, prose and figures;
-they differ in how the numbers are produced, and each is worth running for a different reason.
+Notebook 1 exists in three versions (1, 1b, 1c). They share section numbering, prose and figures.
+They differ in how the numbers are produced, and each is worth running for a different reason.
 Notebooks 2 and 3 are different topics: 2 takes one section of notebook 1 and expands it, and 3
 steps back to ask what *all* the competing generalizations of curl are.
 
@@ -41,34 +41,34 @@ $$DF \;=\; \underbrace{\tfrac{1}{n}(\operatorname{tr}DF)I}_{\text{divergence}}
         \;+\; \underbrace{A}_{\text{curl}},
 \qquad n^2 = 1 + \left(\tfrac{n(n+1)}{2}-1\right) + \tbinom{n}{2}.$$
 
-In $\mathbb{R}^3$ that is $9 = 1 + 5 + 3$: the middle piece holds the *majority* of the components
-and neither operator reports it. Three consequences the notebook makes concrete:
+In $\mathbb{R}^3$ that is $9 = 1 + 5 + 3$. The middle piece holds *most* of the components, and
+neither operator reports it. Three consequences the notebook makes concrete:
 
 - **$F(x,y)=(y,x)$ has $\operatorname{div}=0$ and $\operatorname{curl}=0$ everywhere, yet $DF\neq0$.**
-  Pointwise, div and curl are far from determining the derivative. Globally they nearly do — that is
-  Helmholtz, and the leftover ambiguity is harmonic, hence (by Hodge) topological.
+  Point by point, div and curl are far from determining the derivative. Globally they almost do —
+  that is Helmholtz — and the leftover ambiguity is harmonic, so by Hodge it is topological.
 - **$\operatorname{div}$ needs less structure than $\operatorname{grad}$ or $\operatorname{curl}$.**
-  The trace is unchanged by *every* invertible change of frame, so divergence needs only a notion of
-  volume. The transpose — hence the symmetric/antisymmetric split — is defined by the inner product,
-  so curl needs a metric, plus an orientation to be a vector at all. Gradient meets the same fact one
-  step earlier: $Df$ is a linear functional, and turning it into an arrow requires an inner product,
-  so the *same* function has different gradients under different metrics ($\nabla_{\!M}f=M^{-1}\nabla f$).
-  The notebook exhibits both — a gradient arrow moving when the metric changes, and a pure rotation
-  acquiring a strain part under a non-orthogonal change of coordinates while its divergence does not
-  move.
+  *Every* invertible change of frame leaves the trace alone, so divergence needs only a notion of
+  volume. The transpose — and so the symmetric/antisymmetric split — is defined by the inner product,
+  so curl needs a metric, plus an orientation before it can be a vector at all. Gradient meets the
+  same fact one step earlier: $Df$ is a linear functional, and turning it into an arrow takes an inner
+  product, so the *same* function has different gradients under different metrics
+  ($\nabla_{\!M}f=M^{-1}\nabla f$). The notebook shows both — a gradient arrow moving when the metric
+  changes, and a pure rotation picking up a strain part under a non-orthogonal change of coordinates
+  while its divergence stays put.
 - **A gradient field is exactly the case $A=0$.** $D(\nabla f)=\operatorname{Hess}f$ is symmetric, so
-  $\operatorname{curl}\nabla f=0$ is not a computation but the symmetry of second partials; and
-  $\operatorname{div}\nabla f=\Delta f$ makes the Laplacian the trace of the Hessian, the same
-  projection one step along. Harmonic $f$ kills the dilation piece too, leaving pure strain — which is
-  where the "invisible" fields above come from.
+  $\operatorname{curl}\nabla f=0$ is not a computation. It is the symmetry of second partials. And
+  $\operatorname{div}\nabla f=\Delta f$ makes the Laplacian the trace of the Hessian — the same
+  projection, one step along. A harmonic $f$ removes the dilation piece too, leaving pure strain,
+  which is where the "invisible" fields above come from.
 
-The other half of the thread is Spivak's: there is one operator, $d$, applied in three degrees, and
-the metric and orientation are what disguise it as grad, curl and div.
+The other half of the thread is Spivak's: there is one operator, $d$, used in three degrees, and the
+metric and the orientation are what disguise it as grad, curl and div.
 
-A closing section (§10, and only §10) names the structure in group-representation language —
+A closing section (§10, and only §10) names the structure in the language of group representations —
 $\mathfrak{gl}(n)=\mathbb{R}I\oplus\operatorname{Sym}_0(n)\oplus\mathfrak{so}(n)$ as irreducible
-$SO(n)$ representations — and uses Schur's lemma to upgrade "natural" to "unique": divergence is the
-only rotation-invariant scalar and curl the only equivariant vector that a first derivative of a
+$SO(n)$ representations — and uses Schur's lemma to turn "natural" into "unique". Divergence is the
+only rotation-invariant scalar, and curl the only equivariant vector, that a first derivative of a
 vector field can produce. Both multiplicities are *measured* numerically, by averaging the conjugation
 action over random rotations and reading off a rank. **Sections 1–9 need only a first undergraduate
 linear algebra course** and never use that vocabulary.
@@ -118,31 +118,31 @@ linear algebra course** and never use that vocabulary.
 
 ## Which version to read
 
-None of the three is the "real" one; they fail in different places, and that is the point.
+None of the three is the "real" one. They fail in different places, and that is the point.
 
-- **Finite differences** need nothing of the function but the ability to evaluate it, so they work on
-  a black box, a table of measurements, or a simulator you cannot see inside. They cost a step size:
-  too large and truncation error dominates, too small and cancellation does, and the best you can do
-  for a second derivative is roughly $\sqrt[3]{\varepsilon}$ relative accuracy.
-- **Automatic differentiation** gives the exact derivative *of the program*, with no step size, but
-  demands that the program be written in its own numpy (`anp`) and stay free of in-place assignment.
-  It also differentiates the code you actually wrote — which is a feature when you want the
-  derivative of your discretization, and a trap when you wanted the derivative of the equation your
+- **Finite differences** ask nothing of the function except that you can evaluate it, so they work on
+  a black box, a table of measurements, or a simulator you cannot see inside. They cost you a step
+  size: too large and truncation error dominates, too small and cancellation does. For a second
+  derivative the best you can do is roughly $\sqrt[3]{\varepsilon}$ relative accuracy.
+- **Automatic differentiation** gives the exact derivative *of the program*, with no step size. In
+  return it demands that the program be written in its own numpy (`anp`) and stay free of in-place
+  assignment. It also differentiates the code you actually wrote. That is a feature when you want the
+  derivative of your discretization, and a trap when you wanted the derivative of the equation the
   discretization approximates. §4 of the autodiff notebook puts both side by side.
 - **Symbolic differentiation** (SymPy) is a third thing again, and all three notebooks use it
-  unchanged: only a symbolic derivative over generic functions can prove an identity for *all* $f$,
+  unchanged. Only a symbolic derivative over generic functions can prove an identity for *all* $f$,
   which is what §2 and §6 need. AD evaluates at a point; it proves nothing.
 
-And one lesson that belongs to the third version specifically: **a backend abstraction abstracts an
+One lesson belongs to the third version in particular: **a backend abstraction abstracts an
 interface, not a capability.** `tl.sin` looks the same on every backend, but only some backends can
-be differentiated, and the combination that cannot (numpy + `autograd`) fails by returning zeros
-instead of raising. The adapter in `_tensorly.py` therefore refuses the numpy backend outright, which
-is the only safe design: a differentiation layer that silently produces plausible wrong numbers is
-worse than one that does not exist.
+be differentiated, and the one combination that cannot (numpy + `autograd`) fails by returning zeros
+rather than raising. So the adapter in `_tensorly.py` refuses the numpy backend outright. That is the
+only safe design: a differentiation layer that quietly produces plausible wrong numbers is worse than
+one that does not exist.
 
-The three versions agree numerically wherever they overlap — the same
+The three versions agree numerically wherever they overlap. The same
 $\Delta(\operatorname{div}F) = -2.008597054518664$ and $\det D\varphi_T = 4.657903971532783$ come out
-of finite differences, `autograd`, JAX and PyTorch — which is the best cross-check any of them has.
+of finite differences, `autograd`, JAX and PyTorch, which is the best cross-check any of them has.
 
 ## Workflow
 

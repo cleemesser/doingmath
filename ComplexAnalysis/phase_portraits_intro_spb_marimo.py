@@ -26,6 +26,7 @@ app = marimo.App(app_title="Intro to Phase Portraits", auto_download=["ipynb"])
 def _():
     import marimo as mo
 
+
     return (mo,)
 
 
@@ -72,17 +73,27 @@ def _():
 
     sp.init_printing()
 
-    from spb import (
-        analytic_landscape,
-        BB,
-        complex_points,
-        domain_coloring,
-        graphics,
-        MB,
-        PB,
-        plotgrid,
-        riemann_sphere_2d,
-    )
+    # The `spb` module is shipped by the distribution `sympy_plot_backends`,
+    # which the PEP 723 header above declares. PEP 723 has no way to record
+    # that an import name differs from a distribution name, so marimo's
+    # package manager guesses a PyPI name from the import name: on molab a
+    # plain `from spb import ...` makes it install the unrelated project
+    # literally named `spb`, and the import still fails. Going through
+    # importlib hides the import from that static scan, and the header
+    # installs the right package.
+    import importlib
+
+    spb = importlib.import_module("spb")
+
+    analytic_landscape = spb.analytic_landscape
+    BB = spb.BB
+    complex_points = spb.complex_points
+    domain_coloring = spb.domain_coloring
+    graphics = spb.graphics
+    MB = spb.MB
+    PB = spb.PB
+    plotgrid = spb.plotgrid
+    riemann_sphere_2d = spb.riemann_sphere_2d
 
     z = symbols("z")
 
@@ -226,6 +237,31 @@ def _(DOMAIN3, domain_coloring, graphics, mo, z):
         ).fig
     )
     return
+
+
+@app.cell
+def _(DOMAIN2, DOMAIN3, MB, domain_coloring, graphics, z):
+    def portrait(f, domain=DOMAIN3, coloring="b", n=500, **kwargs):
+        """One titled domain-coloring panel, titled from the expression itself."""
+        series = domain_coloring(f, domain, coloring=coloring, n=n, colorbar=False)
+        kwargs.setdefault("title", series[0].get_label(use_latex=True))
+        return graphics(
+            *series,
+            grid=False,
+            aspect="equal",
+            axis=False,
+            show=False,
+            backend=MB,
+            **kwargs,
+        )
+
+
+    def coloring_image(code, expr=z, domain=DOMAIN2, n=200):
+        """RGB image (float, 0-255) for one coloring scheme - straight off the series."""
+        (series,) = domain_coloring(expr, domain, coloring=code, n=n, colorbar=False)
+        return series.get_data()[4].astype(float)
+
+    return coloring_image, portrait
 
 
 @app.cell(hide_code=True)

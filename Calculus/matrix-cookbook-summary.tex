@@ -1,0 +1,255 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[colorlinks,linkcolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\newcolumntype{S}{>{\raggedright\arraybackslash$}p{0.25\textwidth}<{$}}
+\newcolumntype{M}{>{\raggedright\arraybackslash}p{0.51\textwidth}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}p{0.16\textwidth}}
+
+\newcommand{\symtable}[1]{%
+  \begin{longtable}{SML}
+  \toprule
+  \multicolumn{1}{l}{\textbf{Symbol}} & \textbf{Meaning} & \textbf{Where} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \multicolumn{1}{l}{\textbf{Symbol}} & \textbf{Meaning} & \textbf{Where} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  #1
+  \end{longtable}%
+}
+
+\title{The Matrix Cookbook (Petersen \& Pedersen)\\[2pt]
+       \large Summary of Major Symbols and Concepts, by Chapter}
+\author{Summary of \texttt{matrix-cookbook.pdf}, version November 15, 2012 (72 pp.)}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\section*{What this is --- and what it is not}
+\addcontentsline{toc}{section}{What this is --- and what it is not}
+
+The Cookbook is a \emph{reference}, not a text.  It is a collection of identities,
+approximations, inequalities and relations about matrices, numbered
+consecutively (1--\,$\sim$550) across the whole document so that any single result
+can be cited by equation number.  There are almost no proofs --- Appendix~B holds
+the handful that exist --- and the authors state plainly that the material was
+``collected, borrowed and copied'' and very likely contains errors.
+
+Practical consequences of that design:
+
+\begin{itemize}
+\item \textbf{Cite by equation number, not by page.}  Equation numbers are stable
+      across the document; section numbering is not especially memorable.
+\item \textbf{Check the layout convention before transplanting a derivative.}  The
+      Cookbook's $\partial/\partial\mathbf{X}$ results are laid out so that
+      $\partial\det(\mathbf{X})/\partial\mathbf{X}=\det(\mathbf{X})(\mathbf{X}^{-1})^{T}$
+      (Eq.~49) --- i.e.\ the result has the \emph{same} shape as $\mathbf{X}$.  This
+      is the ``gradient'' convention, and it is transposed relative to the numerator
+      layout used in, e.g., Dey's note.
+\item \textbf{Verify anything load-bearing.}  The authors solicit corrections; the
+      document is explicitly a best-effort compilation.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Notation and nomenclature (front matter, p.~5)}
+
+The Cookbook prints its own notation table.  Reproduced and grouped here.
+
+\subsection*{Objects and indexing}
+\symtable{
+\mathbf{A}                      & a matrix                                                       & p.~5 \\
+a,\;\mathbf{a}                  & a scalar; a (column) vector                                    & p.~5 \\
+\mathbf{A}_{ij},\;\mathbf{A}_{i},\;\mathbf{A}^{ij} & a matrix indexed for some purpose (not an entry) & p.~5 \\
+\mathbf{A}^{n}                  & the $n$-th power of a square matrix (or an indexed matrix)     & p.~5 \\
+(\mathbf{A})_{ij},\;A_{ij}      & the $(i,j)$-th \emph{entry} of $\mathbf{A}$                     & p.~5 \\
+{[\,\mathbf{A}\,]}_{ij}         & the $ij$-\textbf{submatrix}: $\mathbf{A}$ with row $i$ and column $j$ deleted & p.~5 \\
+a_{i}                           & the $i$-th element of the vector $\mathbf{a}$                  & p.~5 \\
+}
+
+\subsection*{Derived matrices}
+\symtable{
+\mathbf{A}^{-1}                 & inverse                                                        & \S3 \\
+\mathbf{A}^{+}                  & the \textbf{pseudo (Moore--Penrose) inverse}                   & \S3.6 \\
+\mathbf{A}^{1/2}                & matrix square root (if unique) --- \emph{not} elementwise       & p.~5 \\
+\mathbf{A}^{T}                  & transpose                                                      & p.~5 \\
+\mathbf{A}^{-T}                 & $(\mathbf{A}^{-1})^{T}=(\mathbf{A}^{T})^{-1}$                  & p.~5 \\
+\mathbf{A}^{*}                  & complex conjugate (entrywise)                                  & \S4 \\
+\mathbf{A}^{H}                  & conjugate transpose (Hermitian adjoint)                        & \S4 \\
+}
+
+\subsection*{Scalar-valued operators}
+\symtable{
+\det(\mathbf{A})                & determinant                                                    & \S1.2 \\
+\mathrm{Tr}(\mathbf{A})         & trace                                                          & \S1.1 \\
+\mathrm{diag}(\mathbf{A})       & the diagonal matrix with $(\mathrm{diag}(\mathbf{A}))_{ij}=\delta_{ij}A_{ij}$ & p.~5 \\
+\mathrm{eig}(\mathbf{A})        & the eigenvalues of $\mathbf{A}$                                & \S5.2 \\
+\mathrm{vec}(\mathbf{A})        & the vector form of $\mathbf{A}$ (columns stacked)              & \S10.2.2 \\
+\lVert\mathbf{A}\rVert          & a matrix norm; a subscript names which                         & \S10.4 \\
+\sup                            & supremum of a set                                              & p.~5 \\
+\Re z,\;\Re\mathbf{Z}           & real part of a scalar / vector / matrix                        & \S4 \\
+\Im z,\;\Im\mathbf{Z}           & imaginary part                                                 & \S4 \\
+}
+
+\subsection*{Products and named matrices}
+\symtable{
+\mathbf{A}\circ\mathbf{B}       & \textbf{Hadamard} (elementwise) product                        & \S10.2 \\
+\mathbf{A}\otimes\mathbf{B}     & \textbf{Kronecker} product                                     & \S10.2 \\
+\mathbf{0}                      & the null matrix (zero in all entries)                          & p.~5 \\
+\mathbf{I}                      & the identity matrix                                            & p.~5 \\
+\mathbf{J}^{ij}                 & the \textbf{single-entry matrix}: $1$ at $(i,j)$, zero elsewhere & \S9.7 \\
+\mathbf{\Sigma}                 & a positive definite matrix (typically a covariance)            & \S6--8 \\
+\mathbf{\Lambda}                & a diagonal matrix (typically of eigenvalues)                   & \S5.2 \\
+\mathbf{S}^{ij}                 & the \textbf{structure matrix}, $\partial\mathbf{A}/\partial A_{ij}$; equals $\mathbf{J}^{ij}$ when $\mathbf{A}$ is unstructured & \S2.8 \\
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Chapter map with headline results}
+
+\subsection{1. Basics (p.~6)}
+Trace (\S1.1), determinant (\S1.2), and the fully written-out $2\times2$ case
+(\S1.3).  The standard facts: $\mathrm{Tr}(\mathbf{AB})=\mathrm{Tr}(\mathbf{BA})$,
+$\mathrm{Tr}(\mathbf{A})=\sum_{i}\lambda_{i}$,
+$\det(\mathbf{AB})=\det(\mathbf{A})\det(\mathbf{B})$,
+$\det(\mathbf{A})=\prod_{i}\lambda_{i}$.
+
+\subsection{2. Derivatives (p.~8) --- the most-used chapter}
+\begin{description}
+\item[\S2.1 Determinant.]
+      $\dfrac{\partial\det(\mathbf{X})}{\partial\mathbf{X}}=\det(\mathbf{X})(\mathbf{X}^{-1})^{T}$
+      (Eq.~49); $\dfrac{\partial\ln\lvert\det(\mathbf{X})\rvert}{\partial\mathbf{X}}=(\mathbf{X}^{-1})^{T}$
+      (Eq.~57); square forms $\det(\mathbf{X}^{T}\mathbf{A}\mathbf{X})$ split into
+      three cases according to whether $\mathbf{X}$ is square and $\mathbf{A}$
+      symmetric (Eqs.~52--54).
+\item[\S2.2 Inverse.]  The one identity everything else rests on,
+      $\dfrac{\partial\mathbf{Y}^{-1}}{\partial x}=-\mathbf{Y}^{-1}\dfrac{\partial\mathbf{Y}}{\partial x}\mathbf{Y}^{-1}$
+      (Eq.~59).
+\item[\S2.3 Eigenvalues.]  $\partial\lambda_{i}=\mathbf{v}_{i}^{T}\partial(\mathbf{A})\mathbf{v}_{i}$
+      and $\partial\mathbf{v}_{i}=(\lambda_{i}\mathbf{I}-\mathbf{A})^{+}\partial(\mathbf{A})\mathbf{v}_{i}$
+      for real symmetric $\mathbf{A}$ with distinct eigenvalues (Eqs.~67--68).
+\item[\S2.4 Matrices, vectors, scalar forms.]  The bulk lookup table --- first-order,
+      second-order and higher-order forms.
+\item[\S2.5 Traces.]  A long list; the workhorses are
+      $\partial\,\mathrm{Tr}(\mathbf{X}^{T}\mathbf{X})/\partial\mathbf{X}=2\mathbf{X}$
+      (Eq.~115) and
+      $\partial\,\mathrm{Tr}(\mathbf{AXBX}^{T}\mathbf{C})/\partial\mathbf{X}=\mathbf{A}^{T}\mathbf{C}^{T}\mathbf{X}\mathbf{B}^{T}+\mathbf{CAXB}$
+      (Eq.~118).
+\item[\S2.6--2.7 Norms.]  Vector norms; matrix norms, e.g.\
+      $\partial\lVert\mathbf{X}\rVert_{F}^{2}/\partial\mathbf{X}=2\mathbf{X}$ (Eq.~132).
+\item[\S2.8 Structured matrices --- read this before using \S2.4--2.5.]
+      If $\mathbf{A}$ is symmetric, Toeplitz, etc., \emph{the preceding sections do
+      not apply}.  The general rule is
+      $\dfrac{df}{dA_{ij}}=\mathrm{Tr}\!\left[\left(\dfrac{\partial f}{\partial\mathbf{A}}\right)^{T}\dfrac{\partial\mathbf{A}}{\partial A_{ij}}\right]$
+      (Eq.~133), with $\partial\mathbf{A}/\partial A_{ij}=\mathbf{S}^{ij}$ the
+      \textbf{structure matrix} (Eq.~134).  For symmetric $\mathbf{A}$,
+      $\mathbf{S}^{ij}=\mathbf{J}^{ij}+\mathbf{J}^{ji}-\mathbf{J}^{ij}\mathbf{J}^{ij}$,
+      giving
+      $\dfrac{df}{d\mathbf{A}}=\dfrac{\partial f}{\partial\mathbf{A}}+\left(\dfrac{\partial f}{\partial\mathbf{A}}\right)^{T}-\mathrm{diag}\!\left(\dfrac{\partial f}{\partial\mathbf{A}}\right)$
+      (Eq.~138).  \S2.8.1 gives the matrix chain rule
+      $\dfrac{\partial g(\mathbf{U})}{\partial X_{ij}}=\mathrm{Tr}\!\left[\left(\dfrac{\partial g(\mathbf{U})}{\partial\mathbf{U}}\right)^{T}\dfrac{\partial\mathbf{U}}{\partial X_{ij}}\right]$
+      (Eq.~137).
+\end{description}
+
+\subsection{3. Inverses (p.~17)}
+Basic facts; \textbf{exact relations} (\S3.2) --- the family of matrix-inversion
+lemmas that make large inverses tractable:
+\begin{itemize}
+\item \textbf{Woodbury} (Eqs.~156--157):
+      $(\mathbf{A}+\mathbf{UBV})^{-1}=\mathbf{A}^{-1}-\mathbf{A}^{-1}\mathbf{U}(\mathbf{B}^{-1}+\mathbf{VA}^{-1}\mathbf{U})^{-1}\mathbf{VA}^{-1}$.
+\item \textbf{Kailath variant} (Eq.~159):
+      $(\mathbf{A}+\mathbf{BC})^{-1}=\mathbf{A}^{-1}-\mathbf{A}^{-1}\mathbf{B}(\mathbf{I}+\mathbf{CA}^{-1}\mathbf{B})^{-1}\mathbf{CA}^{-1}$.
+\item \textbf{Sherman--Morrison} (Eq.~160), the rank-one case:
+      $(\mathbf{A}+\mathbf{bc}^{T})^{-1}=\mathbf{A}^{-1}-\dfrac{\mathbf{A}^{-1}\mathbf{bc}^{T}\mathbf{A}^{-1}}{1+\mathbf{c}^{T}\mathbf{A}^{-1}\mathbf{b}}$.
+\item \textbf{The Searle set} (Eqs.~161--167), including
+      $(\mathbf{I}+\mathbf{AB})^{-1}=\mathbf{I}-\mathbf{A}(\mathbf{I}+\mathbf{BA})^{-1}\mathbf{B}$.
+\end{itemize}
+Then implications on inverses (\S3.3), approximations (\S3.4), generalized inverses
+(\S3.5), and the \textbf{pseudo inverse} $\mathbf{A}^{+}$ (\S3.6) with rank-one
+update formulas.
+
+\subsection{4. Complex matrices (p.~24)}
+Complex derivatives (\S4.1) --- note the modified chain rule for \emph{non-analytic}
+$f$, which reduces to the ordinary one in the analytic case; higher-order and
+non-linear derivatives (\S4.2); inverse of a complex sum (\S4.3).
+
+\subsection{5. Solutions and decompositions (p.~28)}
+Solutions to linear equations (\S5.1); eigenvalues and eigenvectors (\S5.2);
+\textbf{SVD} (\S5.3); triangular, \textbf{LU}, \textbf{LDM}, \textbf{LDL}
+decompositions (\S5.4--5.7).
+
+\subsection{6--8. Statistics, distributions, Gaussians (pp.~34--45)}
+Definition of moments (\S6.1); expectation of linear combinations (\S6.2); weighted
+scalar variables (\S6.3).  Multivariate distributions (\S7): Cauchy, Dirichlet,
+Normal, Normal-Inverse Gamma, Gaussian, Multinomial, Student's $t$, Wishart and
+inverse Wishart.  Chapter 8 is the Gaussian workhorse: products, marginals and
+conditionals, linear combinations, rearranging means, moments, and mixtures.  These
+three chapters are why the Cookbook is a fixture in machine-learning work.
+
+\subsection{9. Special matrices (p.~46)}
+\begin{itemize}
+\item \textbf{Block matrices} (\S9.1), including the \textbf{Schur complement}
+      (\S9.1.5) and the block-inverse and block-determinant formulas built from it.
+      The Cookbook notes (\S8) that Gaussian conditional covariances \emph{are} Schur
+      complements --- the link between chapters 8 and 9.
+\item Discrete Fourier transform matrix (\S9.2); Hermitian and skew-Hermitian
+      (\S9.3); idempotent (\S9.4); orthogonal (\S9.5); positive (semi-)definite
+      (\S9.6, with the Hadamard inequality); the \textbf{single-entry matrix}
+      $\mathbf{J}^{ij}$ (\S9.7, the atom of all the structure-matrix results);
+      symmetric and skew-symmetric (\S9.8); Toeplitz (\S9.9); transition matrices
+      (\S9.10); units, permutation and shift (\S9.11); Vandermonde (\S9.12).
+\end{itemize}
+
+\subsection{10. Functions and operators (p.~58)}
+Functions and series of matrices (\S10.1); \textbf{Kronecker and vec} (\S10.2), whose
+central identity is
+\[
+\mathrm{vec}(\mathbf{AXB})=(\mathbf{B}^{T}\otimes\mathbf{A})\,\mathrm{vec}(\mathbf{X})
+\quad(\text{Eq.}~520),
+\qquad
+\mathrm{Tr}(\mathbf{A}^{T}\mathbf{B})=\mathrm{vec}(\mathbf{A})^{T}\mathrm{vec}(\mathbf{B})
+\quad(\text{Eq.}~521);
+\]
+vector norms (\S10.3); matrix norms (\S10.4); rank (\S10.5); integrals involving Dirac
+deltas (\S10.6); miscellaneous (\S10.7).
+
+\subsection{Appendices}
+\textbf{A} --- one-dimensional results (Gaussian; 1-D mixture of Gaussians), as a
+sanity check on the matrix versions.  \textbf{B} --- the few proofs and details.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Notation traps worth flagging}
+
+\begin{itemize}
+\item \textbf{$\mathbf{A}_{ij}$ is ambiguous by design.}  The notation table lists
+      $\mathbf{A}_{ij}$ both as ``a matrix indexed for some purpose'' and as the
+      $(i,j)$-th entry.  Context decides; bold weight is the only cue.
+\item \textbf{$[\mathbf{A}]_{ij}$ is a submatrix, not an entry} --- it is $\mathbf{A}$
+      with row $i$ and column $j$ \emph{deleted}.  Adjacent to $(\mathbf{A})_{ij}$,
+      which \emph{is} the entry.
+\item \textbf{$\mathbf{A}^{1/2}$ is a matrix square root}, not the elementwise square
+      root; and it need not be unique.
+\item \textbf{$\mathbf{A}^{n}$ collides with the ``indexed matrix'' convention.}  A
+      superscript may be a power or a label.
+\item \textbf{Layout.}  Cookbook derivative results are shaped like the differentiated
+      matrix (gradient convention).  Combining them with a numerator-layout source
+      without transposing is the standard way to get a shape-wrong answer.
+\item \textbf{\S2.4--2.7 assume no structure.}  For symmetric, Toeplitz or otherwise
+      constrained matrices you must go through \S2.8; using the unstructured result
+      double-counts the off-diagonal entries.
+\item \textbf{Errors are expected.}  The authors say so explicitly and give a
+      correction address.  Treat any single equation as a strong hint, not a proof.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,90 @@
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue]{hyperref}
+
+\setlist[itemize]{topsep=2pt,itemsep=1pt,parsep=0pt,leftmargin=1.2em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\pagestyle{empty}
+
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\h}{\mathbf{h}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+
+\title{\vspace{-2em}\textbf{Rules for the Total Derivative}\vspace{-1em}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Core object}
+
+For $f:\mathbb{R}^n\to\mathbb{R}^m$ differentiable at $\x$, the total derivative $Df(\x)$ is the
+\emph{linear map} satisfying
+\[
+f(\x+\h) = f(\x) + Df(\x)\h + o(\|\h\|).
+\]
+Its matrix in standard coordinates is the Jacobian $J_{ij} = \partial f_i/\partial x_j$. Every rule
+below follows from this definition.
+
+\section*{Rules}
+
+\textbf{1. Chain rule.} For a curve $\x(t)$,
+\[
+\frac{df}{dt} = \sum_i \pd{f}{x_i}\frac{dx_i}{dt} = \nabla f\cdot\dot{\x}.
+\]
+General composition: $D(g\circ f)(\x) = Dg(f(\x))\,Df(\x)$ --- a matrix product, so order matters.
+
+\textbf{2. Explicit time dependence.} If $f = f(\x(t),t)$,
+\[
+\frac{df}{dt} = \pd{f}{t} + \sum_i \pd{f}{x_i}\dot{x}_i .
+\]
+This is the material derivative $D/Dt = \partial_t + \mathbf{v}\cdot\nabla$ when $\dot{\x}$ is a
+velocity field.
+
+\textbf{3. Differential form.} $df = \sum_i \pd{f}{x_i}\,dx_i$, coordinate-free once $dx_i$ is read
+as a basis covector. Invariant under change of coordinates.
+
+\textbf{4. Linearity.} $D(af+bg) = a\,Df + b\,Dg$.
+
+\textbf{5. Product and quotient.} $d(fg) = f\,dg + g\,df$ and $d(f/g) = (g\,df - f\,dg)/g^2$.
+For a bilinear map $B$,
+\[
+D\,B(u,v)\,h = B(Du\,h,\;v) + B(u,\;Dv\,h),
+\]
+which covers dot products, matrix products, and wedge products.
+
+\textbf{6. Implicit differentiation.} If $F(x,y)=0$ with $\partial F/\partial y \neq 0$, then
+$dy/dx = -F_x/F_y$. Vector version: if $D_{\mathbf{y}}F$ is invertible,
+$D\mathbf{y}(\x) = -(D_{\mathbf{y}}F)^{-1}D_{\x}F$ (implicit function theorem).
+
+\textbf{7. Inverse.} $Df^{-1}(f(\x)) = [Df(\x)]^{-1}$ wherever the inverse exists.
+
+\section*{Caveats}
+
+\begin{itemize}
+\item Existence of all partials does \textbf{not} imply total differentiability. Counterexample:
+      $f(x,y) = xy/(x^2+y^2)$ with $f(0,0)=0$; the partials exist at the origin but $f$ is not even
+      continuous there.
+\item Sufficient condition: partials exist and are \emph{continuous} on a neighborhood
+      $\Rightarrow f\in C^1$, hence totally differentiable.
+\item Directional derivatives equal $Df(\x)\mathbf{v}$ only when the total derivative exists;
+      otherwise they may all exist yet fail to be linear in $\mathbf{v}$.
+\item Symmetry of second derivatives, $\partial_i\partial_j f = \partial_j\partial_i f$, requires
+      continuity of the mixed partials (Clairaut--Schwarz).
+\end{itemize}
+
+\section*{References}
+
+\begin{itemize}
+\item M. Spivak, \emph{Calculus on Manifolds}, Benjamin, 1965 --- Ch.~2, the cleanest treatment of
+      $Df$ as a linear map.
+\item W. Rudin, \emph{Principles of Mathematical Analysis}, 3rd ed., McGraw--Hill, 1976 ---
+      Thm.~9.21 ($C^1$ criterion), Thm.~9.28 (implicit function theorem).
+\item V.~I. Arnold, \emph{Mathematical Methods of Classical Mechanics}, 2nd ed., Springer, 1989 ---
+      Ch.~7, the differential-form viewpoint.
+\end{itemize}
+
+\end{document}

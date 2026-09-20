@@ -1,3 +1,8 @@
+# ///script
+# dependencies = [
+# "sympy_plot_backends",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.24.0"

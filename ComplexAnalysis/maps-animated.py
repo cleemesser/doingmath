@@ -16,27 +16,30 @@
 # %% [markdown]
 # # from linear maps of the plane to analytic functions and beyond
 #
-# A re-run of `maps-from-linear-to-complex-holomorphic.py` in which every map is **animated**: a
-# single parameter `t ∈ [0, 1]` and a builder `build(t) -> Plane`. `clmmathtools.viz.animate` pre-renders the
-# frames offscreen to PNG bytes, then an ipywidgets `Play`/slider swaps the cached images — instant
-# scrubbing, and nothing depends on a live 3D notebook backend.
+# This notebook re-runs `maps-from-linear-to-complex-holomorphic.py` with one change: every map
+# is animated. One parameter `t ∈ [0, 1]` and a builder `build(t) -> Plane` define each animation.
+# `clmmathtools.viz.animate` renders the frames in advance, offscreen, to PNG bytes. An ipywidgets
+# `Play` button and slider then swap the cached images. Scrubbing is instant, and nothing depends
+# on a live 3D notebook backend.
 #
 # ### Todo
-# - [ ] update text: move my notes on the animation technique to another document. (Don't want to introduce Lie groups here!)
-# - [ ] update text for learners: I anticipating using this notebook after having done quite a bit of intro to linear algebra and the transformations. I also assume that we have done our intro to the complex plane already
-# - [ ] make it so there is a standard size for the scurbber - probablly about 400 x 400, render the pixels at a higher resolution and increase the extent to add more squares with thinner lines
-# - [x] use purple as the default color, with green or blue for variety
+# - [ ] Update the text: move my notes on the animation technique to another document. I do not want to introduce Lie groups here.
+# - [ ] Update the text for learners. The learner will use this notebook after an intro to linear algebra and transformations, and after an intro to the complex plane.
+# - [ ] Give the scrubber a standard size, probably about 400 x 400. Render the pixels at a higher resolution, and increase the extent to add more squares with thinner lines.
+# - [x] Use purple as the default color, with green or blue for variety
 #
-# > **Run this notebook live.** The scrubbers below are ipywidgets; they render in a running Jupyter
-# > frontend (or VS Code), not in a static export. The GIF and the numeric checks show up anywhere.
+# > Run this notebook live. The scrubbers below are ipywidgets. They render in a running Jupyter
+# > frontend or VS Code, but not in a static export. The GIF and the numeric checks show up
+# > anywhere.
 #
-# **Lie-group first.** Where a map is a group element we animate along its **one-parameter subgroup**
-# `M(t) = exp(t·log M)` — the geodesic path (`kind="geodesic"` for `GL⁺(2,ℝ)`, `mobius_path(A)` for
-# `PSL(2,ℂ)`). The geodesic never degenerates, because `det exp(A) = e^{tr A} > 0` always. Where the
-# Lie-group path **cannot** reach the target — a projection (`det = 0`, no logarithm), or `z²`/`1/z`
-# and the non-holomorphic maps (not Möbius) — we fall back to `lerp` (a straight line in matrix space)
-# or the holomorphic `homotopy` (a convex combination), and the degeneration is the mathematics rather
-# than an artifact.
+# Lie-group first: where a map is a group element, animate along its one-parameter subgroup
+# `M(t) = exp(t·log M)`. This is the geodesic path (`kind="geodesic"` for `GL⁺(2,ℝ)`,
+# `mobius_path(A)` for `PSL(2,ℂ)`). The geodesic never degenerates, because
+# `det exp(A) = e^{tr A} > 0` always holds. Where the Lie-group path cannot reach the target, fall
+# back to `lerp` (a straight line in matrix space) or the holomorphic `homotopy` (a convex
+# combination). The path cannot reach a projection (`det = 0`, no logarithm), or `z²`, `1/z`, and
+# the non-holomorphic maps (they are not Möbius). In those cases the degeneration is the
+# mathematics, not an artifact.
 
 # %% jupyter={"source_hidden": true}
 import numpy as np
@@ -61,12 +64,12 @@ ROT = maps.rotation(np.deg2rad(60.0))  # det = +1
 PROJ = maps.projection(np.pi / 6)  # det = 0 (singular)
 
 # %% [markdown]
-# ## 1. Linear maps — the geodesic one-parameter subgroup
+# ## 1. Linear maps: the geodesic one-parameter subgroup
 #
-# `animate_matrix(M, kind="geodesic")` scrubs `M(t) = exp(t·log M)`, the one-parameter subgroup of
-# `GL⁺(2,ℝ)` through `M` — the Lie-group path. The view is pinned to `±extent`, so the grid warps
-# without the camera rescaling. The shear is a pure `gl(2,ℝ)` element, so its geodesic is the shear
-# flow `[[1, t], [0, 1]]`; a uniform scale flows to `t·c·I`.
+# `animate_matrix(M, kind="geodesic")` scrubs `M(t) = exp(t·log M)`. This is the one-parameter
+# subgroup of `GL⁺(2,ℝ)` through `M`, that is, the Lie-group path. The view is fixed to `±extent`,
+# so the grid warps while the camera keeps its scale. The shear is a pure `gl(2,ℝ)` element, so
+# its geodesic is the shear flow `[[1, t], [0, 1]]`. A uniform scale flows to `t·c·I`.
 
 # %% jupyter={"source_hidden": true}
 mv.animate_matrix(
@@ -88,12 +91,12 @@ for M in (SHEAR, SCALE):
     )
 
 # %% [markdown]
-# ## 2. Operators — rotation is a geodesic; projection cannot be
+# ## 2. Operators: rotation has a geodesic, projection does not
 #
-# A **rotation** lies in `SO(2)`, and its geodesic is a pure rotation (`det = 1` throughout, never
-# degenerates). A **projection** has `det = 0`: it sits on the `det = 0` wall, so it has **no
-# logarithm at all** — no one-parameter subgroup reaches it. Only `lerp` (a straight line in matrix
-# space) gets there, and it does so by *collapsing* through the zero matrix at `t = 1/2`.
+# A rotation lies in `SO(2)`, and its geodesic is a pure rotation. Its `det` stays 1, so it never
+# degenerates. A projection has `det = 0`. It sits on the `det = 0` wall, so it has no logarithm
+# at all, and no one-parameter subgroup reaches it. Only `lerp` (a straight line in matrix space)
+# gets there. It arrives by collapsing through the zero matrix at `t = 1/2`.
 
 # %% jupyter={"source_hidden": true}
 mv.animate_matrix(
@@ -113,9 +116,9 @@ print(
 )
 
 # %% [markdown]
-# A **projection** is singular (`det = 0`), so no real logarithm exists — `geodesic`/`polar` refuse.
-# `lerp` is the only path that reaches it, and the collapse you see at `t = 1/2` is the mathematics,
-# not an artifact.
+# A projection is singular (`det = 0`), so no real logarithm exists, and `geodesic` and `polar`
+# refuse it. `lerp` is the only path that reaches it. The collapse you see at `t = 1/2` is the
+# mathematics, not an artifact.
 
 # %% jupyter={"source_hidden": true}
 mv.animate_matrix(
@@ -141,13 +144,14 @@ print(
 )
 
 # %% [markdown]
-# ## 3. Complex functions — `z²` and `1/z` are *not* Möbius, so no geodesic
+# ## 3. Complex functions: `z²` and `1/z` are not Möbius, so no geodesic
 #
-# The Lie-group path for complex maps is the `PSL(2,ℂ)` one-parameter subgroup (`mobius_path`), but
-# that only covers **Möbius** maps `(az+b)/(cz+d)` — degree 1, a single pole. `z²` (degree 2) and
-# `1/z` (a pole at 0) are **not** Möbius, so no geodesic reaches them. We fall back to the holomorphic
-# `homotopy` `g_t = (1-t)·z + t·g(z)`: a convex combination of holomorphic maps, so every frame is a
-# genuine holomorphic map; conformality, however, can break where `g_t'` vanishes.
+# The Lie-group path for complex maps is the `PSL(2,ℂ)` one-parameter subgroup (`mobius_path`).
+# It covers only Möbius maps `(az+b)/(cz+d)`, which have degree 1 and a single pole. `z²` has
+# degree 2, and `1/z` has a pole at 0, so neither is a Möbius map, and no geodesic reaches them.
+# Fall back to the holomorphic `homotopy` `g_t = (1-t)·z + t·g(z)`. This is a convex combination
+# of holomorphic maps (a weighted mix), so every frame is a genuine holomorphic map. Even so,
+# conformality can break where `g_t'` is 0.
 
 # %% jupyter={"source_hidden": true}
 mv.scrubber(
@@ -187,12 +191,12 @@ mv.scrubber(
 )
 
 # %% [markdown]
-# ## 4. Möbius — the `PSL(2,ℂ)` geodesic
+# ## 4. Möbius maps: the `PSL(2,ℂ)` geodesic
 #
-# Möbius maps `(az+b)/(cz+d)` **are** a group — the conformal automorphisms of the Riemann sphere,
-# `PSL(2,ℂ)` — so the Lie-group path applies. `mobius_path(A)` is the one-parameter subgroup
-# `t ↦` the Möbius map of `exp(t·log A)`, the complex mirror of `geodesic_path`. The original
-# `f = (z − i)/(z + i)` has matrix `A = [[1, −i], [1, i]]`.
+# Möbius maps `(az+b)/(cz+d)` form a group: the invertible conformal maps of the Riemann sphere,
+# `PSL(2,ℂ)`. So the Lie-group path applies. `mobius_path(A)` is the one-parameter subgroup that
+# sends `t` to the Möbius map of `exp(t·log A)`. This is the complex counterpart of
+# `geodesic_path`. The map `f = (z − i)/(z + i)` has matrix `A = [[1, −i], [1, i]]`.
 
 # %% jupyter={"source_hidden": true}
 A = np.array([[1.0, -1j], [1.0, 1j]])
@@ -220,16 +224,18 @@ print(
 print("classify_mobius(A):", classify_mobius(A))
 
 # %% [markdown]
-# ## 5. Non-holomorphic maps — the geodesic does not reach them either
+# ## 5. Non-holomorphic maps: the geodesic does not reach them either
 #
-# None of these is a Möbius map, so no `PSL(2,ℂ)` geodesic applies. We fall back to the straight-line
-# sweep (the holomorphic `homotopy` where it exists, and a direct parameter sweep for the point-maps):
+# None of these maps is a Möbius map, so no `PSL(2,ℂ)` geodesic applies. Fall back to a
+# straight-line sweep: the holomorphic `homotopy` where it exists, or a direct parameter sweep
+# for the point maps.
 #
-# * **`z̄·z = |z|²`** — the `homotopy` to a real-valued map; the grid collapses onto the real axis.
-# * **the shear `f(x,y) = (x + y², y)`** — a non-linear point map; a straight-line sweep of its
-#   strength from 0 to 1 (no matrix, hence no geodesic).
-# * **the twist `f(x,y) = (r, θ + k·r)`** — a straight-line sweep of its twist angle from 0 to k
-#   (at `t = 0` the twist angle is 0, i.e. the identity).
+# * `z̄·z = |z|²`: the `homotopy` runs to a real-valued map, and the grid collapses onto the real
+#   axis.
+# * The shear `f(x,y) = (x + y², y)`: a non-linear point map. The sweep takes its strength from 0
+#   to 1. There is no matrix, so there is no geodesic.
+# * The twist `f(x,y) = (r, θ + k·r)`: the sweep takes its twist angle from 0 to k. At `t = 0`
+#   the twist angle is 0, so the map is the identity.
 
 # %% jupyter={"source_hidden": true}
 # (a) z̄·z = |z|² via the homotopy: the grid morphs to the collapse onto the real axis
@@ -314,8 +320,8 @@ print(
 # %% [markdown]
 # ## Portable GIF export
 #
-# The same builder, written to an animated GIF — portable, renders on GitHub, needs no widget stack.
-# Here the geodesic shear flow.
+# The same builder can write an animated GIF. A GIF is portable, renders on GitHub, and needs no
+# widget stack. The example here is the geodesic shear flow.
 
 # %% jupyter={"source_hidden": true}
 out = Path(tempfile.mkdtemp()) / "shear-geodesic.gif"
@@ -335,11 +341,12 @@ mv.to_gif(
 IPyImage(filename=str(out))
 
 # %% [markdown]
-# **Recap.** The Lie-group path (the geodesic / `mobius_path`) is the principled one for maps that
-# *are* group elements: the one-parameter subgroup `exp(t·log M)` (and `PSL(2,ℂ)` for Möbius) flows
-# along the Lie algebra element that generates the map, and `det exp(A) = e^{tr A} > 0` means it
-# never degenerates. Where it cannot reach the target — a projection (`det = 0`, no logarithm), or
-# `z²`/`1/z` and the non-holomorphic maps (not Möbius) — we fall back to `lerp` or the holomorphic
-# `homotopy`, and the degeneration / straight-line is the mathematics, not an artifact.
+# The Lie-group path (the geodesic or `mobius_path`) is the principled choice for maps that are
+# group elements. The one-parameter subgroup `exp(t·log M)` (and `PSL(2,ℂ)` for Möbius maps)
+# flows along the Lie algebra element that generates the map. Because `det exp(A) = e^{tr A} > 0`,
+# it never degenerates. Where it cannot reach the target, fall back to `lerp` or the holomorphic
+# `homotopy`. This happens for a projection (`det = 0`, no logarithm), and for `z²`, `1/z`, and
+# the non-holomorphic maps (they are not Möbius). In those cases the degeneration or the
+# straight-line path is the mathematics, not an artifact.
 
 # %% jupyter={"source_hidden": true}

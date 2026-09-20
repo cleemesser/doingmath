@@ -14,33 +14,36 @@
 # ---
 
 # %% [markdown]
-# # The logarithm of an image — Escher's *Print Gallery*
+# # The logarithm of an image: Escher's *Print Gallery*
 #
-# After 3Blue1Brown's *[How (and why) to take a logarithm of an image](https://youtu.be/ldxFjLJ3rVY)*
-# and the paper behind it: **B. de Smit and H. W. Lenstra Jr., "The Mathematical Structure of Escher's
-# *Print Gallery*"**, *Notices of the AMS* **50** (2003) 446–451 — PDF, extracted figures and the video
-# all sit next to this notebook in `ComplexAnalysis/escher/`.
+# This notebook follows 3Blue1Brown's *[How (and why) to take a logarithm of an
+# image](https://youtu.be/ldxFjLJ3rVY)* and the paper behind it: B. de Smit and H. W. Lenstra Jr.,
+# "The Mathematical Structure of Escher's *Print Gallery*", *Notices of the AMS* 50 (2003)
+# 446–451. The PDF, the extracted figures, and the video sit next to this notebook in
+# `ComplexAnalysis/escher/`.
 #
 # ## The whole story in four symbols
 #
 # There are two pictures and one map between them.
 #
-# * The **straight world**: an ordinary, undistorted drawing $f$ that contains a copy of itself shrunk
-#   by 256. Escher drew it as four studies, one per corner, each showing a portion of the previous one
-#   blown up by 4. Mathematically $$f(256\,z) = f(z).$$
-# * The **curved world**: the lithograph $g$, ideally periodic under a *complex* multiplier
+# * The straight world: an ordinary, undistorted drawing $f$ that contains a copy of itself, shrunk
+#   by 256. Escher drew it as four studies, one in each corner. Each study shows a portion of the
+#   previous one, blown up by 4. In math: $$f(256\,z) = f(z).$$
+# * The curved world: the lithograph $g$, ideally periodic under a complex multiplier
 #   $$
-#   g(\gamma\,w) = g(w),\qquad \gamma\in\mathbb{C}^*$$ — rotate-and-shrink, and the picture is
-#   unchanged.
-# * The dictionary between them is Escher's grid, which he wanted **conformal** (in Bruno Ernst's
-#   report of his own words: so the original squares could "better retain their square appearance").
-#   A conformal isomorphism $\mathbb{C}^*/\langle\gamma\rangle \to \mathbb{C}^*/\langle 256\rangle$ is
-#   forced to be a power map: $$h(w) = w^{\alpha},\qquad g = f\circ h.$$
-# * Chasing the loop $A\to B\to C\to D\to A$ around Escher's grid (paper Figures 4 and 7) pins
-#   $\alpha$ down completely:
+#   g(\gamma\,w) = g(w),\qquad \gamma\in\mathbb{C}^*
+#   $$
+#   A rotate-and-shrink by $\gamma$ leaves the picture unchanged.
+# * Escher's grid is the dictionary between the two worlds. He wanted it conformal
+#   (angle-preserving). In Bruno Ernst's report of Escher's own words, this let the original squares
+#   "better retain their square appearance". A conformal isomorphism
+#   $\mathbb{C}^*/\langle\gamma\rangle \to \mathbb{C}^*/\langle 256\rangle$ must be a power map:
+#   $$h(w) = w^{\alpha},\qquad g = f\circ h.$$
+# * Following the loop $A\to B\to C\to D\to A$ around Escher's grid (paper Figures 4 and 7) fixes
+#   $\alpha$ completely:
 #   $$\boxed{\;\alpha=\frac{2\pi i+\log 256}{2\pi i}\;},\qquad \log\gamma=\frac{\log 256}{\alpha}.$$
 #
-# **Everything below follows from one line of code** — take the logarithm, multiply by $\alpha$,
+# Everything below follows from one line of code: take the logarithm, multiply by $\alpha$, then
 # exponentiate back:
 #
 # > `z = np.exp(ALPHA * np.log(w))`
@@ -48,7 +51,7 @@
 # ### A note on the pictures used here
 #
 # Escher's lithograph is under copyright (Cordon Art B.V.), so this notebook does not reproduce it.
-# It builds instead a synthetic "print gallery" with exactly the same symmetry structure — which is
+# It builds a synthetic "print gallery" instead, with exactly the same symmetry structure. This is
 # better for seeing the geometry anyway, because you know what the shapes started as.
 
 # %%
@@ -64,8 +67,8 @@ mv.set_backend("mpl")
 # %% [markdown]
 # ## 1. The constants
 #
-# The straight picture repeats under multiplication by 256. Escher's *four* studies mean it in fact
-# repeats under multiplication by $4$ **and** by $i$ — and $4^4 = 256$, $i^4 = 1$ (paper, Figure 10
+# The straight picture repeats under multiplication by 256. Because Escher made four studies, it in
+# fact repeats under multiplication by $4$ and by $i$, and $4^4 = 256$, $i^4 = 1$ (paper, Figure 10
 # caption). We keep both.
 
 # %%
@@ -94,13 +97,13 @@ print(
 )
 
 # %% [markdown]
-# ### Why that $\alpha$ forces that $\gamma$ — one line of algebra
+# ### Why that $\alpha$ forces that $\gamma$: one line of algebra
 #
 # $h(w)=w^\alpha$, so
 # $$h(\gamma w)=(\gamma w)^\alpha=\gamma^\alpha\,h(w),\qquad
 #   \gamma^\alpha=e^{\alpha\log\gamma}=e^{\alpha\cdot(\log 256)/\alpha}=256,$$
-# hence $g(\gamma w)=f\bigl(256\,h(w)\bigr)=f\bigl(h(w)\bigr)=g(w)$. **The complex period of the
-# lithograph is nothing but the real period 256 of the studies, read through $h$.**
+# hence $g(\gamma w)=f\bigl(256\,h(w)\bigr)=f\bigl(h(w)\bigr)=g(w)$. The complex period of the
+# lithograph is the real period 256 of the studies, read through $h$.
 
 # %%
 assert np.isclose(GAMMA**ALPHA, S_BIG)
@@ -113,18 +116,19 @@ print("i**alpha        =", np.round(1j**ALPHA, 9), " (= 4i)")
 # %% [markdown]
 # ## 2. The straight world: an ordinary drawing that contains itself
 #
-# First we need $f$: a perfectly **undistorted** picture — straight lines, square frames — that
+# First we need $f$: a perfectly undistorted picture, with straight lines and square frames, that
 # satisfies $f(4z)=f(z)$ and $f(iz)=f(z)$.
 #
-# The natural fundamental domain for "multiply by 4" is a **square annulus**. Write
+# The natural fundamental domain (the smallest region whose repeats cover everything) for "multiply
+# by 4" is a square annulus. Write
 # $L(z)=\max(\lvert\operatorname{Re}z\rvert,\lvert\operatorname{Im}z\rvert)$; then $L(4z)=4L(z)$ and
 # $L(iz)=L(z)$, so the ring $1\le L(z)<4$ is a fundamental domain for $\langle 4\rangle$, and $\times i$
 # rotates it onto itself. Draw one gallery wall on that ring, hang four framed prints on it, and
 # repeat it at every scale $4^k$.
 #
-# The one constraint is **seamlessness**: nothing may touch $L=1$ or $L=4$, or the picture will not
-# match up across the fold. A plain margin of wall at both boundaries is what buys that — and a plain
-# margin of wall is, conveniently, what a gallery looks like.
+# One constraint applies: seamlessness. Nothing may touch $L=1$ or $L=4$, or the picture will not
+# match up across the fold. A plain margin of wall at both boundaries gives you that. Conveniently,
+# a plain margin of wall is what a gallery looks like.
 
 # %%
 MOTIF_EXTENT = 4.0  # the raster covers [-4, 4]^2 = the outer square of the ring
@@ -204,9 +208,10 @@ GALLERY = draw_gallery()
 print("motif raster:", GALLERY.shape, f"over [-{MOTIF_EXTENT}, {MOTIF_EXTENT}]²")
 
 # %% [markdown]
-# `f_straight` is the whole self-similar picture: fold $z$ into the ring by dividing out the right
-# power of 4, then look it up. Note there is no rotational folding — the raster is already exactly
-# quarter-turn symmetric, which is what makes $f(iz)=f(z)$ true to machine precision.
+# `f_straight` is the whole self-similar picture. It folds $z$ into the ring by dividing out the
+# right power of 4, then looks up the color. There is no rotational folding. The raster is already
+# exactly symmetric under a quarter turn, and that is what makes $f(iz)=f(z)$ true to machine
+# precision.
 
 # %%
 BG = np.array(mv.palette.rgb01(mv.BG))
@@ -253,15 +258,15 @@ def render(zmap, extent=1.0, res=560, ss=3, hole=None, center=0j):
 
 
 # %% [markdown]
-# Here is $f$ — Escher's studies, idealized. Straight lines, square frames, and the same wall
-# reappearing four times smaller in every direction as you approach the centre.
+# Here is $f$: Escher's studies, idealized. You see straight lines, square frames, and the same
+# wall reappearing four times smaller in every direction as you approach the centre.
 
 # %%
 IMG_STRAIGHT = render(lambda w: w, extent=6.0, res=640, hole=0.02)
 mv.Plane(extent=1, grid=False, axes=False).raster(IMG_STRAIGHT).display(format="png")
 
 # %% [markdown]
-# The three declared symmetries, checked on actual pixels rather than asserted in prose:
+# The cell below checks the three declared symmetries on actual pixels, not in prose:
 
 # %%
 probe = np.array([2.31 + 1.17j, -1.22 + 3.44j, 0.55 - 2.63j, -3.51 - 0.28j])
@@ -276,7 +281,7 @@ for name, mult in [
 # %% [markdown]
 # ## 3. Taking the logarithm (paper, Figure 14)
 #
-# Set $\xi=\log z$. Multiplication becomes translation, so the two symmetries become a **lattice**:
+# Set $\xi=\log z$. Multiplication becomes translation, so the two symmetries become a lattice:
 #
 # | straight-world symmetry | log-space symmetry |
 # |---|---|
@@ -284,13 +289,13 @@ for name, mult in [
 # | $f(iz)=f(z)$ | $\xi \mapsto \xi + i\pi/2$ |
 # | $f(256z)=f(z)$ | $\xi \mapsto \xi + \log 256$ |
 #
-# The picture becomes **doubly periodic on $\mathbb{C}$** — a wallpaper pattern, one period
-# $\log 256$ wide and $2\pi i$ tall. This is the object de Smit and Lenstra handed to Jacqueline
-# Hofstra to paint the grayscale into, precisely because it is the only place where the picture has no
+# The picture becomes doubly periodic on $\mathbb{C}$: a wallpaper pattern, one period $\log 256$
+# wide and $2\pi i$ tall. This is the object de Smit and Lenstra handed to Jacqueline Hofstra to
+# paint the grayscale into. They chose it because it is the only place where the picture has no
 # preferred centre and no accumulating detail.
 #
-# Note the frames come out *bent*: `exp` is conformal but it is not affine, and straightness is not
-# something it preserves.
+# Note that the frames come out bent. `exp` is conformal but not affine, and it does not preserve
+# straightness.
 
 
 # %%
@@ -331,9 +336,9 @@ print(
 # ### The lattices (paper, Figure 10)
 #
 # $L_{256}=\mathbb{Z}\,2\pi i+\mathbb{Z}\log 256$ is the fundamental group of
-# $\mathbb{C}^*/\langle 256\rangle$; $L_\gamma=\alpha^{-1}L_{256}$ is that of
-# $\mathbb{C}^*/\langle\gamma\rangle$. The map $h$ lifts to **multiplication by the scalar $\alpha$**,
-# and multiplying a lattice by a complex scalar is just a rotation and a scaling — which is the entire
+# $\mathbb{C}^*/\langle 256\rangle$, and $L_\gamma=\alpha^{-1}L_{256}$ is the fundamental group of
+# $\mathbb{C}^*/\langle\gamma\rangle$. The map $h$ lifts to multiplication by the scalar $\alpha$.
+# Multiplying a lattice by a complex scalar is just a rotation and a scaling. That is the entire
 # geometric content of the theorem.
 
 
@@ -365,7 +370,7 @@ print(
 )
 
 # %% [markdown]
-# ## 4. The map — and the lithograph
+# ## 4. The map and the lithograph
 #
 # $g = f\circ h$ with $h(w)=w^{\alpha}=\exp(\alpha\log w)$. That is the entire transformation:
 
@@ -426,27 +431,27 @@ IMG_ESCHER = render(h, extent=1.0, res=720, hole=0.003)
 mv.Plane(extent=1, grid=False, axes=False).raster(IMG_ESCHER).display(format="png")
 
 # %% [markdown]
-# ## 5. The grid — where Escher's headaches were
+# ## 5. The grid: where Escher's headaches were
 
 # %% [markdown]
 # ### 5a. Escher's two false starts (paper, Figures 2 and 3)
 #
-# Before arriving at the grid of Figure 4, Escher tried a "cyclic expansion … without beginning or
-# end" twice. In Bruno Ernst's account he first tried straight lines, then "intuitively adopted"
-# curved ones — because that way, in the phrase the whole paper turns on, the original small squares
-# could better retain their square appearance.
+# Before he arrived at the grid of Figure 4, Escher twice tried a "cyclic expansion … without
+# beginning or end". In Bruno Ernst's account he first tried straight lines, then "intuitively
+# adopted" curved ones. The reason is the phrase the whole paper turns on: that way the original
+# small squares could better retain their square appearance.
 #
 # Both attempts share one skeleton, and we can build it exactly. A cyclic expansion by a factor $E$
-# means one circuit of the centre multiplies scale by $E$ — in log space, the vector
+# means one circuit of the centre multiplies the scale by $E$. In log space this is the vector
 # $$\text{circuit} = \log E + 2\pi i.$$
-# Cut it into $n$ equal steps $a$, take $b = i\,a$ (same length, at right angles), and
-# $\mathbb{Z}a+\mathbb{Z}b$ is a **square** lattice; since `exp` is conformal, its image has square
-# cells too. Those vertices are common to both figures. The attempts differ *only in how neighbouring
-# vertices are joined*:
+# Cut it into $n$ equal steps $a$, and take $b = i\,a$ (same length, at right angles). Then
+# $\mathbb{Z}a+\mathbb{Z}b$ is a square lattice. Because `exp` is conformal, its image has square
+# cells too. Both figures share these vertices. The attempts differ only in how neighbouring
+# vertices are joined:
 #
-# * **Figure 2** joins them by straight chords drawn in the plane;
-# * **Figure 3** joins them along the conformal curves — the images under `exp` of the straight
-#   log-space lines, which are logarithmic spirals.
+# * Figure 2 joins them by straight chords drawn in the plane.
+# * Figure 3 joins them along the conformal curves. These are the images under `exp` of the straight
+#   log-space lines, that is, logarithmic spirals.
 
 # %%
 N_CELLS = 12  # cells per circuit; Escher's sketches are coarse, and coarse is where it goes wrong
@@ -505,13 +510,13 @@ p.display(format="png")
 # %% [markdown]
 # ### Measuring "square appearance"
 #
-# The complaint is quantifiable: take each cell's four corners and see how far its interior angles
-# stray from 90°.
+# You can measure the complaint: take the four corners of each cell and see how far its interior
+# angles stray from 90°.
 #
-# For the conformal version there is nothing to measure — the two families cross at
-# $\arg(b/a)=\arg(i)=90°$ *exactly*, at every vertex, and `exp` preserves that. For the straight
-# version the answer is a single number, the same for every cell in the picture, because the grid is
-# scale-invariant: **Escher's first attempt is uniformly wrong, everywhere at once.**
+# The conformal version has nothing to measure. The two families cross at
+# $\arg(b/a)=\arg(i)=90°$ exactly, at every vertex, and `exp` preserves that. The straight version
+# gives a single number, the same for every cell, because the grid is scale-invariant. Escher's
+# first attempt is wrong everywhere by the same amount, all at once.
 
 
 # %%
@@ -561,14 +566,15 @@ print("  gallery inside, so the straight construction was never going to work.")
 # %% [markdown]
 # ### 5b. The mechanism: `exp` of a lattice, tilted
 #
-# Take the Cartesian grid aligned with $L_{256}$ in log space. Escher's proportions are four rings per
-# factor of 4 and sixteen cells around, giving a log-space cell of
-# $\Delta u=\tfrac{\log 4}{4}$ by $\Delta v=\tfrac{2\pi}{16}$ — nearly square, which is exactly the
+# Take the Cartesian grid aligned with $L_{256}$ in log space. Escher's proportions are four rings
+# per factor of 4 and sixteen cells around the centre. This gives a log-space cell of
+# $\Delta u=\tfrac{\log 4}{4}$ by $\Delta v=\tfrac{2\pi}{16}$, nearly square. That is exactly the
 # "squares retaining their square appearance" he was after.
 #
-# `exp` of that upright grid is the log-polar grid on the studies. `exp` of the *same* grid multiplied
-# by $\beta=1/\alpha$ — i.e. rotated 41.4° and scaled 0.75 — is Escher's curved grid, the paper's
-# **Figure 11**. Same lattice; one complex multiplication apart.
+# `exp` of that upright grid is the log-polar grid on the studies. Multiply the same grid by
+# $\beta=1/\alpha$, that is, rotate it 41.4° and scale it by 0.75, and `exp` of the result is
+# Escher's curved grid, the paper's Figure 11. It is the same lattice, one complex multiplication
+# apart.
 
 # %%
 DU, DV = LOG_S / 4, 2 * np.pi / 16
@@ -635,13 +641,13 @@ p.display(format="png")
 # %% [markdown]
 # ### 5c. Escher's grid proper: the square grid pulled back (paper, Figures 4 and 6)
 #
-# What Escher actually fitted his studies onto was a **square** grid — the quadtree grid on the
-# straight drawing, doubling as it moves outward — pulled back through $h$. Pulling a curve back means
-# $w = \exp\bigl(\log z / \alpha\bigr)$, and the branch of $\log$ has to be chosen *continuously along
-# each line*, which is what `np.unwrap` is doing below.
+# Escher actually fitted his studies onto a square grid: the quadtree grid on the straight drawing,
+# doubling as it moves outward, pulled back through $h$. Pulling a curve back means
+# $w = \exp\bigl(\log z / \alpha\bigr)$. The branch of $\log$ must be chosen continuously along each
+# line, and that is what `np.unwrap` does below.
 #
-# Branch choices do not change the picture: shifting $\log z$ by $2\pi i$ multiplies $w$ by
-# $\exp(2\pi i/\alpha)$, which lies in the symmetry group of the grid. A different branch simply drops
+# The branch choice does not change the picture. Shifting $\log z$ by $2\pi i$ multiplies $w$ by
+# $\exp(2\pi i/\alpha)$, which is in the symmetry group of the grid. A different branch just drops
 # the segment onto a different copy of itself.
 
 
@@ -699,30 +705,29 @@ for pts in pull_back(SQ, 1.0):
 p.display(format="png")
 
 # %% [markdown]
-# ## 6. Loop transport — how $\gamma$ was *measured* (paper, Figures 7, 8, 9)
+# ## 6. Loop transport: how $\gamma$ was measured (paper, Figures 7, 8, 9)
 #
-# Sections 1–5 **derived** $\gamma$ from $\alpha$. The paper reached it the other way round first, by
-# walking loops on the grid and watching where they came back — and that is the argument that makes
-# the model believable in the first place. It needs exactly one new tool: a way to ask whether a path
-# encloses the origin.
+# Sections 1–5 derived $\gamma$ from $\alpha$. The paper first reached it the other way round: walk
+# loops on the grid and watch where they come back. That is the argument that makes the model
+# believable. It needs one new tool: a way to ask whether a path encloses the origin.
 #
 # ### The winding number
 #
 # $$n(\Gamma)=\frac{1}{2\pi i}\oint_\Gamma\frac{dz}{z}=\frac{1}{2\pi}\Bigl[\arg z\Bigr]_\Gamma$$
 #
-# Since $d(\log z) = dz/z$ and $\log z = \log\lvert z\rvert + i\arg z$, and $\log\lvert z\rvert$
-# returns to its starting value around a closed loop, the integral collapses to the **total turning of
-# $\arg z$** — which is exactly what `np.unwrap` accumulates. Discretizing it that way is not an
-# approximation; it is exact for a polyline.
+# Because $d(\log z) = dz/z$ and $\log z = \log\lvert z\rvert + i\arg z$, and $\log\lvert z\rvert$
+# returns to its starting value around a closed loop, the integral collapses to the total turning of
+# $\arg z$. That is exactly what `np.unwrap` accumulates. Discretizing it that way is not an
+# approximation. For a polyline it is exact.
 #
-# Two things can break it, and both are worth asserting rather than hoping for:
+# Two things can break it, and both are worth asserting instead of hoping for:
 #
-# * the path must stay clear of $0$, where $\arg$ is undefined and the integrand has its pole;
-# * consecutive samples must turn by **less than $\pi$**, or `unwrap` cannot tell a small positive
-#   turn from a large negative one and will silently miscount.
+# * The path must stay clear of $0$. There $\arg$ is undefined and the integrand has its pole.
+# * Consecutive samples must turn by less than $\pi$. Otherwise `unwrap` cannot tell a small
+#   positive turn from a large negative one, and it silently miscounts.
 #
-# That second guard is the price of using the integral rather than a bounding-box test — and it is
-# what buys the generality: this works for any sampled path, not just axis-aligned squares.
+# The second guard is the price of using the integral rather than a bounding-box test. In return
+# you get generality: this works for any sampled path, not just axis-aligned squares.
 
 
 # %%
@@ -798,14 +803,14 @@ for label, bad in [
         print(f"caught — path {label}:\n    {e}")
 
 # %% [markdown]
-# ### Figure 7 — the loop $ABCDA$ carried to the straight world
+# ### Figure 7: the loop $ABCDA$ carried to the straight world
 #
-# In the curved world $A\to B\to C\to D\to A$ follows grid lines once counter-clockwise around the
-# centre: a **closed** loop. In the straight world the corresponding path takes three left turns,
-# each leg four times the last, and does **not** close — it ends at $256\times$ where it began.
+# In the curved world, $A\to B\to C\to D\to A$ follows grid lines once counter-clockwise around the
+# centre. It is a closed loop. In the straight world the corresponding path takes three left turns,
+# each leg four times the last, and does not close. It ends at $256\times$ where it began.
 #
-# That pins the start down completely. Legs $\ell,\,4i\ell,\,-16\ell,\,-64i\ell$ sum to
-# $(-15-60i)\ell$, and demanding $A + (-15-60i)\ell = 256A$ gives
+# That fixes the start completely. Legs $\ell,\,4i\ell,\,-16\ell,\,-64i\ell$ sum to
+# $(-15-60i)\ell$, and if $A + (-15-60i)\ell = 256A$ then
 # $$A=\frac{(-1-4i)}{17}\,\ell .$$
 
 # %%
@@ -827,7 +832,7 @@ print(f"total turning / 2π = {winding_number(FIG7, closed=False):.9f}  — once
 
 # %% [markdown]
 # Now carry it back. A branch shift of $2\pi i$ plus a blow-up by 256 is the lattice element
-# $2\pi i+\log 256$, and $\beta$ maps that to $2\pi i$ exactly — so the curved-world path closes:
+# $2\pi i+\log 256$, and $\beta$ maps that to $2\pi i$ exactly, so the curved-world path closes:
 # $$\beta\,(\log 256+2\pi i)=\frac{\log 256+2\pi i}{\alpha}=2\pi i .$$
 
 # %%
@@ -875,21 +880,22 @@ for pts in grid_at(E7W, TILTED):
 )
 
 # %% [markdown]
-# ### Figures 8 and 9 — the measurement
+# ### Figures 8 and 9: the measurement
 #
-# Now the converse, and the part that actually *produces* a number. Walk a square in the straight
-# world starting from $A$, going up, then left, then down, then right. Both walks are closed there.
-# The winding number about the origin is what separates them:
+# Now do the converse. This is the part that produces a number. Walk a square in the straight world
+# starting from $A$: up, then left, then down, then right. Both walks are closed there. The winding
+# number about the origin separates them:
 #
-# * a **5×5** square misses the origin, $n=0$, so it pulls back to a closed loop (Figure 8);
-# * a **7×7** square encloses it, $n=1$, so it pulls back to a path from $A$ to a *different* point
-#   $A'$ — and $A/A' = \gamma$ (Figure 9).
+# * A 5×5 square misses the origin ($n=0$), so it pulls back to a closed loop (Figure 8).
+# * A 7×7 square encloses the origin ($n=1$), so it pulls back to a path from $A$ to a different
+#   point $A'$, and $A/A' = \gamma$ (Figure 9).
 #
-# With $A = 6-6i$ the 5×5 walk spans $x\in[1,6],\,y\in[-6,-1]$ and the 7×7 walk spans
-# $x\in[-1,6],\,y\in[-6,1]$: the origin sits one unit outside the first and one unit inside the
-# second. That is forced — 5 and 7 differ by 2 — and it is why the paper picked those two numbers.
+# With $A = 6-6i$ the 5×5 walk spans $x\in[1,6],\,y\in[-6,-1]$, and the 7×7 walk spans
+# $x\in[-1,6],\,y\in[-6,1]$. The origin sits one unit outside the first and one unit inside the
+# second. That is forced, because 5 and 7 differ by 2, and it is why the paper picked those two
+# numbers.
 #
-# The general statement, which the winding number gives for free: $A/A' = \gamma^{\,n}$.
+# The winding number also gives the general statement for free: $A/A' = \gamma^{\,n}$.
 
 # %%
 A89 = 6 - 6j
@@ -921,7 +927,7 @@ assert np.isclose(np.degrees(np.angle(gamma_measured)), 157.6255960832, atol=1e-
 print("\n✓ γ measured by transporting a 7×7 walk == γ derived from α in section 1")
 
 # %% [markdown]
-# The two walks in the straight world — the only difference is whether the origin falls inside:
+# The two walks in the straight world. The only difference is whether the origin falls inside:
 
 # %%
 E89 = fit_extent(walks[5][0], walks[7][0])
@@ -936,10 +942,10 @@ for side, col in ((5, mv.GREEN), (7, mv.RED)):
 )
 
 # %% [markdown]
-# ...and in the curved world, on Escher's grid. The green 5×5 closes; the red 7×7 spirals in and
-# stops short at $A' = A/\gamma$ — the vertex of the small central square that the paper measured.
-# In the actual lithograph that point falls inside the blank circular patch, which is precisely why
-# Escher never had to confront it.
+# ...and in the curved world, on Escher's grid. The green 5×5 closes. The red 7×7 spirals in and
+# stops short at $A' = A/\gamma$, the vertex of the small central square that the paper measured.
+# In the actual lithograph that point falls inside the blank circular patch. That is why Escher
+# never had to confront it.
 
 # %%
 EW = fit_extent(walks[5][1], walks[7][1])
@@ -957,11 +963,11 @@ w7 = walks[7][1]
 )
 
 # %% [markdown]
-# ## 7. Rotation and replication — the $\gamma$ symmetry
+# ## 7. Rotation and replication: the $\gamma$ symmetry
 #
-# The claim to test: **rotate the lithograph clockwise by 157.6256° and shrink it by 22.5837, and it
-# is the same lithograph.** Render $g(w)$, then render $g(\gamma w)$ — a window 22.58× smaller and
-# turned — and compare pixel for pixel.
+# The claim to test: rotate the lithograph clockwise by 157.6256° and shrink it by 22.5837, and it
+# is the same lithograph. Render $g(w)$, then render $g(\gamma w)$, that is, a window 22.58× smaller
+# and turned, and compare pixel for pixel.
 
 # %%
 A = render(h, extent=1.0, res=420, hole=0.004)
@@ -979,10 +985,10 @@ mv.Plane(extent=1, grid=False, axes=False).raster(B).display(format="png")
 # %% [markdown]
 # ### The replication group: every fourth root of $\gamma$
 #
-# Because the straight picture is invariant under $z\mapsto 4z$ *and* $z\mapsto iz$, the curved one is
-# invariant under multiplication by **all four fourth roots of $\gamma$** (paper, Figure 10 caption) —
-# a far richer group than $\langle\gamma\rangle$, and the reason a mere 39.4° turn already brings the
-# pattern back.
+# Because the straight picture is invariant under $z\mapsto 4z$ and $z\mapsto iz$, the curved one is
+# invariant under multiplication by all four fourth roots of $\gamma$ (paper, Figure 10 caption).
+# This is a far richer group than $\langle\gamma\rangle$. It is the reason a turn of only 39.4°
+# already brings the pattern back.
 
 # %%
 g4 = np.exp(LOG_GAMMA / 4)
@@ -995,20 +1001,20 @@ for k in range(4):
     print(f"✓ g({abs(m):.4f} ∠{np.degrees(np.angle(m)):8.3f}° · w) = g(w)")
 
 # %% [markdown]
-# ### Figure 15 — the plate, with its centre magnified by 4 and by 16
+# ### Figure 15: the plate, with its centre magnified by 4 and by 16
 #
-# The paper's final plate shows the completed lithograph beside magnifications of its centre by 4 and
-# by 16. Those are worth drawing precisely **because they are not symmetries**. The symmetry group is
-# generated by $\gamma^{1/4}$ and $i$, so every element has modulus $\lvert\gamma\rvert^{k/4}=2.1800^k$
-# and argument $39.4064°\,k+90°\,m$ — and a pure magnification would need that argument to vanish mod
-# $360°$. The cell below searches for one and finds nothing close, so each panel really does show
-# new structure rather than the picture handed back.
+# The paper's final plate shows the completed lithograph beside magnifications of its centre by 4
+# and by 16. They are worth drawing precisely because they are not symmetries. The symmetry group
+# is generated by $\gamma^{1/4}$ and $i$, so every element has modulus
+# $\lvert\gamma\rvert^{k/4}=2.1800^k$ and argument $39.4064°\,k+90°\,m$. A pure magnification would
+# need that argument to vanish mod $360°$. The cell below searches for one and finds nothing close.
+# So each panel shows new structure, not the picture handed back.
 #
-# (Empirically, not a theorem: whether $\arg\gamma/2\pi$ is irrational — which is what would rule out
-# an exact hit for *every* $k$ — is not something a finite search settles.)
+# This is an empirical finding, not a theorem. If $\arg\gamma/2\pi$ is irrational, no exact hit
+# exists for any $k$, but a finite search cannot settle that.
 #
-# The $\times16$ panel is the interesting near-miss: $16$ is close to $\lvert\gamma\rvert=22.58$ but
-# not equal, so it comes back looking like the plate *turned by about 140°*.
+# The $\times16$ panel is the interesting near-miss. $16$ is close to $\lvert\gamma\rvert=22.58$
+# but not equal, so it comes back looking like the plate turned by about 140°.
 
 # %%
 # how close does any symmetry get to being a pure magnification?
@@ -1038,8 +1044,8 @@ for e, label in [(1.0, "the plate"), (0.25, "centre ×4"), (1 / 16, "centre ×16
     ).display(format="png")
 
 # %% [markdown]
-# Side by side with the symmetry test of the previous cells, the contrast is the whole point:
-# multiplying by $\gamma$ changes nothing, magnifying by 4 changes everything.
+# Compare this with the symmetry test of the previous cells. The contrast is the whole point.
+# Multiplying by $\gamma$ changes nothing. Magnifying by 4 changes everything.
 
 # %%
 ref = render(h, extent=1.0, res=280, hole=0.006)
@@ -1056,8 +1062,9 @@ assert d_gamma < 1e-9 < 0.01 < d_four
 # %% [markdown]
 # ### Replication as motion: the Droste zoom
 #
-# Zoom by $\gamma^{t}$ for $t\in[0,1]$ and you arrive exactly where you started — a seamless loop.
-# This is the animation on `escherdroste.math.leidenuniv.nl`, and the payoff shot of the video.
+# Zoom by $\gamma^{t}$ for $t\in[0,1]$ and you arrive exactly where you started. The result is a
+# seamless loop. This is the animation on `escherdroste.math.leidenuniv.nl` and the payoff shot of
+# the video.
 
 
 # %%
@@ -1092,10 +1099,10 @@ except Exception as e:  # headless, or no ipywidgets
 # > *"Other complex analytic maps $h:\mathbb{C}^*/\langle\delta\rangle\to\mathbb{C}^*/\langle 256\rangle$
 # > for various $\delta$ give rise to interesting variants of Prentententoonstelling."*
 #
-# The derivation used only that one counter-clockwise loop maps to $2\pi i+\log 256$. Send it instead
-# to $2\pi i\,n+\log 256$ — wind $n$ times — and you get a family. $n=1$ is Escher's;
-# $n=0$ is degenerate ($\gamma=1$: the loop carries no rotation, so there is no elliptic curve left);
-# large $\lvert n\rvert$ unwinds towards the undistorted picture.
+# The derivation used only that one counter-clockwise loop maps to $2\pi i+\log 256$. Send it
+# instead to $2\pi i\,n+\log 256$, that is, wind $n$ times, and you get a family. $n=1$ is
+# Escher's variant. $n=0$ is degenerate: $\gamma=1$, the loop carries no rotation, and no elliptic
+# curve is left. Large $\lvert n\rvert$ unwinds towards the undistorted picture.
 
 
 # %%
@@ -1119,9 +1126,10 @@ for n in (1, 2, 3, -1):
 # %% [markdown]
 # ## 9. Using your own image
 #
-# The only requirement is that the drawing be **seamless across the fold** — nothing may touch
-# $L(z)=1$ or $L(z)=4$, or $f(4z)=f(z)$ fails and a seam spirals through the result. Inset your photo
-# in a plain margin (the margin is the gallery wall) and everything above re-runs unchanged:
+# The only requirement is that the drawing be seamless across the fold. Nothing may touch
+# $L(z)=1$ or $L(z)=4$. If it does, $f(4z)=f(z)$ fails and a seam spirals through the result. Put
+# your photo inside a plain margin (the margin is the gallery wall), and everything above re-runs
+# unchanged:
 #
 # ```python
 # from PIL import Image
@@ -1148,58 +1156,59 @@ for n in (1, 2, 3, -1):
 #
 # Two knobs worth turning:
 #
-# * `S = 256.0` instead of `4.0` — a *single* study rather than four. The picture then only repeats
-#   after a full turn, and only $\gamma$ (not its fourth roots) is a symmetry.
-# * The margin. Shrink it until the frame touches $L=4$ and watch the seam appear: it is the clearest
-#   possible demonstration of what the periodicity is actually doing.
+# * `S = 256.0` instead of `4.0`: one study instead of four. The picture then repeats only after a
+#   full turn, and only $\gamma$ (not its fourth roots) is a symmetry.
+# * The margin. Shrink it until the frame touches $L=4$ and watch the seam appear. It is the
+#   clearest demonstration of what the periodicity is actually doing.
 
 # %% [markdown]
-# ## 10. The rest of the paper — what each remaining figure would take
+# ## 10. The rest of the paper: what each remaining figure would take
 #
 # Everything above is built from `f_straight`, `h`, and `render`. Here is what the paper's other
 # figures need on top of that, roughly in order of effort.
 #
-# ### Done in section 5a — Escher's false starts (Figures 2 and 3)
+# ### Done in section 5a: Escher's false starts (Figures 2 and 3)
 #
 # Built at the top of section 5: the same vertex lattice joined by straight chords and then
 # conformally, with the corner error that separates them measured.
 #
-# ### Done in section 6 — loop transport (Figures 7, 8, 9)
+# ### Done in section 6: loop transport (Figures 7, 8, 9)
 #
 # Section 6 builds these: the winding-number integral, the three-left-turns path of Figure 7, and the
 # 5×5 / 7×7 walks of Figures 8 and 9 that let you read γ straight off the picture.
 #
-# ### Done in section 7 — Figure 15's magnification triptych
+# ### Done in section 7: Figure 15's magnification triptych
 #
 # Built at the end of section 7: the plate beside its centre magnified by 4 and 16, with the check
-# that no pure magnification is a symmetry (so each panel is new content, not a repeat).
+# that no pure magnification is a symmetry. So each panel is new content, not a repeat.
 #
-# ### Needs a fit, not a formula — Figure 4, Escher's *actual* grid
+# ### Needs a fit, not a formula: Figure 4, Escher's actual grid
 #
-# Section 5 draws the *idealized* grid. Escher's own grid is close but not conformal: the paper notes
-# his central square is larger than theirs, i.e. his effective $|\gamma|$ is nearer 20 than 22.58. To
-# reproduce Figure 4 you would have to digitize the grid off the plate and fit a (non-conformal)
-# deformation to it — there is no closed form, because the whole point is that Escher missed. A
-# cheaper and more honest version: parameterize
+# Section 5 draws the idealized grid. Escher's own grid is close but not conformal. The paper
+# notes his central square is larger than theirs, that is, his effective $|\gamma|$ is nearer 20
+# than 22.58. To reproduce Figure 4 you would have to digitize the grid off the plate and fit a
+# deformation that is not conformal to it. There is no closed form, because the whole point is
+# that Escher missed. A cheaper and more honest version: parameterize
 # `alpha_from_gamma = lambda g: LOG_S_BIG / np.log(g)` and render $g$ at Escher's measured
 # $\gamma \approx 20e^{3i}$ next to the exact one, to see how much the discrepancy actually shows.
 #
 # ### Blocked on the artwork itself (Figures 1, 5, 12, 13)
 #
 # The lithograph, Escher's studies, the rectified lithograph, and the Richter–Hofstra completion are
-# all reproductions of copyrighted work (Cordon Art B.V.). The *procedure* behind Figure 12 —
-# "rectify the lithograph by means of his own grid" — is just `render` with the map inverted,
-# `zmap = lambda z: np.exp(BETA * np.log(z))`, sampling the lithograph instead of `GALLERY`; the
+# all reproductions of copyrighted work (Cordon Art B.V.). The procedure behind Figure 12, "rectify
+# the lithograph by means of his own grid", is just `render` with the map inverted,
+# `zmap = lambda z: np.exp(BETA * np.log(z))`, sampling the lithograph instead of `GALLERY`. The
 # obstacle is the source image, not the mathematics. Section 9 shows how to substitute your own.
 #
 # ### Beyond the paper
 #
-# * A **hyperbolic** variant: replace $\mathbb{C}^*/\langle\delta\rangle$ with a quotient by a Fuchsian
-#   group and you get Escher's *Circle Limit* family instead — the same "quotient by a discrete group,
-#   lift, transport, push forward" pattern, different group.
-# * The **elliptic curve** itself: $\mathbb{C}/L_\gamma$ is a torus, and section 3's log tile is its
-#   fundamental domain. Gluing that tile into an actual torus surface is a job for
-#   `mv.Space3D(...).surface(...)`, and would make the phrase "drawn on an elliptic curve" literal.
+# * A hyperbolic variant: replace $\mathbb{C}^*/\langle\delta\rangle$ with a quotient by a Fuchsian
+#   group, and you get Escher's *Circle Limit* family instead. It is the same pattern (quotient by
+#   a discrete group, lift, transport, push forward) with a different group.
+# * The elliptic curve itself: $\mathbb{C}/L_\gamma$ is a torus, and the log tile in section 3 is
+#   its fundamental domain. Gluing that tile into an actual torus surface is a job for
+#   `mv.Space3D(...).surface(...)`, and it would make the phrase "drawn on an elliptic curve"
+#   literal.
 #
 # %% [markdown]
 # ## Recap

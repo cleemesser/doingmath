@@ -16,19 +16,19 @@
 # %% [markdown]
 # # Complex Analysis: Phase Portraits (Wegert)
 #
-# A **phase portrait** colors the domain by the value of a complex function: the **hue** is the phase
-# `arg f(z)` (a full color wheel per turn, red at `arg = 0`), and optional brightness **contours**
-# encode more structure. Following E. Wegert, *Visual Complex Functions* (2012), `clmmathtools` offers four
-# schemes:
+# A phase portrait colors the domain by the value of a complex function. The hue shows the phase
+# `arg f(z)`. One full color wheel equals one full turn, and red means `arg = 0`. Optional
+# brightness contours (bands with lower brightness) show more structure. E. Wegert describes this
+# method in *Visual Complex Functions* (2012). `clmmathtools` offers four schemes:
 #
 # | scheme | shows |
 # |--------|-------|
-# | `plane` | hue only — the bare phase |
-# | `phase` | + phase contours (constant-argument bands) |
-# | `modulus` | + modulus contours (log-spaced constant-`|f|` bands) |
-# | `enhanced` | **both**, spaced equally → conformal little squares *(default)* |
+# | `plane` | hue only, that is, the bare phase |
+# | `phase` | plus phase contours (bands of constant argument) |
+# | `modulus` | plus modulus contours (bands of constant `|f|`, spaced by log) |
+# | `enhanced` | both, spaced equally, which draws small squares that follow the map (default) |
 #
-# `Plane.phase_portrait(f, scheme=…)` fills the plane; grid/points/labels compose on top.
+# `Plane.phase_portrait(f, scheme=…)` fills the plane. Grid, points, and labels draw on top.
 
 # %%
 import numpy as np
@@ -39,7 +39,7 @@ from clmmathtools.viz import primitives as P
 # %% [markdown]
 # ## The four schemes on the identity `f(z) = z`
 #
-# Same function, four levels of enhancement — from bare hue to the conformal grid.
+# The same function appears at four levels of enhancement, from bare hue to the square grid.
 
 # %%
 for scheme in ["plane", "phase", "modulus", "enhanced"]:
@@ -47,7 +47,7 @@ for scheme in ["plane", "phase", "modulus", "enhanced"]:
     p.phase_portrait(lambda z: z, res=400, scheme=scheme).text([-1.9, 1.7], scheme)
     p.display()
 
-# the schemes really differ, and contours only ever darken (same hue, lower brightness)
+# the schemes differ, and contours only darken (same hue, lower brightness)
 z = phase.domain(2.0, 120)
 plane = phase.colorize(z, phase_contours=False, modulus_contours=False)
 enhanced = phase.colorize(z)
@@ -57,8 +57,9 @@ print("schemes differ; enhancement only darkens (adds contour lines) ✓")
 # %% [markdown]
 # ## A small gallery (enhanced)
 #
-# Zeros are where all hues meet running **counter-clockwise**; poles are where they meet running
-# **clockwise** (and render white at the singular point). Count the color cycles to read the order.
+# A zero is a point where all hues meet and the hues run counter-clockwise. A pole is a point
+# where all hues meet and the hues run clockwise. A pole renders white at that point. Count the
+# color cycles to read the order.
 
 # %%
 gallery = [
@@ -76,8 +77,9 @@ for title, f in gallery:
 # %% [markdown]
 # ## Reading the portrait: winding number = order of a zero/pole
 #
-# The number of times the hue cycles as you circle a point is the **winding number** of `f` there —
-# positive for a zero of that order, negative for a pole. We verify it numerically.
+# The winding number of `f` at a point is the number of hue cycles when you walk around that
+# point. The number is positive at a zero, and equals the order of the zero. The number is
+# negative at a pole. This section verifies the rule with numbers.
 
 
 # %%
@@ -94,7 +96,7 @@ assert winding(lambda z: (z**2 - 1) / (z**2 + 1), center=1.0, r=0.3) == 1  # zer
 assert winding(lambda z: (z**2 - 1) / (z**2 + 1), center=1j, r=0.3) == -1  # pole at z=i
 print("winding numbers match zero/pole orders ✓ (2, 3, −1, +1 at z=1, −1 at z=i)")
 
-# poles render white; the whole portrait stays finite even through zeros
+# poles render white, and the whole portrait stays finite even through zeros
 rgb = phase.phase_portrait(lambda z: 1 / z, extent=1, res=200, scheme="enhanced")
 assert np.isfinite(rgb).all()
 print("portrait finite everywhere; pole shows white ✓")
@@ -102,8 +104,9 @@ print("portrait finite everywhere; pole shows white ✓")
 # %% [markdown]
 # ## Both backends
 #
-# Phase portraits render under matplotlib (raster-native) and vedo (as a textured image behind the
-# vector layer) — same picture, so overlays like a grid compose identically.
+# Two backends render phase portraits. The matplotlib backend draws a raster image directly. The
+# vedo backend draws a textured image behind the vector layer. Both give the same picture, so an
+# overlay such as a grid looks the same in both.
 
 # %%
 mv.Plane(extent=2, grid=False, axes=False, backend="vedo").phase_portrait(
@@ -112,10 +115,10 @@ mv.Plane(extent=2, grid=False, axes=False, backend="vedo").phase_portrait(
 print("vedo raster path OK — grid composes over the portrait ✓")
 
 # %% [markdown]
-# **Recap.** `phase_portrait(f, scheme=…)` gives the plane / phase / modulus / enhanced Wegert
-# portraits; zeros and poles are legible by the direction and count of the hue cycles, verified here
-# by winding numbers. Next up (Phase 4): the 3D **analytic landscape** — the modulus surface colored
-# by this same phase.
+# `phase_portrait(f, scheme=…)` gives the plane, phase, modulus, and enhanced Wegert portraits.
+# You can read zeros and poles from the direction and the count of the hue cycles. The winding
+# numbers above verify this. The next notebook covers the 3D analytic landscape, that is, the
+# modulus surface colored by this same phase.
 
 # %% [markdown]
 #

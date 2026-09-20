@@ -14,11 +14,12 @@
 # ---
 
 # %% [markdown]
-# # clmmathtools examples 2 — pushing the plane through maps
+# # clmmathtools examples 2: pushing the plane through maps
 #
-# The unifying operation of `clmmathtools`: **push the domain grid (and shapes) through a map and draw the
-# image.** The same machinery serves three worlds — linear algebra (`apply_matrix`), geometric
-# operators (`show_operator`), and complex analysis (`apply_complex`) — demonstrated and asserted below.
+# One operation unifies `clmmathtools`: push the domain grid and shapes through a map, then draw
+# the result (the image). The same machinery serves three areas: linear algebra (`apply_matrix`),
+# geometric operators (`show_operator`), and complex analysis (`apply_complex`). The cells below
+# demonstrate each one and check the claims with numbers.
 
 # %%
 import numpy as np
@@ -27,10 +28,11 @@ from clmmathtools.viz import maps
 from clmmathtools.viz import primitives as P
 
 # %% [markdown]
-# ## 1. Linear maps — `apply_matrix`
+# ## 1. Linear maps: `apply_matrix`
 #
-# A 2×2 matrix warps the coordinate grid to a lattice; the image basis arrows are its columns. The
-# signed area of the image of the unit square is the **determinant** — we check it.
+# A 2×2 matrix warps the coordinate grid into a lattice. The arrows for the image basis are the
+# columns of the matrix. The signed area of the image of the unit square is the determinant. The
+# cell below checks this.
 
 # %%
 M = np.array([[1.0, 1.0], [0.0, 1.0]])  # a shear (det = 1)
@@ -50,15 +52,16 @@ assert np.isclose(np.linalg.det(S), 4.0)
 print("uniform scale ×2: det = 4 (area ×4)")
 
 # %% [markdown]
-# ## 2. Geometric operators — `show_operator`
+# ## 2. Geometric operators: `show_operator`
 #
-# `show_operator` overlays a faint domain grid with its bold image. A **projection** collapses the
-# plane onto a line (non-invertible, det 0); a **rotation** preserves lengths.
+# `show_operator` draws a faint domain grid and its bold image on top. A projection collapses the
+# plane onto a line. It is not invertible, and its determinant is 0. A rotation keeps all lengths
+# the same.
 #
-# Pass `probe_shape=` to carry a recognizable figure along — here `mv.FLAG`, an asymmetric "flag on a
-# pole" whose chirality makes flips and shears legible (`mv.UNIT_SQUARE`, or any array of points,
-# work too; the default is `None`, i.e. grid only). `probe_shape_color=` colors its image separately
-# from the grid's.
+# Pass `probe_shape=` to carry a recognizable figure through the map. Here it is `mv.FLAG`, an
+# asymmetric "flag on a pole". Its left-right asymmetry makes flips and shears easy to see.
+# `mv.UNIT_SQUARE` or any array of points also works. The default is `None`, which means grid
+# only. `probe_shape_color=` sets the color of the image figure separately from the grid.
 
 
 # %%
@@ -90,10 +93,11 @@ assert np.allclose(R.T @ R, np.eye(2))  # orthogonal ⇒ preserves lengths
 print("rotation is orthogonal ✓")
 
 # %% [markdown]
-# ## 3. Complex functions — `apply_complex` (conformal maps)
+# ## 3. Complex functions: `apply_complex` (conformal maps)
 #
-# A complex function bends the grid into curves while preserving angles (where analytic). The classic
-# images: `z²` → confocal parabolas, `1/z` → circles (with a clean break at the pole).
+# A complex function bends the grid into curves. Where the function is analytic (complex
+# differentiable), it keeps the angles. In the classic examples, `z²` maps the grid to parabolas
+# that share one focus, and `1/z` maps it to circles with a clean break at the pole.
 
 # %%
 mv.Plane(extent=2, grid=False).apply_complex(
@@ -111,7 +115,7 @@ d = np.abs(w - w.mean())
 assert (d.max() - d.min()) / d.mean() < 0.1
 print("z² is conformal (small circle → near-circle) ✓")
 
-# the pole of 1/z produces a NaN that breaks the curve rather than streaking to infinity
+# the pole of 1/z produces a NaN, which breaks the curve instead of streaking to infinity
 line_through_0 = np.c_[np.linspace(-2, 2, 101), np.zeros(101)]
 image = maps.from_complex(lambda z: 1 / z)(line_through_0)
 assert np.isnan(image).any()
@@ -121,8 +125,9 @@ print("1/z: pole handled — curve splits into 2 finite runs ✓")
 # %% [markdown]
 # ## 4. A Möbius transformation
 #
-# Möbius maps `(az+b)/(cz+d)` send circles-and-lines to circles-and-lines — the grid becomes a family
-# of circles. They are the conformal automorphisms behind hyperbolic geometry and the Riemann sphere.
+# A Möbius map `(az+b)/(cz+d)` sends circles and lines to circles and lines, so the grid becomes a
+# family of circles. These maps are the invertible angle-preserving maps behind hyperbolic geometry
+# and the Riemann sphere.
 
 
 # %%
@@ -139,6 +144,7 @@ assert np.isclose(finv(f(z)), z)
 print("Möbius map ∘ inverse = identity ✓")
 
 # %% [markdown]
-# **Recap.** `apply_matrix`, `show_operator`, and `apply_complex` are one push-forward, and every
-# claim (determinant = area, idempotent projection, orthogonal rotation, conformality, pole splitting,
-# Möbius invertibility) is checked numerically in the cells above.
+# `apply_matrix`, `show_operator`, and `apply_complex` are one push-forward: map the points, then
+# draw them. The cells above check every claim with numbers: the determinant equals the area, a
+# projection repeated is the same projection, a rotation keeps lengths, analytic maps keep angles,
+# the pole splits the curve, and the Möbius map has an inverse.

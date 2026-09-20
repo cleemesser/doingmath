@@ -14,16 +14,19 @@
 # ---
 
 # %% [markdown]
-# # clmmathtools examples 5 — the 3D scene: analytic landscapes & 3D vector fields
+# # clmmathtools examples 5: the 3D scene, analytic landscapes and 3D vector fields
 #
-# `Space3D` is the perspective 3D sibling of `Plane`: the same "record backend-neutral primitives, let a
-# backend render them" design, now with `Arrow3D` / `Line3D` / `Points3D` / `Surface`, on **vedo**
-# (default) or **matplotlib** (`backend="mpl"`). Two headline builders:
+# `Space3D` is the 3D version of `Plane`, with a perspective view. It keeps the same design: the
+# code records backend-neutral primitives, and the backend renders them. It supports `Arrow3D`,
+# `Line3D`, `Points3D`, and `Surface`. The backend is vedo (default) or matplotlib
+# (`backend="mpl"`). Two main builders exist:
 #
-# - `Space3D.landscape(f)` — the **analytic landscape**: the surface `|f(z)|` colored by `arg f(z)`
-#   (the same coloring as a phase portrait), so a portrait's flat colors become 3D terrain.
-# - `Space3D.field(f)` — a **3D vector field** `f: ℝ³→ℝ³` as a lattice of arrows (uniform length,
-#   magnitude by color — the same convention as the 2D `Plane.field`).
+# - `Space3D.landscape(f)` draws the analytic landscape. It is the surface `|f(z)|` colored by
+#   `arg f(z)`, the same coloring as a phase portrait. The flat colors of a portrait become 3D
+#   terrain.
+# - `Space3D.field(f)` draws a 3D vector field `f: ℝ³→ℝ³` as a lattice of arrows. All arrows have
+#   the same length, and color shows magnitude. This is the same convention as the 2D
+#   `Plane.field`.
 
 # %%
 import numpy as np
@@ -33,8 +36,9 @@ from clmmathtools.viz import primitives as P
 # %% [markdown]
 # ## Analytic landscapes
 #
-# Zeros are valleys touching the floor; poles are towers (clipped at `zmax`). The hue winds around
-# each, exactly as in the flat phase portrait — the landscape just lifts `|f|` into the third dimension.
+# A zero looks like a valley that touches the floor. A pole looks like a tower, clipped at `zmax`.
+# The hue winds around each point, exactly as in the flat phase portrait. The landscape only lifts
+# `|f|` into the third dimension.
 
 # %%
 mv.Space3D(bounds=2.5).landscape(
@@ -57,8 +61,8 @@ print("landscape is a colored surface, finite and capped at zmax ✓")
 # %% [markdown]
 # ## 3D vector fields
 #
-# `Space3D.field(f)` samples a 3D lattice; arrows are uniform length with magnitude shown by color.
-# `f` is a 3×3 matrix (linear field `x ↦ Mx`) or a callable `(N,3)->(N,3)`.
+# `Space3D.field(f)` samples a 3D lattice. All arrows have the same length, and color shows the
+# magnitude. `f` can be a 3×3 matrix (the linear field `x ↦ Mx`) or a callable `(N,3)->(N,3)`.
 
 
 # %%
@@ -85,13 +89,13 @@ print(f"{len(arrows)} arrows, uniform length {lens[0]:.3f}, magnitude by color �
 # %% [markdown]
 # ## Riemann surfaces
 #
-# A multi-valued function becomes single-valued on its **Riemann surface**. We parametrize by the
-# *value* `w` (so the sheets join smoothly at the branch point) and color by phase.
+# A multi-valued function becomes single-valued on its Riemann surface. The code parametrizes the
+# surface by the value `w`, so the sheets join smoothly at the branch point. Color shows the phase.
 #
-# - `riemann_root(n)` — the surface of `z^{1/n}`: `z = wⁿ` covers the base plane n-to-1. For `n=2`
-#   (`√z`) it is the classic self-intersecting two-sheet "parking ramp".
-# - `riemann_log()` — the surface of `log z`: an infinite **helicoid** (spiral staircase), each 2π
-#   turn a new sheet, the hue cycling once per turn.
+# - `riemann_root(n)` draws the surface of `z^{1/n}`. There `z = wⁿ` covers the base plane n times.
+#   For `n=2` (`√z`) you get the classic two-sheet "parking ramp" that crosses itself.
+# - `riemann_log()` draws the surface of `log z`. It is an infinite helicoid (a spiral staircase).
+#   Each 2π turn is a new sheet, and the hue cycles once per turn.
 
 # %%
 mv.Space3D(bounds=2.5, elev=18, azim=-70).riemann_root(
@@ -115,7 +119,8 @@ print("√z: two sheets (±height) ✓   log z: helicoid rising 2π per turn ✓
 # %% [markdown]
 # ## Same scene, either backend
 #
-# The 3D scene renders under vedo (VTK meshes/arrows) and matplotlib (mplot3d) alike.
+# The 3D scene renders under both backends. Vedo draws VTK meshes and arrows. Matplotlib draws
+# with mplot3d.
 
 # %%
 mv.Space3D(bounds=2.5, backend="mpl").landscape(
@@ -124,10 +129,11 @@ mv.Space3D(bounds=2.5, backend="mpl").landscape(
 print("matplotlib mplot3d path OK — same landscape ✓")
 
 # %% [markdown]
-# **Recap.** `Space3D` lifts the library into 3D: `landscape(f)` is the analytic-landscape form of a
-# phase portrait (surface `|f|` colored by `arg f`), and `field(f)` draws 3D vector fields with the
-# same uniform-length, color-by-magnitude convention as 2D — on both backends. And `riemann_root` /
-# `riemann_log` draw multi-sheeted **Riemann surfaces** (√z, ∛z, log z) colored by phase.
+# `Space3D` lifts the library into 3D. `landscape(f)` gives the analytic landscape form of a phase
+# portrait: the surface `|f|` colored by `arg f`. `field(f)` draws 3D vector fields with the same
+# convention as 2D: all arrows have the same length, and color shows magnitude. Both work on both
+# backends. `riemann_root` and `riemann_log` draw multi-sheeted Riemann surfaces (√z, ∛z, log z)
+# colored by phase.
 
 # %% [markdown]
 #

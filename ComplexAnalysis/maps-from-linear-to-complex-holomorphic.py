@@ -14,11 +14,12 @@
 # ---
 
 # %% [markdown]
-# # clmmathtools examples 2 — pushing the plane through maps
+# # clmmathtools examples 2: pushing the plane through maps
 #
-# The unifying operation of `clmmathtools`: **push the domain grid (and shapes) through a map and draw the
-# image.** The same machinery serves three worlds — linear algebra (`apply_matrix`), geometric
-# operators (`show_operator`), and complex analysis (`apply_complex`) — demonstrated and asserted below.
+# One operation unifies `clmmathtools`: push the domain grid (and shapes) through a map, then draw
+# the image. The same machinery serves three fields: linear algebra (`apply_matrix`), geometric
+# operators (`show_operator`), and complex analysis (`apply_complex`). The cells below demonstrate
+# each one and check the claims.
 
 # %%
 import numpy as np
@@ -27,10 +28,10 @@ from clmmathtools.viz import maps
 from clmmathtools.viz import primitives as P
 
 # %% [markdown]
-# ## 1. Linear maps — `apply_matrix`
+# ## 1. Linear maps: `apply_matrix`
 #
-# A 2×2 matrix warps the coordinate grid to a lattice; the image basis arrows are its columns. The
-# signed area of the image of the unit square is the **determinant** — we check it.
+# A 2×2 matrix warps the coordinate grid into a lattice. The image basis arrows are its columns.
+# The signed area of the image of the unit square is the determinant. The cell below checks this.
 
 # %%
 M = np.array([[1.0, 1.0], [0.0, 1.0]])  # a shear (det = 1)
@@ -50,15 +51,15 @@ assert np.isclose(np.linalg.det(S), 4.0)
 print("uniform scale ×2: det = 4 (area ×4)")
 
 # %% [markdown]
-# ## 2. Geometric operators — `show_operator`
+# ## 2. Geometric operators: `show_operator`
 #
-# `show_operator` overlays a faint domain grid with its bold image. A **projection** collapses the
-# plane onto a line (non-invertible, det 0); a **rotation** preserves lengths.
+# `show_operator` draws a faint domain grid and its bold image on top. A projection collapses the
+# plane onto a line. It has no inverse, and its determinant is 0. A rotation keeps all lengths.
 #
-# Pass `probe_shape=` to carry a recognizable figure along — here `mv.FLAG`, an asymmetric "flag on a
-# pole" whose chirality makes flips and shears legible (`mv.UNIT_SQUARE`, or any array of points,
-# work too; the default is `None`, i.e. grid only). `probe_shape_color=` colors its image separately
-# from the grid's.
+# Pass `probe_shape=` to carry a recognizable figure along. Here it is `mv.FLAG`, an asymmetric
+# "flag on a pole". Because the flag is one-sided, flips and shears are easy to see. You can also
+# pass `mv.UNIT_SQUARE` or any array of points. The default is `None`, which means grid only.
+# `probe_shape_color=` colors the image of the figure separately from the grid.
 
 
 # %%
@@ -90,10 +91,11 @@ assert np.allclose(R.T @ R, np.eye(2))  # orthogonal ⇒ preserves lengths
 print("rotation is orthogonal ✓")
 
 # %% [markdown]
-# ## 3. Complex functions — `apply_complex` (conformal maps)
+# ## 3. Complex functions: `apply_complex` (conformal maps)
 #
-# A complex function bends the grid into curves while preserving angles (where analytic). The classic
-# images: `z²` → confocal parabolas, `1/z` → circles (with a clean break at the pole).
+# A complex function bends the grid into curves. Where the function is analytic (complex
+# differentiable), it keeps the angles. In the classic examples, `z²` maps the grid to parabolas
+# that share one focus, and `1/z` maps it to circles with a clean break at the pole.
 
 # %%
 mv.Plane(extent=2, grid=False).apply_complex(
@@ -111,7 +113,7 @@ d = np.abs(w - w.mean())
 assert (d.max() - d.min()) / d.mean() < 0.1
 print("z² is conformal (small circle → near-circle) ✓")
 
-# the pole of 1/z produces a NaN that breaks the curve rather than streaking to infinity
+# the pole of 1/z produces a NaN, which breaks the curve instead of streaking to infinity
 line_through_0 = np.c_[np.linspace(-2, 2, 101), np.zeros(101)]
 image = maps.from_complex(lambda z: 1 / z)(line_through_0)
 assert np.isnan(image).any()
@@ -121,8 +123,9 @@ print("1/z: pole handled — curve splits into 2 finite runs ✓")
 # %% [markdown]
 # ## 4. A Möbius transformation
 #
-# Möbius maps `(az+b)/(cz+d)` send circles-and-lines to circles-and-lines — the grid becomes a family
-# of circles. They are the conformal automorphisms behind hyperbolic geometry and the Riemann sphere.
+# A Möbius map `(az+b)/(cz+d)` sends circles and lines to circles and lines, so the grid becomes a
+# family of circles. These maps are the invertible angle-preserving maps behind hyperbolic geometry
+# and the Riemann sphere.
 
 
 # %%
@@ -139,21 +142,22 @@ assert np.isclose(finv(f(z)), z)
 print("Möbius map ∘ inverse = identity ✓")
 
 # %% [markdown]
-# ## 5. Non-holomorphic maps — when the grid is *not* conformal
+# ## 5. Non-holomorphic maps: when the grid is not conformal
 #
-# `apply_complex` accepts **any** `g: ℂ→ℂ`, holomorphic or not. A holomorphic (conformal) map keeps
-# the grid's angles: a little square maps to a (rotated, scaled) little square. A **non-holomorphic**
-# map — one that depends on `z̄`, or otherwise fails to be angle-preserving — distorts the grid
-# instead. Two extremes, both pushed through the same `push` machinery:
+# `apply_complex` accepts any `g: ℂ→ℂ`, holomorphic or not. A holomorphic (conformal) map keeps
+# the angles of the grid: a small square maps to a small square, maybe rotated or scaled. A
+# non-holomorphic map distorts the grid instead. Such a map depends on `z̄`, or fails to preserve
+# angles in another way. Two extreme examples follow, both pushed through the same `push`
+# machinery:
 #
-# * **`z̄·z = |z|²`** is *real-valued*, so its image collapses onto the real axis — a rank-1 map, the
-#   most degenerate non-conformal case: the whole mesh folds onto a line.
-# * **the twist** `f(x, y) = (r, θ + k·r)` stays 2D yet is still non-conformal — it leaves the radius
-#   untouched (so circles map to circles) but is not angle-preserving, so a square curves into a
-#   sheared quadrilateral. The grid **spirals**: area is preserved (det J = 1) while angles are not.
+# * `z̄·z = |z|²` returns only real numbers, so its image collapses onto the real axis. This is a
+#   rank-1 map and the most degenerate non-conformal case: the whole mesh folds onto one line.
+# * The twist `f(x, y) = (r, θ + k·r)` stays in 2D but is still non-conformal. It leaves the radius
+#   alone, so circles map to circles, but it does not preserve angles, so a square curves into a
+#   sheared quadrilateral. The grid spirals. The map preserves area (det J = 1) but not angles.
 
 # %%
-# (a) the degenerate case: f(z) = z̄·z = |z|² is real-valued ⇒ the grid collapses onto the real axis
+# (a) the degenerate case: f(z) = z̄·z = |z|² is real-valued, so the grid collapses onto the real axis
 mv.Plane(extent=2, grid=False).apply_complex(
     lambda z: np.conj(z) * z, color=mv.PURPLE, step=0.5
 ).display()
@@ -173,15 +177,15 @@ print(
 )
 
 # %% [markdown]
-# ### Measuring non-conformality: the "similarity deviation"
+# ### Measuring non-conformality: the similarity deviation
 #
-# Cells (b) and (c) certify non-holomorphic maps are non-conformal with a single scalar,
-# `sim_dev(J)`. It measures how far a map's **Jacobian** `J` at a point `p` is from being a
-# **similarity** — a scaled rotation `c·R` — because a 2-D map is conformal at `p` *iff* its
-# Jacobian there is a similarity (this is the Cauchy–Riemann condition written in "real" terms).
+# Cells (b) and (c) use one scalar, `sim_dev(J)`, to show that non-holomorphic maps are not
+# conformal. It measures how far the Jacobian `J` of a map at a point `p` is from a similarity. A
+# similarity is a scaled rotation `c·R`. A 2D map is conformal at `p` exactly when its Jacobian at
+# `p` is a similarity. This is the Cauchy–Riemann condition written in real terms.
 #
-# `jac(F, p)` returns `J`, a 2×2 matrix; its **rows** `r1 = J[0]` and `r2 = J[1]` are the **images of
-# the domain axes** `e1`, `e2`. A similarity has exactly two hallmarks, and `sim_dev` checks both:
+# `jac(F, p)` returns `J`, a 2×2 matrix. Its rows `r1 = J[0]` and `r2 = J[1]` are the images of the
+# domain axes `e1` and `e2`. A similarity has exactly two marks, and `sim_dev` checks both:
 #
 # ```python
 # def sim_dev(J):
@@ -191,27 +195,28 @@ print(
 #             - np.linalg.norm(r2))         # 0 ⇔ no directional stretch (equal length)
 # ```
 #
-# * **term 1** `|r1·r2|` — 0 when the image axes stay orthogonal (a 90° angle survives); nonzero means
+# * Term 1, `|r1·r2|`, is 0 when the image axes stay at right angles. A value above 0 means the
 #   angles are distorted.
-# * **term 2** `||r1| − |r2||` — 0 when both image axes have equal length (no direction stretched more
-#   than the other); nonzero means anisotropic stretching.
+# * Term 2, `||r1| − |r2||`, is 0 when both image axes have the same length, that is, no direction
+#   is stretched more than the other. A value above 0 means the stretch differs by direction.
 #
-# So `sim_dev = 0` ⇔ the Jacobian is a scaled rotation ⇔ **conformal**; large ⇔ **non-conformal**.
-# For `z²`, `J = [[1.4, 1], [−1, 1.4]]` gives `r1·r2 = 0` and `|r1| = |r2| = √2.96`, so `sim_dev = 0`
-# (conformal). Both non-holomorphic maps below score large — the shear's `J = [[1, 2y], [0, 1]]` has
-# `r1·r2 = 2y` and the twist's `J` has `r1·r2 ≈ 15.6` (a right angle badly wrecked) — *even though*
-# both are area-preserving (`det J = 1`): the signature of a non-holomorphic map.
+# So `sim_dev = 0` means the Jacobian is a scaled rotation, that is, the map is conformal. A large
+# value means the map is not conformal. For `z²`, `J = [[1.4, 1], [−1, 1.4]]` gives `r1·r2 = 0`
+# and `|r1| = |r2| = √2.96`, so `sim_dev = 0`. The two non-holomorphic maps below give large
+# values. The shear has `J = [[1, 2y], [0, 1]]`, so `r1·r2 = 2y`. The twist has `r1·r2 ≈ 15.6`,
+# which badly wrecks a right angle. Both maps still preserve area (`det J = 1`), which is a sign
+# of a non-holomorphic map.
 #
-# **Caveat.** This is a *pointwise* (infinitesimal) test — it decides whether a map is conformal *at*
-# `p`, not whether the image of a *finite* square stays a square: for a nonlinear map a finite square's
-# corner angles drift even under a conformal map like `z²`. That is why we test the Jacobian, not a
-# finite square.
+# Caveat: this is a pointwise (infinitesimal) test. It decides whether a map is conformal at `p`.
+# It does not decide whether the image of a finite square stays a square. For a nonlinear map, the
+# corner angles of a finite square drift even under a conformal map such as `z²`. That is why the
+# test uses the Jacobian, not a finite square.
 
 
 # %%
-# (b) the smooth shear f(x, y) = (x + y², y): a clean, *pure* non-conformality. It is a horizontal
-# shear of strength 2y — area is preserved (det = 1) — but a right angle is distorted, so a square
-# becomes a parallelogram. Horizontal grid lines stay horizontal; vertical lines bow into parabolas.
+# (b) the smooth shear f(x, y) = (x + y², y): a pure non-conformality. It is a horizontal shear of
+# strength 2y. It preserves area (det = 1) but distorts a right angle, so a square becomes a
+# parallelogram. Horizontal grid lines stay horizontal, and vertical lines bow into parabolas.
 def shear(pts):
     pts = np.asarray(pts, float).reshape(-1, 2)
     x, y = pts[:, 0], pts[:, 1]
@@ -221,8 +226,8 @@ def shear(pts):
 mv.Plane(extent=2, grid=False).show_operator(shear, color=mv.GREEN, step=0.5).display()
 
 
-# A conformal map's Jacobian is a scaled rotation (orthogonal, equal-length rows); the
-# "similarity deviation" below is ≈ 0 for z² and large for any non-conformal map.
+# The Jacobian of a conformal map is a scaled rotation: its rows are orthogonal and have equal
+# length. The similarity deviation below is ≈ 0 for z² and large for any non-conformal map.
 def jac(F, p, h=1e-5):
     p = np.asarray(p, float).reshape(1, 2)
     fx = (F(p + h * np.array([1.0, 0.0]))[0] - F(p - h * np.array([1.0, 0.0]))[0]) / (
@@ -239,7 +244,7 @@ def sim_dev(J):
     return abs(np.dot(r1, r2)) + abs(np.linalg.norm(r1) - np.linalg.norm(r2))
 
 
-# z² is conformal (dev ≈ 0); the shear preserves area (det = 1) but is non-conformal (dev ≫ 0)
+# z² is conformal (dev ≈ 0), and the shear preserves area (det = 1) but is non-conformal (dev ≫ 0)
 assert (
     sim_dev(jac(lambda p: maps.from_complex(lambda z: z**2)(p), np.array([0.7, 0.5])))
     < 0.05
@@ -252,9 +257,9 @@ print(
 
 
 # %%
-# (c) the twist f(x, y) = (r, θ + k·r): a *prettier* non-holomorphic map that does NOT collapse.
-# It leaves the radius untouched (circles stay circles) but is not angle-preserving, so a square
-# curves into a sheared quadrilateral — the grid spirals.
+# (c) the twist f(x, y) = (r, θ + k·r): a prettier non-holomorphic map that does not collapse. It
+# leaves the radius alone (circles stay circles) but does not preserve angles, so a square curves
+# into a sheared quadrilateral and the grid spirals.
 def twist(pts, k=1.5):
     pts = np.asarray(pts, float).reshape(-1, 2)
     x, y = pts[:, 0], pts[:, 1]
@@ -274,11 +279,12 @@ print(
 )
 
 # %% [markdown]
-# **Recap.** `apply_matrix`, `show_operator`, and `apply_complex` are one push-forward. Every claim is
-# checked numerically above: determinant = area, idempotent projection, orthogonal rotation,
-# conformality, pole splitting, Möbius invertibility — and, for non-holomorphic maps, the *failure*
-# of conformality: `z̄·z` collapses onto the real axis, while the shear and the twist keep area but
-# shear the angles.
+# `apply_matrix`, `show_operator`, and `apply_complex` are one push-forward. The cells above check
+# every claim with numbers: the determinant equals the area, a projection repeated is the same
+# projection, a rotation keeps lengths, analytic maps keep angles, the pole splits the curve, and
+# the Möbius map has an inverse. For non-holomorphic maps the cells also check the failure of
+# conformality: `z̄·z` collapses onto the real axis, and the shear and the twist keep area but
+# distort angles.
 
 # %% [markdown]
 #

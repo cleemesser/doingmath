@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Convert PDF-extraction math artifacts in markdown to inline LaTeX.
+"""Convert the math artifacts that PDF extraction leaves in markdown into inline LaTeX.
 
-The extractor wrote inline math as italic runs (`_z_`), `[2]` for super/sub-
-scripts, `~~z~~` for conjugates and raw unicode math glyphs; whole theorem
-statements are one italic run with math sprinkled inside.  Display equations
-are PNG images in this dump, so only inline math needs converting.
+The extractor wrote inline math as italic runs (`_z_`). It wrote super-
+scripts and subscripts as `[2]`, conjugates as `~~z~~`, and math symbols as
+raw unicode characters. One theorem statement is one italic run with math
+inside it. In this dump the display equations are PNG images, so only
+inline math needs converting.
 
 Usage: python3 md_math_to_latex.py IN.md [OUT.md]
 """

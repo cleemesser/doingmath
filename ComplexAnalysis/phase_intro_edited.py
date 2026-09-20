@@ -34,12 +34,13 @@ def _(mo):
     mo.md(r"""
 # An Introduction to Phase Portraits in Complex Analysis
 
-A **phase portrait** colors the domain by the value of a complex function: the
-**hue** is the phase `arg f(z)` (a full color wheel per turn, red at `arg = 0`),
-and optional brightness **contours** encode more structure. Following E. Wegert,
-*Visual Complex Functions* (2012).
+A phase portrait colors the domain by the value of a complex function. The hue
+shows the phase `arg f(z)`. One full color wheel equals one full turn, and red
+means `arg = 0`. Optional brightness contours (bands with lower brightness)
+show more structure. E. Wegert describes this method in *Visual Complex
+Functions* (2012).
 
-    In python, this is really easy to do using `sympy` and `sympy_plotting_backends` (spb).
+    In Python you can do this easily with `sympy` and `sympy_plotting_backends` (spb).
     """)
     return
 
@@ -106,10 +107,10 @@ def _():
 def _(mo):
     mo.md(r"""
     ## The four ways to encode the complex "z-plane"
-    1. We consider $z$ in its polar form first, $z= R e^{i\theta}$. Then we encode each point with a color based upon the angle $\theta$ (figure 1a)
-    2. Start building the polar grid by drawing iso-phase lines (Figure 1b)
-    3. Put in iso-modulus (r) contours (Figure 1c)
-    4. All 1+2+3 (Figure 1d)
+    1. First write $z$ in polar form: $z= R e^{i\theta}$. Color each point by the angle $\theta$ (Figure 1a).
+    2. Build the polar grid by drawing iso-phase lines (Figure 1b).
+    3. Add iso-modulus (r) contours (Figure 1c).
+    4. Combine 1, 2, and 3 (Figure 1d).
     """)
     return
 
@@ -144,10 +145,10 @@ def _(mo):
     mo.md(r"""
     ### Checking the schemes numerically
 
-    Because series factories return objects rather than pictures, the *same* data the renderer sees is
-    available for assertions. `ComplexDomainColoringSeries.get_data()` returns
-    `(x, y, abs, arg, rgb_img, colorscale)` — note that spb hands back the modulus and argument grids
-    too, which clmmathtools's `phase.colorize()` does not.
+    Series factories return objects, not pictures, so you can assert on the same data the renderer
+    sees. `ComplexDomainColoringSeries.get_data()` returns `(x, y, abs, arg, rgb_img, colorscale)`.
+    Note that spb also hands back the modulus and argument grids. clmmathtools's `phase.colorize()`
+    does not.
     """)
     return
 
@@ -177,14 +178,14 @@ def _(mo):
     mo.md(r"""
     ## A small gallery (enhanced)
 
-    Zeros are where all hues meet running **counter-clockwise**; poles are where they meet running
-    **clockwise**. Count the color cycles to read the order.
+    A zero is a point where all hues meet and run counter-clockwise. A pole is a point where all
+    hues meet and run clockwise. Count the color cycles to read the order.
 
     Note the titles. Every series carries a label derived from the expression, and
-    `series.get_label(use_latex=True)` hands back rendered LaTeX — so the panel titles below are not
-    hand-written strings that can drift out of sync with the function, as they were in the clmmathtools
-    version. (`graphics()` does not set a title on its own; it puts the label on the colorbar, which
-    we have turned off, so we lift it into `title=` explicitly.)
+    `series.get_label(use_latex=True)` returns rendered LaTeX. So the panel titles below are not
+    hand-written strings that can drift out of sync with the function, as they were in the
+    clmmathtools version. (`graphics()` does not set a title on its own. It puts the label on the
+    colorbar. We turned the colorbar off, so the code copies the label into `title=` explicitly.)
     """)
     return
 
@@ -202,13 +203,13 @@ def _(mo):
     mo.md(r"""
     ## Reading the portrait: winding number = order of a zero/pole
 
-    The number of times the hue cycles as you circle a point is the **winding number** of `f` there —
-    positive for a zero of that order, negative for a pole.
+    The winding number of `f` at a point is the number of hue cycles when you walk around that
+    point. It is positive at a zero, and equals the order of the zero. It is negative at a pole.
 
-    clmmathtools could only check this **numerically**, by marching a lambda around a circle. With a
-    symbolic expression in hand, spb's input lets us get the answer **exactly** first — factor the
-    rational function and read off root multiplicities — and then confirm it numerically. The exact
-    answer is what we annotate the plot with in the next cell.
+    clmmathtools could only check this numerically, by marching a lambda around a circle. spb takes
+    a symbolic expression, so you can get the exact answer first: factor the rational function and
+    read the root multiplicities. Then confirm it numerically. The next cell annotates the plot
+    with the exact answer.
     """)
     return
 
@@ -255,11 +256,11 @@ def _(mo):
     mo.md(r"""
     ## Where the `graphics()` interface pays off: composing series
 
-    This is the analogue of clmmathtools's `p.phase_portrait(...).text(...).grid(...)` chain, but built the
-    other way round: instead of a `Plane` object accumulating primitives, independent series factories
-    each return a list, and `graphics()` splats them into one figure. Different *kinds* of series
-    (a raster domain coloring, two scatters) mix freely, and the markers are placed from the **exact**
-    roots computed above rather than eyeballed coordinates.
+    This is the analogue of the clmmathtools chain `p.phase_portrait(...).text(...).grid(...)`, but
+    built the other way round. Instead of a `Plane` object that accumulates primitives, independent
+    series factories each return a list, and `graphics()` unpacks them into one figure. Different
+    kinds of series (a raster domain coloring, two scatters) mix freely. The markers sit on the
+    exact roots computed above, not on eyeballed coordinates.
     """)
     return
 
@@ -297,9 +298,9 @@ def _(mo):
 
     ### The analytic landscape, from the same expression
 
-    clmmathtools needs a *different class* (`Space3D.landscape`) and a different backend (vedo) for this.
-    In spb it is just another series factory over the same expression and range — `graphics()` notices
-    the series is 3D and configures the figure accordingly.
+    clmmathtools needs a different class (`Space3D.landscape`) and a different backend (vedo) for
+    this. In spb it is just another series factory over the same expression and range. `graphics()`
+    notices the series is 3D and configures the figure accordingly.
     """)
     return
 
@@ -320,9 +321,10 @@ def _(mo):
     mo.md(r"""
     ### The Riemann sphere, stereographically projected
 
-    `riemann_sphere_2d` masks the portrait to the unit disk and annotates `0, 1, i, -i`; pass
-    `at_infinity=True` for the chart around `∞` (i.e. the portrait of `f(1/z)`). There is no clmmathtools
-    equivalent at all — this is the payoff of a library whose author was reading the same Wegert book.
+    `riemann_sphere_2d` masks the portrait to the unit disk and annotates `0, 1, i, -i`. Pass
+    `at_infinity=True` for the chart around `∞`, that is, the portrait of `f(1/z)`. There is no
+    clmmathtools equivalent at all. This is what you get from a library whose author was reading the
+    same Wegert book.
     """)
     return
 
@@ -356,12 +358,13 @@ def _(mo):
     mo.md(r"""
     ### Magnitude-blended colorings tell zeros from poles
 
-    Schemes `"l"`–`"o"` blend the modulus into the brightness: bright means large $\lvert f\rvert$.
-    So a pole is a white blaze and a zero a dark pit, readable without tracing hue direction.
-    `"k"` / `"k+log"` drop hue entirely and show magnitude alone in greyscale.
-    clmmathtools has no counterpart; its four schemes all keep brightness independent of $\lvert f\rvert$
-    — under `"b"` a zero and a pole are equally bright, and only the *direction* of the hue cycle
-    distinguishes them.
+    Schemes `"l"` to `"o"` blend the modulus into the brightness, and bright means large
+    $\lvert f\rvert$. A pole is a white blaze, and a zero is a dark pit. You can read this without
+    tracing hue direction. `"k"` and `"k+log"` drop hue entirely and show only magnitude, in
+    greyscale.
+    clmmathtools has no counterpart. In each of its four schemes the brightness does not depend on
+    $\lvert f\rvert$. Under `"b"` a zero and a pole are equally bright, and only the direction of
+    the hue cycle tells them apart.
     """)
     return
 
@@ -405,15 +408,15 @@ def _(mo):
     mo.md(r"""
     ## Backends: the same series, four renderers
 
-    clmmathtools's backend split is matplotlib vs vedo, chosen at `Plane(backend=...)` construction. spb's
-    is chosen at `graphics(backend=...)`, and the series are entirely backend-agnostic — the identical
-    `domain_coloring(...)` list feeds every one of them.
+    clmmathtools splits between matplotlib and vedo, and you choose at `Plane(backend=...)`
+    construction. spb chooses at `graphics(backend=...)`. Its series are entirely backend-agnostic:
+    the identical `domain_coloring(...)` list feeds every one of them.
 
-    - **`MB`** matplotlib — static, publication figures (what every cell above used)
-    - **`PB`** plotly — interactive pan/zoom/hover in the browser; the hover box reports
-      $\lvert f\rvert$ and $\arg f$ at the cursor, which is genuinely useful for reading a portrait
-    - **`BB`** bokeh — interactive 2D, lighter-weight than plotly
-    - **`KB`** k3d — interactive WebGL 3D (for `analytic_landscape` / `riemann_sphere_3d`)
+    - `MB` matplotlib: static figures for publication. Every cell above used it.
+    - `PB` plotly: interactive pan, zoom, and hover in the browser. The hover box reports
+      $\lvert f\rvert$ and $\arg f$ at the cursor, which is useful for reading a portrait.
+    - `BB` bokeh: interactive 2D, lighter than plotly.
+    - `KB` k3d: interactive WebGL 3D (for `analytic_landscape` / `riemann_sphere_3d`).
     """)
     return
 
@@ -443,16 +446,17 @@ def _(mo):
     mo.md(r"""
     ## Interactive exploration with widgets
 
-    Because the expression is symbolic, a *parameter* can stay symbolic too. Pass
-    `params={sym: (default, min, max)}` and spb builds an ipywidgets (or panel) app that re-lambdifies
-    and re-renders on change. Watch the `k`-fold zero at the origin split hues as `k` moves.
+    Because the expression is symbolic, a parameter can stay symbolic too. Pass
+    `params={sym: (default, min, max)}`, and spb builds an ipywidgets (or panel) app that
+    re-lambdifies and re-renders on change. Watch the `k`-fold zero at the origin split hues as `k`
+    moves.
 
-    This has no clmmathtools analogue — with a Python callable you would rebuild and redraw by hand.
+    clmmathtools has no analogue for this. With a Python callable you rebuild and redraw by hand.
 
     Backend note: the widget app embeds the figure in an ipywidgets `Box`, so the figure must itself
-    *be* a widget. `PB` (plotly) satisfies that natively via `FigureWidget`. `MB` (matplotlib) only
-    does under `%matplotlib widget` (ipympl) — with the default inline/Agg canvas it raises
-    `TraitError: ... expected a Widget, not the FigureCanvasAgg`.
+    be a widget. `PB` (plotly) satisfies that natively through `FigureWidget`. `MB` (matplotlib)
+    does this only under `%matplotlib widget` (ipympl). With the default inline/Agg canvas it
+    raises `TraitError: ... expected a Widget, not the FigureCanvasAgg`.
     """)
     return
 
@@ -482,7 +486,7 @@ def _(DOMAIN2, PB, domain_coloring, graphics, symbols, z):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Recap — where each library wins
+    ## Recap: where each library wins
 
     | | `clmmathtools` | `spb` |
     |---|---|---|
@@ -494,17 +498,17 @@ def _(mo):
     | composition model | `Plane` object, chained mutators | series factories + `graphics(*series)` |
     | multi-panel | one figure per `display()` | `plotgrid()` |
     | 3D landscape | separate `Space3D` class | another series factory, same call shape |
-    | Riemann sphere | — | `riemann_sphere_2d` / `_3d` |
-    | widgets | — | `params={sym: (init, lo, hi)}` |
+    | Riemann sphere | none | `riemann_sphere_2d` / `_3d` |
+    | widgets | none | `params={sym: (init, lo, hi)}` |
     | backends | matplotlib, vedo | matplotlib, plotly, bokeh, k3d, mayavi |
     | data introspection | `phase.colorize()` returns RGB | `series.get_data()` returns `x, y, abs, arg, rgb` |
-    | control over the drawing | full — it is your code | `rendering_kw` passthrough, then the series API's edge |
+    | control over the drawing | full, because it is your code | `rendering_kw` passthrough, then the series API's edge |
 
-    The short version: **spb is the better tool when the function is symbolic**, which for classical
-    complex analysis it usually is — you get exactness, LaTeX, four backends and widgets for free.
-    **clmmathtools stays the better tool when it is not** — an iterated map, a numerically-defined
-    transform, a function you only have as samples — and when a portrait is one layer of a scene
-    you are assembling out of arbitrary primitives.
+    In short: spb is the better tool when the function is symbolic, which is usual in classical
+    complex analysis. You get exactness, LaTeX, four backends, and widgets for free. clmmathtools
+    stays the better tool when the function is not symbolic: an iterated map, a transform defined
+    numerically, or a function you only have as samples. It also stays better when a portrait is one
+    layer of a scene you assemble from arbitrary primitives.
     """)
     return
 
@@ -512,17 +516,18 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### history
-    This is a port of `04_phase_portraits.py` from **clmmathtools** to **spb**
+    ### History
+    This notebook is a port of `04_phase_portraits.py` from clmmathtools to spb
     (`sympy-plot-backends`), so the two libraries can be compared on the same material.
 
-    The single biggest difference is the *input type*:
+    The biggest difference is the input type:
 
-    - `clmmathtools` takes a **Python callable** `f: ndarray[complex] -> ndarray[complex]`. It samples,
-      it colors, it draws. Nothing knows what the function *is*.
-    - `spb` takes a **SymPy expression**. The expression is lambdified for sampling, but it is still
-      available symbolically — so zeros, poles, orders, residues and derivatives can be computed
-      *exactly* and used to annotate the picture, and axis labels come out as rendered LaTeX for free.
+    - `clmmathtools` takes a Python callable `f: ndarray[complex] -> ndarray[complex]`. It samples,
+      colors, and draws. Nothing knows what the function is.
+    - `spb` takes a SymPy expression. spb lambdifies the expression for sampling, but the
+      expression stays available symbolically. So you can compute zeros, poles, orders, residues,
+      and derivatives exactly and use them to annotate the picture. Axis labels come out as
+      rendered LaTeX for free.
     """)
     return
 

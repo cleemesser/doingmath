@@ -6,37 +6,21 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.5
+#       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: doingmath (3.14.3.final.0)
+#     display_name: doingmath (3.14.3)
 #     language: python
 #     name: python3
 # ---
 
 # %% [markdown]
-# # Divergence and Curl as Pieces of $DF$ — the autodiff edition
+# # Divergence and Curl as Pieces of $DF$
+# - the autodiff edition
+# ### What the derivative of a vector field is, and how $\operatorname{div}$ and $\operatorname{curl}$ relate to it.
 #
-# ### What the derivative of a vector field is, and how $\operatorname{div}$ and $\operatorname{curl}$ read it
-#
-# > **This is the second version of `Div_Curl_and_the_Jacobian`.** The mathematics, the section
-# > numbering and the prose are the same. What changes is that **every numerical derivative is
-# > computed by automatic differentiation** (the [`autograd`](https://github.com/HIPS/autograd)
-# > library) instead of by finite differences. Read the two side by side. The first shows that the
-# > claims survive contact with a difference quotient; this one shows what they look like when the
-# > derivatives are exact to machine precision. It also adds three things that become possible only
-# > once you can differentiate arbitrary code:
-# >
-# > * **Clairaut's theorem becomes a real measurement** (§2). The finite-difference Hessian was
-# >   symmetric by construction. The AD Hessian is not, so its antisymmetric part is a genuine
-# >   observation.
-# > * **The flow Jacobian can be found by differentiating the ODE solver itself** (§4), then compared
-# >   against integrating the variational equation — *discretize-then-differentiate* versus
-# >   *differentiate-then-discretize*.
-# > * **Divergence without ever forming a Jacobian** (§9), using Jacobian–vector products. That is
-# >   exactly how continuous normalizing flows compute it at scale.
-#
-# A vector field $F:\mathbb{R}^n \to \mathbb{R}^n$ is unusual among smooth maps. Its **derivative at
-# a point is an endomorphism of the tangent space**,
+# A vector field $F:\mathbb{R}^n \to \mathbb{R}^n$ is special among smooth maps. Its derivative at a
+# point, $p \in \mathbb{R}^n$, is a is a linear map from a space to
+# itself. The name for this sort of map from linear algebra is an "endomorphism." And the name for the vector space is the tangent space at $p$.
 #
 # $$DF(p) : T_p\mathbb{R}^n \longrightarrow T_p\mathbb{R}^n .$$
 #
@@ -45,8 +29,9 @@
 # the codomain are the same space does $DF(p)$ become a matrix you are allowed to take the trace of.
 # Everything below follows from that one fact.
 #
-# Any square matrix splits into a symmetric and an antisymmetric part, and the symmetric part splits
-# again into a multiple of the identity plus a trace-free remainder. That gives three pieces:
+# Any square matrix splits into a symmetric and an antisymmetric part. The symmetric part then
+# splits again, into a multiple of the identity plus a trace-free remainder. That gives three
+# pieces:
 #
 # $$DF \;=\; (\text{isotropic scaling}) \;+\; (\text{trace-free symmetric part}) \;+\; (\text{antisymmetric part})$$
 #
@@ -57,13 +42,13 @@
 #            \;+\; \underbrace{A}_{\substack{\text{antisymmetric}\\ \text{(infinitesimal rotation)}}}$$
 #
 # The word *isotropic* is doing real work there. $\tfrac{1}{n}(\operatorname{tr}DF)I$ is not "the
-# diagonal of $DF$". It is the diagonal's **average**, copied into every diagonal slot. Any way in
-# which the stretching depends on direction is a departure from that average, and those departures
-# live in $S_0$, whose own diagonal is usually nonzero. So scaling is split across the first *and*
-# second pieces — only the isotropic part of it sits in the first.
+# diagonal of $DF$". It is the diagonal's average, copied into every diagonal slot. Any way in which
+# the stretching depends on direction is a departure from that average. Those departures live in
+# $S_0$, whose own diagonal is usually nonzero. So scaling is split across the first *and* second
+# pieces. Only the isotropic part of it sits in the first.
 #
-# **An example in $\mathbb{R}^3$.** Take $F(x,y,z) = (3x,\,0,\,0)$: material pulled along the
-# $x$-axis and left alone in $y$ and $z$. Its derivative is constant, and splits as
+# Here is an example in $\mathbb{R}^3$. Take $F(x,y,z) = (3x,\,0,\,0)$, which pulls material along
+# the $x$-axis and leaves it alone in $y$ and $z$. Its derivative is constant, and splits as
 #
 # $$DF \;=\; \begin{pmatrix}3&0&0\\0&0&0\\0&0&0\end{pmatrix}
 # \;=\; \underbrace{\begin{pmatrix}1&0&0\\0&1&0\\0&0&1\end{pmatrix}}_{\tfrac{1}{3}(\operatorname{tr}DF)\,I}
@@ -71,59 +56,58 @@
 # \;+\; \underbrace{\vphantom{\begin{pmatrix}1\\1\\1\end{pmatrix}}0}_{A}$$
 #
 # Read the two nonzero pieces. The first says *expand evenly at rate $1$ in every direction*. The
-# second says *and on top of that, stretch at rate $2$ along $x$ while contracting at rate $1$ in $y$
-# and $z$*. Neither piece describes $F$; only the sum does. Notice that the first piece assigns motion
-# to $y$ and $z$, where $F$ moves nothing at all. The average of $(3,0,0)$ knows nothing about which
-# direction was the stretched one.
+# second says *and on top of that, stretch at rate $2$ along $x$ while contracting at rate $1$ in
+# $y$ and $z$*. Neither piece describes $F$. Only the sum does. Notice that the first piece assigns
+# motion to $y$ and $z$, where $F$ moves nothing at all. The average of $(3,0,0)$ knows nothing
+# about which direction was the stretched one.
 #
 # Now compare $G(x,y,z) = (x,y,z)$, a uniform radial expansion. Both fields have
 # $\operatorname{div} = 3$ and $\operatorname{curl} = 0$, so div and curl report them as the same
-# field. Both multiply volume at the same rate $e^{3t}$ along their flows — that *is* what the
+# field. Both multiply volume at the same rate $e^{3t}$ along their flows, which *is* what the
 # divergence measures. But $G$ inflates a ball into a bigger ball, while $F$ draws it out into a
 # cigar. That whole difference is $S_0 = \operatorname{diag}(2,-1,-1)$, the piece neither operator
 # sees.
 #
 # The claim of this notebook is that
 #
-# > **divergence is the first piece and curl is the third**, and *the middle piece is invisible to
+# > divergence is the first piece and curl is the third, and *the middle piece is invisible to
 # > both*.
 #
 # In $\mathbb{R}^3$ that middle piece holds 5 of the 9 components. So "div and curl" is not a full
-# description of $DF$: it reads two of the three parts and throws away the largest one. Knowing this
-# tells you what div and curl can and cannot see, why curl is a *vector* only in three dimensions,
-# and why div needs less structure than curl. **Gradient** enters from the other end: it is the
-# operator that *builds* vector fields whose third piece is zero.
+# description of $DF$. It reads two of the three parts and throws away the largest one. Knowing this
+# tells you what div and curl can and cannot see. It also tells you why curl is a *vector* only in
+# three dimensions, and why div needs less structure than curl. Gradient enters from the other end.
+# It is the operator that *builds* vector fields whose third piece is zero.
 #
-# We then take Spivak's view, from *Calculus on Manifolds*: the honest objects are not
-# $\operatorname{div}$ and $\operatorname{curl}$ but the **exterior derivative $d$**, applied to two
-# different forms built from $F$. Everything else — the vector-valued curl, the classical
-# Green/Stokes/Gauss theorems — is $d$ plus a metric plus an orientation.
+# We then take Spivak's view, from *Calculus on Manifolds*. The import operator is not
+# $\operatorname{div}$ or $\operatorname{curl}$ but the exterior derivative $d$, applied to two
+# different forms built from $F$. Using $d$, plus a metric and choice of orientation, vector-valued curl and the classical Green, Stokes and Gauss theorems amount to special cases of a more general Stokes theorem.
 #
-# Every claim here is checked in code: numerically with `np.allclose` on **exact** derivatives, and —
-# where the claim is an identity for *all* fields — symbolically with SymPy over generic functions,
-# which is a proof rather than a spot check. Three different notions of "computed derivative" are now
-# in play, and they are worth keeping apart. **Finite differences** approximate (version 1 of this
-# notebook). **Automatic differentiation** evaluates the exact derivative *at a point*, by applying
-# the chain rule to the program itself. **Symbolic differentiation** (SymPy) returns a derivative
-# *expression*, valid everywhere. AD is not symbolic: it never builds a formula, and it cannot prove
-# an identity for all $f$. That stays SymPy's job, which is why the SymPy proofs in §2 and §6 are
-# unchanged from version 1.
+# Every claim here is checked in code. Numbers are checked with `np.allclose` on exact derivatives.
+# Where the claim is an identity for *all* fields, it is checked symbolically with SymPy over
+# generic functions. A symbolic check of that kind is a proof, not a spot check. Three notions of
+# "computed derivative" are now in play, and they are worth keeping apart. Finite differences
+# approximate, as in version 1 of this notebook. Automatic differentiation evaluates the exact
+# derivative *at a point*, by applying the chain rule to the program itself. Symbolic
+# differentiation (SymPy) returns a derivative *expression*, valid everywhere. AD is not symbolic.
+# It never builds a formula, and it cannot prove an identity for all $f$. That stays SymPy's job,
+# which is why the SymPy proofs in §2 and §6 are unchanged from version 1.
 #
-# **Prerequisites.** Sections 1–9 assume only a first undergraduate course in linear algebra
-# (matrices, transpose, trace, eigenvalues, the dot product) and multivariable calculus. Section 10
-# is a closing note for readers who want the group-theoretic statement; nothing before it depends on
-# that language.
+# Prerequisites. Sections 1–9 need only a first undergraduate course in linear algebra (matrices,
+# transpose, trace, eigenvalues, the dot product) and multivariable calculus. Section 10 is a
+# closing note for readers who want the group-theoretic statement. Nothing before it depends on that
+# language.
 #
-# **Contents**
+# ### Contents
 #
 # 1. The decomposition of $DF$ and the two projections
 # 2. Gradient: the operator that *makes* fields with no rotation part
 # 3. What is invariant: why $\operatorname{tr}$ is cheap and the antisymmetric part is expensive
 # 4. Divergence = rate of change of volume (Liouville)
 # 5. Curl = twice the angular velocity (Cauchy–Stokes)
-# 6. The Spivak view: it is all $d$
+# 6. The Spivak view: the exterior derivative, $d$, is the right differential operator.
 # 7. Why curl is a vector only when $n = 3$
-# 8. What div and curl do *not* see — and what they still determine
+# 8. What div and curl do *not* capture, and what they still determine
 # 9. A coda: Jacobians of learned flows
 # 10. Advanced note: why these three pieces, and why *only* div and curl
 # * Appendix A. Autodiff notes: forward mode, reverse mode, and what each costs
@@ -169,37 +153,38 @@ GREY = "#888888"
 # %% [markdown]
 # ## Numerical toolkit
 #
-# An **automatically differentiated** Jacobian, the three projections, and a pair of maps we use
-# throughout.
+# This cell defines an automatically differentiated Jacobian, the three projections, and two maps
+# used throughout.
 #
-# **How AD gets the Jacobian.** `autograd` does not approximate, and it does not manipulate formulas.
-# It runs your function on *boxed* numbers that record every elementary operation, then replays that
-# record using the chain rule. What comes back is the derivative of the program you actually wrote,
-# evaluated at the point you asked for, to full floating-point accuracy — no step size, no truncation
-# error, no cancellation. The price is that the function has to be written in `anp` and has to avoid
-# in-place array assignment. That is why the vector fields below are built with `anp.array([...])`
-# rather than by filling a preallocated array.
+# Here is how AD gets the Jacobian. `autograd` does not approximate, and it does not manipulate
+# formulas. It runs your function on *boxed* numbers that record every elementary operation. Then it
+# replays that record using the chain rule. What comes back is the derivative of the program you
+# actually wrote, evaluated at the point you asked for, to full floating-point accuracy. There is no
+# step size, no truncation error and no cancellation. The price is that the function has to be
+# written in `anp` and has to avoid in-place array assignment. That is why the vector fields below
+# are built with `anp.array([...])` rather than by filling a preallocated array.
 #
 # Two directions are available, and the difference matters later (Appendix A). `ag_jacobian` walks
-# **backwards** through the record, one pass per output component. `make_jvp` walks **forwards**, one
-# pass per input direction, and gives $J v$ without ever building $J$.
+# backwards through the record, one pass per output component. `make_jvp` walks forwards, one pass
+# per input direction, and gives $J v$ without ever building $J$.
 #
-# **The hat map $\widehat{\;\cdot\;}$ and the vee map $\mathrm{vee}$.** An antisymmetric $3\times3$
-# matrix has zeros on the diagonal and only three independent entries, so it holds exactly as much
-# information as a vector in $\mathbb{R}^3$. The two maps that translate between them are
+# The hat map $\widehat{\;\cdot\;}$ and the vee map $\mathrm{vee}$ come next. An antisymmetric
+# $3\times3$ matrix has zeros on the diagonal and only three independent entries. So it holds
+# exactly as much information as a vector in $\mathbb{R}^3$. The two maps that translate between
+# them are
 #
 # $$\widehat{w}\;=\;\begin{pmatrix} 0 & -w_3 & w_2\\ w_3 & 0 & -w_1\\ -w_2 & w_1 & 0\end{pmatrix},
 # \qquad\qquad
 # \mathrm{vee}\!\begin{pmatrix} 0 & -c & b\\ c & 0 & -a\\ -b & a & 0\end{pmatrix} \;=\; (a,\,b,\,c).$$
 #
-# In words: **hat** takes a vector and builds the antisymmetric matrix that acts as "cross with that
-# vector", $\widehat{w}\,v = w\times v$. **vee** is its inverse: it reads the three independent
+# In words, hat takes a vector and builds the antisymmetric matrix that acts as "cross with that
+# vector", $\widehat{w}\,v = w\times v$. The vee map is its inverse. It reads the three independent
 # entries $\mathrm{vee}(A)=(A_{32},\,A_{13},\,A_{21})$ back off as a vector. The two are inverse to
-# each other — $\mathrm{vee}(\widehat{w})=w$, and $\widehat{\mathrm{vee}(A)}=A$ for every
-# antisymmetric $A$ — so "antisymmetric $3\times3$ matrix" and "vector in $\mathbb{R}^3$" are two
+# each other, because $\mathrm{vee}(\widehat{w})=w$ and $\widehat{\mathrm{vee}(A)}=A$ for every
+# antisymmetric $A$. So "antisymmetric $3\times3$ matrix" and "vector in $\mathbb{R}^3$" are two
 # spellings of the same thing. That bijection is the whole reason a curl can be written as a vector
-# in three dimensions, and §7 shows it exists in no other dimension. (Same convention as the
-# `LieGroups/SO3_Lie_Theory` notebook.)
+# in three dimensions. §7 shows that it exists in no other dimension. This is the same convention as
+# the `LieGroups/SO3_Lie_Theory` notebook.
 
 
 # %%
@@ -325,20 +310,21 @@ def curl2_fn(F):
 # %% [markdown]
 # ### What the first piece is *not*
 #
-# You might read $\tfrac{\operatorname{tr}J}{n}I$ as "the diagonal of $J$", and $S_0$ as "the
-# off-diagonal part". Both readings are wrong. The mistake matters, because it would make divergence
-# look like a full account of the stretching.
+# A natural first reading takes $\tfrac{\operatorname{tr}J}{n}I$ as "the diagonal of $J$", and $S_0$
+# as "the off-diagonal part". Both readings are wrong. The mistake matters, because it makes
+# divergence look like a full account of the stretching.
 #
 # Here is the counterexample. In the plane, $\operatorname{diag}(2,0)$ stretches $x$ and leaves $y$
-# alone. $\operatorname{diag}(1,1)$ expands evenly in every direction. The two have the **same**
-# divergence, $2$. What tells them apart is $S_0 = \operatorname{diag}(1,-1)$, which is diagonal,
-# traceless, and invisible to div and curl alike. Uneven scaling is not in the first piece at all.
+# alone. $\operatorname{diag}(1,1)$ expands evenly in every direction. The two have the same
+# divergence, $2$. What tells them apart is $S_0 = \operatorname{diag}(1,-1)$. That matrix is
+# diagonal and traceless, and div and curl are both blind to it. Uneven scaling is not in the first
+# piece at all.
 #
 # "Diagonal versus off-diagonal" is not a property of the map either. It is a property of the basis
 # you wrote the map in. Rotate $\operatorname{diag}(1,-1)$ by $45^\circ$ and you get
-# $\left(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right)$ — the same deformation, seen in a turned
-# frame. That is why the split below is into isotropic, trace-free and antisymmetric parts. Rotations
-# preserve those three. They do not preserve where the entries sit.
+# $\left(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right)$. That is the same deformation, seen in
+# a turned frame. The split below is therefore into isotropic, trace-free and antisymmetric parts.
+# Rotations preserve those three. Rotations do not preserve where the entries sit.
 
 # %%
 print("same div, different geometry -- the first piece cannot tell these apart:")
@@ -385,13 +371,13 @@ assert np.allclose(
 # %% [markdown]
 # ### The general case, symbolically
 #
-# The example above was a single matrix. The same accounting can be done once for all of them. Write
-# a completely general Jacobian, and let $m$ be the mean of its diagonal:
+# The example above was a single matrix. You can do the same accounting for every matrix at once.
+# Write a completely general Jacobian, and let $m$ be the mean of its diagonal:
 #
 # $$DF = \begin{pmatrix}a&b&c\\d&e&f\\g&h&i\end{pmatrix},
 #   \qquad m \;=\; \tfrac{1}{3}\operatorname{tr}DF \;=\; \tfrac{a+e+i}{3}.$$
 #
-# Define $\sigma_1,\sigma_2,\sigma_3$ — the diagonal of $S_0$ — as how far each diagonal entry sits
+# Define $\sigma_1,\sigma_2,\sigma_3$, the diagonal of $S_0$, as how far each diagonal entry sits
 # from that mean:
 #
 # $$\sigma_1 = a - m = \tfrac{2a-e-i}{3}, \qquad
@@ -403,14 +389,14 @@ assert np.allclose(
 #
 # $$\sigma_1 + \sigma_2 + \sigma_3 = 0,$$
 #
-# so they carry **two** independent numbers, not three.
+# so they carry two independent numbers, not three.
 #
 # That settles the question this subsection opened with. The diagonal of $DF$ holds three degrees of
-# freedom. Divergence sees exactly **one** of them, the mean $m$. The other two are the $\sigma_k$,
-# which sit in $S_0$, where neither div nor curl reaches. The off-diagonal entries split the same way:
-# their symmetric halves $\tfrac{b+d}{2}$, $\tfrac{c+g}{2}$, $\tfrac{f+h}{2}$ also join $S_0$. That
-# gives $S_0$ five components in all, $2 + 3$ — the $5$ in $9 = 1 + 5 + 3$ — while the antisymmetric
-# halves are the curl.
+# freedom. Divergence sees exactly one of them, the mean $m$. The other two are the $\sigma_k$,
+# which sit in $S_0$. Neither div nor curl reaches $S_0$. The off-diagonal entries split the same
+# way. Their symmetric halves $\tfrac{b+d}{2}$, $\tfrac{c+g}{2}$, $\tfrac{f+h}{2}$ also join $S_0$.
+# That gives $S_0$ five components in all, $2 + 3$, which is the $5$ in $9 = 1 + 5 + 3$. The
+# antisymmetric halves are the curl.
 
 # %%
 # Generic entries, so the identities below are proofs rather than spot checks.
@@ -460,8 +446,8 @@ def F3(p):
 p = np.array([0.4, -0.7, 1.1])
 J = jacobian(F3, p)
 D, S0, A = iso(J), dev(J), skew(J)
-
-print("J = DF(p) =\n", np.round(J, 6))
+print(f"p = {p}")
+print("jacobian J = DF(p) =\n", np.round(J, 6))
 print("\n  dilation  (tr J / 3) I =\n", np.round(D, 6))
 print("\n  shear     S₀ =\n", np.round(S0, 6))
 print("\n  rotation  A =\n", np.round(A, 6))
@@ -492,9 +478,9 @@ print(
 )
 
 # %% [markdown]
-# The last two checks matter. The splitting is an **orthogonal** decomposition, so
-# $\|DF\|^2 = \|D\|^2 + \|S_0\|^2 + \|A\|^2$ is a real budget. That lets us ask what *fraction* of the
-# derivative div and curl actually capture at a point.
+# The last two checks matter. The splitting is an orthogonal decomposition, so
+# $\|DF\|^2 = \|D\|^2 + \|S_0\|^2 + \|A\|^2$ is a real budget. That budget lets us ask what
+# *fraction* of the derivative div and curl capture at a point.
 
 # %%
 budget = {
@@ -513,9 +499,9 @@ print(
 # %% [markdown]
 # ### The three atoms
 #
-# Every $DF$ is a mix of three basic planar motions. Each one is drawn below as a field, together
-# with what its flow $e^{tJ}$ does to a small circle of material points: the circle grows, or
-# distorts at fixed area, or turns rigidly.
+# Every $DF$ is a mix of three basic planar motions. Each one is drawn below as a field. Beside it
+# is what its flow $e^{tJ}$ does to a small circle of material points. The circle grows, or distorts
+# at fixed area, or turns rigidly.
 
 # %%
 atoms = [
@@ -563,37 +549,38 @@ plt.show()
 print(
     "Note the two middle panels: div = 0 AND curl = 0, yet DF ≠ 0 and the circle is visibly"
 )
-print("deformed. Those are the components div and curl are blind to.")
+print("deformed. Those are the components div and curl leave out.")
 
 # %% [markdown]
 # ## 2. Gradient: the operator that *makes* fields with no rotation part
 #
 # There is a third classical operator, and it works in the opposite direction. Divergence and curl
-# take a vector field apart — they are projections of $DF$. **Gradient builds one**: it takes a scalar
-# function $f:\mathbb{R}^n\to\mathbb{R}$ and produces a vector field. Its role here is that the fields
-# it produces have a very particular $DF$.
+# take a vector field apart, because they are projections of $DF$. Gradient builds a vector field
+# instead. It takes a scalar function $f:\mathbb{R}^n\to\mathbb{R}$ and produces a vector field. Its
+# role here is that the fields it produces have a very particular $DF$.
 #
-# ### First: $\nabla f$ is not simply "the derivative of $f$"
+# ### First: $\nabla f$ is not "the derivative of $f$"
 #
-# The derivative of a scalar function at $p$ is the linear map
+# The in this approach, the derivative of a scalar function, $f:\mathbb{R}^n\to\mathbb{R}$, at $p$ is the linear map
 #
-# $$Df(p):\mathbb{R}^n\to\mathbb{R},\qquad Df(p)\,v \;=\; \left.\frac{d}{dt}\right\rvert_0 f(p+tv),$$
+# $$Df(p):T_p\mathbb{R}^n\to T_p\mathbb{R} \sim\mathbb{R},\qquad Df(p)\,v \;=\; \left.\frac{d}{dt}\right\rvert_0 f(p+tv),$$
 #
-# which takes a direction and returns a rate. That is a **row**, not a column — a linear functional,
-# not a vector. To make it *point* somewhere, you have to turn a linear functional into a vector, and
-# the tool for that is an inner product. So the gradient is **defined** by
+# which takes a direction and returns a rate. That $Df(p)$ acts like a row vector (also called a 1-form), not a column. It is a linear
+# functional, not a vector. To make it point somewhere, you have to turn a linear functional into a
+# vector. The tool for that is an inner product. So the gradient is defined by
 #
 # $$\big\langle \nabla f(p),\, v \big\rangle \;=\; Df(p)\,v \quad\text{for every } v .$$
 #
-# With the ordinary dot product this comes out as the familiar
-# $\nabla f = (\partial_1 f,\dots,\partial_n f)$, which is why the definition is easy to miss. But
-# change the inner product to $\langle u,v\rangle_M = u^{\mathsf T}Mv$, for any symmetric
-# positive-definite $M$, and the *same* function has a *different* gradient:
+# With the ordinary inner product (also called the dot product) this comes out as the familiar
+# $\nabla f = (\partial_1 f,\dots,\partial_n f)$. That is why the definition is easy to miss. But
+# change the inner product to $\langle u,v\rangle_G = u^{\mathsf T}Gv$, for any symmetric
+# positive-definite $G$, and the
+# *same* function has a *different* gradient:
 #
-# $$\nabla_{\!M} f \;=\; M^{-1}\nabla f .$$
+# $$\nabla_{\!G} f \;=\; G^{-1}\nabla f .$$
 #
-# Same $f$, same derivative, different arrow. **Gradient is the first place in vector calculus where
-# a metric gets used without being mentioned** — a theme that comes back in §3 for curl.
+# Same $f$, same derivative, different arrow. Gradient is the first place in vector calculus where a
+# metric gets used without being mentioned. That theme comes back in §3 for curl.
 
 
 # %%
@@ -623,7 +610,10 @@ def grad_fn(f):
 
 
 def grad_metric(f, p, M):
-    """∇_M f, the gradient with respect to ⟨u,v⟩_M = uᵀMv — i.e. M⁻¹∇f."""
+    """∇_M f(p), the gradient with respect to the metric M at point p, 
+
+    inner product ⟨u,v⟩_M = uᵀMv — i.e. M⁻¹∇f.
+    """
     return np.linalg.solve(M, grad(f, p))
 
 
@@ -633,22 +623,22 @@ def fscalar(q):
     return x**2 * y - 0.5 * y**3 + anp.sin(x * y)
 
 
-M = np.array([[2.0, 0.6], [0.6, 1.0]])  # symmetric positive definite
+G = np.array([[2.0, 0.6], [0.6, 1.0]])  # symmetric positive definite
 q = np.array([0.7, -0.4])
 v = np.array([0.35, 1.1])
 
 gE = grad(fscalar, q)
-gM = grad_metric(fscalar, q, M)
+gM = grad_metric(fscalar, q, G)
 Dv = (fscalar(q + 1e-6 * v) - fscalar(q - 1e-6 * v)) / 2e-6  # directional derivative
 
 print("directional derivative D_v f          :", f"{Dv:+.8f}")
 print("⟨∇f, v⟩   with the dot product        :", f"{gE @ v:+.8f}")
-print("⟨∇_M f, v⟩_M with the M inner product :", f"{gM @ M @ v:+.8f}")
-print("\nboth reproduce D_v f :", np.allclose([gE @ v, gM @ M @ v], Dv, atol=1e-6))
+print("⟨∇_G f, v⟩_G with the G inner product :", f"{gM @ G @ v:+.8f}")
+print("\nboth reproduce D_v f :", np.allclose([gE @ v, gM @ G @ v], Dv, atol=1e-6))
 print("but they are different vectors:")
 print("   ∇f   =", np.round(gE, 6))
 print(
-    "   ∇_M f =",
+    "   ∇_G f =",
     np.round(gM, 6),
     "  ← same function, different metric, different arrow",
 )
@@ -656,34 +646,34 @@ print(
 # %% [markdown]
 # ### Then: a gradient field has $A = 0$, everywhere
 #
-# Now put $F = \nabla f$ into §1. Its derivative is the **Hessian**,
+# Now put $F = \nabla f$ into §1. Its derivative is the Hessian, the matrix of second partials,
 #
 # $$D(\nabla f) \;=\; \operatorname{Hess} f \;=\; \left[\partial_i\partial_j f\right],$$
 #
 # and mixed partials are equal ($\partial_i\partial_j f = \partial_j\partial_i f$, Clairaut's
-# theorem), so the Hessian is **symmetric**. Read that through the three-way split of §1:
+# theorem), so the Hessian is symmetric. Read that through the three-way split of §1:
 #
 # | | for a general $F$ | for $F = \nabla f$ |
 # |---|---|---|
 # | dilation | $\tfrac{1}{n}(\operatorname{div}F)I$ | $\tfrac{1}{n}(\Delta f)\,I$ |
 # | strain $S_0$ | trace-free symmetric | trace-free part of $\operatorname{Hess}f$ |
-# | rotation $A$ | $\tfrac12$ the curl | $\;\mathbf{0}$ — always |
+# | rotation $A$ | $\tfrac12$ the curl | $\;\mathbf{0}$, always |
 #
 # Three things follow, and none of them is a calculation:
 #
-# 1. **$\operatorname{curl}\nabla f = 0$.** This is not an identity you grind out in coordinates. The
-#    spin part of a Hessian is zero because the Hessian is symmetric. Symmetry of second partials *is*
-#    curl-grad-zero.
-# 2. **$\operatorname{div}\nabla f = \operatorname{tr}\operatorname{Hess}f = \Delta f$**, the
-#    **Laplacian**. The Laplacian is the trace of the Hessian, just as the divergence is the trace of
-#    $DF$ — the same projection, one step further along.
-# 3. **A gradient field never spirals.** A symmetric matrix has real eigenvalues and perpendicular
-#    eigenvectors, so near a critical point the flow $\dot x = -\nabla f$ can only stretch or compress
-#    along $n$ perpendicular axes. Spiralling needs complex eigenvalues, and complex eigenvalues need
-#    a nonzero antisymmetric part. A gradient field has none.
+# 1. $\operatorname{curl}\nabla f = 0$. This is not an identity you grind out in coordinates. The
+#    spin part of a Hessian is zero because the Hessian is symmetric. Symmetry of second partials
+#    *is* curl-grad-zero.
+# 2. $\operatorname{div}\nabla f = \operatorname{tr}\operatorname{Hess}f = \Delta f$, the Laplacian.
+#    The Laplacian is the trace of the Hessian, just as the divergence is the trace of $DF$. It is
+#    the same projection, one step further along.
+# 3. A gradient field never spirals. A symmetric matrix has real eigenvalues and perpendicular
+#    eigenvectors. So near a critical point the flow $\dot x = -\nabla f$ can only stretch or
+#    compress along $n$ perpendicular axes. Spiraling needs complex eigenvalues, and complex
+#    eigenvalues need a nonzero antisymmetric part. A gradient field has none.
 #
-# The converse of (1) — curl-free $\Rightarrow$ locally a gradient — is the Poincaré lemma, and it
-# needs an assumption about the *shape of the domain*. §6 and §8 come back to it.
+# The converse of (1) says that a curl-free field is locally a gradient. That is the Poincaré lemma,
+# and it needs an assumption about the *shape of the domain*. §6 and §8 come back to it.
 
 # %%
 # (1) and (2), proven for a GENERIC f with SymPy — true for every smooth scalar function
@@ -747,19 +737,19 @@ print(
 # %% [markdown]
 # ### And the special case that ties §1 to the rest of the notebook
 #
-# Now set the *first* summand to zero as well. A gradient field with $\Delta f = 0$ — a **harmonic**
-# function — has a Hessian that is symmetric *and* trace-free. So it is **pure strain**: the one piece
-# of $DF$ that neither divergence nor curl can see.
+# Now set the *first* summand to zero as well. Take a gradient field with $\Delta f = 0$, which
+# makes $f$ a harmonic function. Its Hessian is symmetric *and* trace-free. So it is pure strain,
+# the one piece of $DF$ that neither divergence nor curl can see.
 #
 # $$\Delta f = 0 \quad\Longleftrightarrow\quad
 # \operatorname{div}\nabla f = 0 \ \text{ and }\ \operatorname{curl}\nabla f = 0
 # \quad\Longleftrightarrow\quad \operatorname{Hess}f = S_0 .$$
 #
 # This is where the notebook's running examples come from. $f = xy$ is harmonic, so
-# $\nabla f = (y,\,x)$ has zero divergence and zero curl even though $DF\neq 0$. That is the field §8
-# uses to show what the two operators miss. Harmonic functions are exactly the scalar potentials
-# whose fields are invisible to div and curl — which is also why they are exactly the ambiguity in
-# the Helmholtz decomposition.
+# $\nabla f = (y,\,x)$ has zero divergence and zero curl even though $DF\neq 0$. That is the field
+# §8 uses to show what the two operators miss. Harmonic functions are exactly the scalar potentials
+# whose fields are invisible to div and curl. They are therefore exactly the ambiguity in the
+# Helmholtz decomposition.
 
 # %%
 harmonics = [
@@ -836,7 +826,7 @@ axes[2].quiver(
     qx, qy, ue, ve, color=BLUE, alpha=0.95, scale=13, label="∇f  (dot product)"
 )
 axes[2].quiver(
-    qx, qy, um, vm, color=ORANGE, alpha=0.95, scale=13, label="∇_M f  (M inner product)"
+    qx, qy, um, vm, color=ORANGE, alpha=0.95, scale=13, label="∇_G f  (G inner product)"
 )
 axes[2].legend(fontsize=8, loc="upper left", framealpha=0.9)
 axes[2].set_title(
@@ -859,22 +849,22 @@ print(
 )
 
 # %% [markdown]
-# ## 3. What is invariant: why $\operatorname{tr}$ is cheap and the antisymmetric part is expensive
+# ## 3. What is invariant: why trace is cheap and the antisymmetric part is expensive
 #
 # Change coordinates linearly, $y = Px$. A vector field transforms as $\tilde F(y) = P\,F(P^{-1}y)$,
-# so its derivative is **conjugated**:
+# so its derivative is conjugated:
 #
 # $$D\tilde F \;=\; P\,(DF)\,P^{-1}.$$
 #
 # The two projections then behave very differently:
 #
-# * $\operatorname{tr}(PJP^{-1}) = \operatorname{tr}J$ for **every** invertible $P$. The trace does
-#   not care which coordinates you use. So divergence survives any change of frame at all; it needs
-#   only a notion of *volume*, not of length or angle.
-# * $\operatorname{skew}(PJP^{-1}) = P\,\operatorname{skew}(J)\,P^{-1}$ **only if**
-#   $P^{\mathsf T}P \propto I$. The transpose is defined by the inner product, so the
-#   symmetric/antisymmetric split is a *metric* notion. Curl needs a metric — and to be a vector
-#   rather than a 2-form, it needs an orientation as well.
+# * $\operatorname{tr}(PJP^{-1}) = \operatorname{tr}J$ for every invertible $P$. The trace does not
+#   care which coordinates you use. So divergence survives any change of frame at all. It needs only
+#   a notion of *volume*, not of length or angle.
+# * $\operatorname{skew}(PJP^{-1}) = P\,\operatorname{skew}(J)\,P^{-1}$ only if
+#   $P^{\mathsf T}P \propto I$. The inner product defines the transpose, so the
+#   symmetric/antisymmetric split is a *metric* notion. Curl needs a metric. To be a vector rather
+#   than a 2-form, curl also needs an orientation.
 #
 # This is not a fine point. It is the reason divergence works on any manifold that has a volume form
 # ($\mathcal{L}_F\mu = (\operatorname{div}F)\,\mu$), while curl-as-a-vector does not.
@@ -925,24 +915,24 @@ for name, P in [("stretch diag(2,1)", Pstretch), ("rotation by 0.7 rad", Q)]:
 # ## 4. Divergence = rate of change of volume (Liouville)
 #
 # Let $\varphi_t$ be the flow of $F$, and let $\Phi_t(p) = D\varphi_t(p)$ be the Jacobian of that
-# flow. It solves the **variational equation**
+# flow. It solves the variational equation, the equation of motion for the flow Jacobian,
 #
 # $$\dot\Phi_t \;=\; DF(\varphi_t(p))\,\Phi_t, \qquad \Phi_0 = I .$$
 #
 # Jacobi's formula, $\frac{d}{dt}\det \Phi = \det\Phi\,\operatorname{tr}(\Phi^{-1}\dot\Phi)$, then
-# gives **Liouville's formula**
+# gives Liouville's formula
 #
 # $$\frac{d}{dt}\det\Phi_t \;=\; \operatorname{div}F(\varphi_t(p))\;\det\Phi_t
 # \qquad\Longrightarrow\qquad
 # \det D\varphi_t(p) \;=\; \exp\!\int_0^t \operatorname{div}F(\varphi_s(p))\,ds .$$
 #
-# At $t=0$ this says simply
+# At $t=0$ this says
 #
-# $$\left.\frac{d}{dt}\right\rvert_{0}\det D\varphi_t \;=\; \operatorname{tr}DF \;=\;\operatorname{div}F,$$
+# $$\left.\frac{d}{dt}\right\rvert_{0}\det D\varphi_t \;=\; \operatorname{tr}DF \;=\;\operatorname{div}F.$$
 #
-# In words: **divergence is the rate at which the flow expands volume**, measured logarithmically.
-# (The `GeometricLinearAlgebra/04_Volume_Determinant_Trace` notebook does the linear case,
-# $\frac{d}{dt}\big\rvert_0\det(I+tT) = \operatorname{tr}T$; this is its nonlinear form.)
+# In words: divergence is the rate at which the flow expands volume, measured logarithmically. The
+# `GeometricLinearAlgebra/04_Volume_Determinant_Trace` notebook does the linear case,
+# $\frac{d}{dt}\big\rvert_0\det(I+tT) = \operatorname{tr}T$. This is its nonlinear form.
 
 
 # %%
@@ -1009,24 +999,24 @@ print(
 # %% [markdown]
 # ### Differentiating the solver instead of the equation
 #
-# Everything above found $D\varphi_t$ by *integrating the variational equation*: we wrote down
-# $\dot\Phi = DF(\varphi_t)\,\Phi$ by hand and handed it to RK4. That is
-# **differentiate-then-discretize** — derive the exact equation for the derivative, then approximate
+# Everything above found $D\varphi_t$ by *integrating the variational equation*. We wrote down
+# $\dot\Phi = DF(\varphi_t)\,\Phi$ by hand and handed it to RK4. That route is
+# differentiate-then-discretize. You derive the exact equation for the derivative, then approximate
 # its solution.
 #
-# AD offers a second route. The flow map $p \mapsto \varphi_T(p)$ is, concretely, a Python function:
-# a loop doing a few hundred arithmetic operations. So differentiate *that program*:
+# AD offers a second route. The flow map $p \mapsto \varphi_T(p)$ is, concretely, a Python function.
+# It is a loop doing a few hundred arithmetic operations. So differentiate *that program*:
 #
 # $$D\varphi_T(p) \;=\; \texttt{jacobian}\big(p \mapsto \texttt{rk4\_flow}(F, p, T)\big).$$
 #
-# This is **discretize-then-differentiate**. It returns the exact derivative of the approximation you
-# actually computed, rather than an approximation of the exact derivative. The two disagree at the
-# order of the integrator and agree in the limit, and which one you want is a real question, not a
-# formality. In machine learning this is exactly the split between the *discrete* adjoint
-# (backpropagating through the solver's own operations, what a naïve neural-ODE implementation does)
-# and the *continuous* adjoint (solving an auxiliary ODE backwards, the memory-efficient method of
-# Chen et al.). The discrete version differentiates what you ran. The continuous version
-# differentiates what you meant.
+# This route is discretize-then-differentiate. It returns the exact derivative of the approximation
+# you actually computed, rather than an approximation of the exact derivative. The two disagree at
+# the order of the integrator and agree in the limit. Which one you want is a real question, not a
+# formality. In machine learning this is exactly the split between the *discrete* adjoint and the
+# *continuous* adjoint. The discrete adjoint backpropagates through the solver's own operations,
+# which is what a naive neural-ODE implementation does. The continuous adjoint solves an auxiliary
+# ODE backwards, which is the memory-efficient method of Chen et al. The discrete version
+# differentiates what you ran. The continuous version differentiates what you meant.
 
 
 # %%
@@ -1164,10 +1154,11 @@ print("predicted det Dφ_t   :", np.round(pred / shoelace(blob0), 5))
 print("agree :", np.allclose(areas, pred, rtol=5e-3))
 
 # %% [markdown]
-# **Corollary (Liouville's theorem).** $\operatorname{div}F \equiv 0 \iff$ the flow preserves volume.
+# Corollary (Liouville's theorem). $\operatorname{div}F \equiv 0 \iff$ the flow preserves volume.
 # For a Hamiltonian field $F = (\partial_p H, -\partial_q H)$ the divergence is
-# $\partial_q\partial_p H - \partial_p\partial_q H = 0$, identically. Phase-space volume is conserved
-# because divergence is a trace, and the Hamiltonian Jacobian is traceless by construction.
+# $\partial_q\partial_p H - \partial_p\partial_q H = 0$, identically. Phase-space volume is
+# conserved because divergence is a trace, and the Hamiltonian Jacobian is traceless by
+# construction.
 
 # %%
 Hq, Hp = sp.symbols("q p", real=True)
@@ -1183,21 +1174,22 @@ print(
 # %% [markdown]
 # ## 5. Curl = twice the angular velocity (Cauchy–Stokes)
 #
-# For short times $\varphi_t \approx \mathrm{id} + tF$, so $D\varphi_t \approx I + tJ$ with $J = DF$.
-# Take the **polar decomposition** $D\varphi_t = R_t U_t$, with $R_t$ orthogonal and $U_t$ symmetric
-# positive definite. To first order,
+# For short times $\varphi_t \approx \mathrm{id} + tF$, so $D\varphi_t \approx I + tJ$ with
+# $J = DF$. Take the polar decomposition $D\varphi_t = R_t U_t$, which splits a matrix into a
+# rotation and a stretch. Here $R_t$ is orthogonal and $U_t$ is symmetric positive definite. To
+# first order,
 #
 # $$R_t \;=\; I + tA + O(t^2), \qquad U_t \;=\; I + tS + O(t^2),$$
 #
 # because $I + tJ = I + t(S+A)$, and the symmetric/antisymmetric split *is* the linearized polar
-# decomposition. So the **antisymmetric part is the instantaneous rigid-body rotation rate of the
-# material**, with angular velocity
+# decomposition. So the antisymmetric part is the instantaneous rigid-body rotation rate of the
+# material, with angular velocity
 #
 # $$\omega \;=\; \mathrm{vee}(A) \;=\; \tfrac12\operatorname{curl}F .$$
 #
 # This is Cauchy's and Stokes' decomposition of the motion near a point (Stokes 1845, §1):
 # translation, plus dilation, plus strain, plus rigid rotation. The factor $\tfrac12$ is *not* a
-# convention. It is the price of turning a 2-form into a vector, and it is why a paddle wheel in a
+# convention. It is the price of turning a 2-form into a vector. It is also why a paddle wheel in a
 # fluid spins at $\tfrac12\lvert\operatorname{curl}u\rvert$, not $\lvert\operatorname{curl}u\rvert$.
 
 # %%
@@ -1235,10 +1227,10 @@ for t in [0.1, 0.01, 0.001]:
 #
 # $$\boxed{\ \big\langle \omega(a)\big\rangle_{a\in S^{1}} \;=\; \tfrac12\operatorname{curl}F\ }$$
 #
-# In words: **curl is twice the mean angular velocity of material line elements.** It is not the
-# rotation rate of any one of them. The classic example is simple shear $u = (y, 0)$. Its streamlines
-# are perfectly straight, yet its curl is $-1$: the horizontal arm of a cross does not rotate at all,
-# the vertical arm tips over at rate $-1$, and the mean of the two is $-\tfrac12$.
+# In words: curl is twice the mean angular velocity of material line elements. It is not the
+# rotation rate of any one of them. The classic example is simple shear $u = (y, 0)$. Its
+# streamlines are perfectly straight, yet its curl is $-1$. The horizontal arm of a cross does not
+# rotate at all. The vertical arm tips over at rate $-1$. The mean of the two is $-\tfrac12$.
 
 
 # %%
@@ -1354,8 +1346,8 @@ plt.show()
 #
 # | object | built with | formula in $\mathbb{R}^3$ |
 # |---|---|---|
-# | $F^\flat \in \Omega^1$ | the **metric** | $F_1\,dx + F_2\,dy + F_3\,dz$ |
-# | $\eta_F = \iota_F\mu \in \Omega^{n-1}$ | a **volume form** $\mu$ | $F_1\,dy\wedge dz + F_2\,dz\wedge dx + F_3\,dx\wedge dy$ |
+# | $F^\flat \in \Omega^1$ | the metric | $F_1\,dx + F_2\,dy + F_3\,dz$ |
+# | $\eta_F = \iota_F\mu \in \Omega^{n-1}$ | a volume form $\mu$ | $F_1\,dy\wedge dz + F_2\,dz\wedge dx + F_3\,dx\wedge dy$ |
 #
 # Then:
 #
@@ -1363,11 +1355,11 @@ plt.show()
 # \qquad\qquad
 # d\,\eta_F \;=\; (\operatorname{div}F)\,\mu .$$
 #
-# The first says: **the exterior derivative of $F^\flat$ *is* the antisymmetric part of $DF$**, times
-# two, living in the space $\Lambda^2$ of 2-forms. The second says: **the exterior derivative of
-# $\iota_F\mu$ *is* the divergence**. By Cartan's magic formula
-# $\mathcal{L}_F\mu = d\iota_F\mu + \iota_F\,d\mu = d\iota_F\mu$ (since $d\mu = 0$), that is exactly
-# the volume statement of §4:
+# The first says that the exterior derivative of $F^\flat$ *is* the antisymmetric part of $DF$,
+# times two. It lives in the space $\Lambda^2$ of 2-forms. The second says that the exterior
+# derivative of $\iota_F\mu$ *is* the divergence. Cartan's magic formula reads
+# $\mathcal{L}_F\mu = d\iota_F\mu + \iota_F\,d\mu = d\iota_F\mu$, because $d\mu = 0$. So the second
+# statement is exactly the volume statement of §4:
 #
 # $$\mathcal{L}_F\,\mu \;=\; (\operatorname{div}F)\,\mu .$$
 #
@@ -1376,12 +1368,13 @@ plt.show()
 # $$\operatorname{curl}F \;=\; \big(\star\, d\, F^\flat\big)^{\sharp}, \qquad\qquad
 #   \operatorname{div}F \;=\; \star\, d\, \star\, F^\flat ,$$
 #
-# and $\operatorname{grad}f = (df)^\sharp$. The chain $\Omega^0 \xrightarrow{d} \Omega^1
-# \xrightarrow{d} \Omega^2 \xrightarrow{d} \Omega^3$ is the de Rham complex. There $d^2 = 0$ says
-# $\operatorname{curl}\operatorname{grad} = 0$ and $\operatorname{div}\operatorname{curl} = 0$, and
-# the **Poincaré lemma** (Spivak Ch. 4) is the converse of both on a star-shaped domain.
+# and $\operatorname{grad}f = (df)^\sharp$. The chain
+# $\Omega^0 \xrightarrow{d} \Omega^1 \xrightarrow{d} \Omega^2 \xrightarrow{d} \Omega^3$ is the de
+# Rham complex. There $d^2 = 0$ says $\operatorname{curl}\operatorname{grad} = 0$ and
+# $\operatorname{div}\operatorname{curl} = 0$. The Poincaré lemma (Spivak Ch. 4) is the converse of
+# both on a star-shaped domain.
 #
-# Below we implement $d$ and $\star$ from the definitions and run them on **generic** functions. That
+# Below we implement $d$ and $\star$ from the definitions and run them on generic functions. That
 # way a `simplify(...) == 0` is a theorem about *all* smooth fields, not a spot check.
 
 # %%
@@ -1499,9 +1492,9 @@ print("d(dF♭) = 0           ⇒ div curl F  = 0 :", d(d(flat(Fc))) == {})
 # %% [markdown]
 # ### Stokes' theorem is the coordinate-free *definition*
 #
-# Because $\int_{\partial c}\omega = \int_c d\omega$ holds for every chain $c$ (Spivak Ch. 4–5),
-# shrinking the chain to a point turns the two identities above into limits that mention no
-# coordinates at all:
+# The identity $\int_{\partial c}\omega = \int_c d\omega$ holds for every chain $c$ (Spivak Ch.
+# 4–5). Shrink the chain to a point, and the two statements above become limits. Those limits
+# mention no coordinates at all:
 #
 # $$\operatorname{div}F(p)\;=\;\lim_{V\downarrow p}\frac{1}{\lvert V\rvert}\oint_{\partial V}F\cdot n\,dA,
 # \qquad
@@ -1522,8 +1515,9 @@ print("d(dF♭) = 0           ⇒ div curl F  = 0 :", d(d(flat(Fc))) == {})
 # \frac{\oint_{\partial V}F\cdot n\,dA}{\lvert V\rvert} - \operatorname{div}F
 #   \;\simeq\; \frac{r^2}{10}\,\Delta(\operatorname{div}F).$$
 #
-# One corollary: if $\operatorname{div}F$ is an affine function of position, the flux ratio is *exact*
-# at every radius. That is the mean-value property. Curvature is what makes this a limit at all.
+# One corollary: if $\operatorname{div}F$ is an affine function of position, the flux ratio is
+# *exact* at every radius. That is the mean-value property. Curvature is what makes this a limit at
+# all.
 
 
 # %%
@@ -1641,26 +1635,26 @@ plt.show()
 # ## 7. Why curl is a vector only when $n = 3$
 #
 # The antisymmetric part $A$ is an antisymmetric $n\times n$ matrix, and that space has dimension
-# $\binom{n}{2}=\tfrac{n(n-1)}{2}$ — just count the entries strictly above the diagonal. The hat/vee
-# bijection of the toolkit turned such a matrix into a vector. For that to be possible at all you
-# need
+# $\binom{n}{2}=\tfrac{n(n-1)}{2}$. To see that, count the entries strictly above the diagonal. The
+# hat/vee bijection of the toolkit turned such a matrix into a vector. For that to be possible at
+# all you need
 #
 # $$\binom{n}{2} \;=\; n \qquad\Longleftrightarrow\qquad n = 3 .$$
 #
 # That is the whole story of the "vector curl". In other dimensions $dF^\flat$ still exists, and it
 # is still the antisymmetric part of $DF$. It just is not a vector:
 #
-# | $n$ | antisymmetric matrices: $\binom{n}{2}$ | what "curl" is | decomposition $n^2 = 1 + (\tfrac{n(n+1)}{2}-1) + \binom{n}{2}$ |
+# | $n$ | antisymmetric matrices free variables: $\binom{n}{2}$ | what "curl" maps thisrotational part to | decomposition $n^2 = 1 + (\tfrac{n(n+1)}{2}-1) + \binom{n}{2}$ |
 # |---|---|---|---|
-# | 2 | 1 | a **scalar** $\partial_xF_y-\partial_yF_x$ | $4 = 1 + 2 + 1$ |
-# | 3 | 3 | a **vector** (pseudo-vector) | $9 = 1 + 5 + 3$ |
-# | 4 | 6 | a **bivector** — e.g. $F_{\mu\nu}=\partial_\mu A_\nu-\partial_\nu A_\mu$ in electromagnetism | $16 = 1 + 9 + 6$ |
-# | $n$ | $\binom{n}{2}$ | a 2-form | — |
+# | 2 | 1 | $\sim$ a scalar, $\partial_xF_y-\partial_yF_x$ | $4 = 1 + 2 + 1$ |
+# | 3 | 3 |  $\sim$ vector (strictly, a pseudo-vector) | $9 = 1 + 5 + 3$ |
+# | 4 | 6 | a 2-form with 6 components $\sim$ bivector, for example $F_{\mu\nu}=\partial_\mu A_\nu-\partial_\nu A_\mu$ in electromagnetism | $16 = 1 + 9 + 6$ |
+# | $n$ | $\binom{n}{2}$ | a 2-form | |
 #
-# The electromagnetic field tensor is literally "the curl of the 4-potential": $F = dA$. Its six
-# components are $\mathbf E$ and $\mathbf B$ — three "electric" and three "magnetic" only because
-# $\binom{4}{2} = 3 + 3$. The cross product and the vector curl are $n=3$ coincidences. The
-# antisymmetric matrix — equivalently the 2-form of §6 — is the invariant object.
+# The electromagnetic field tensor is literally "the curl of the 4-potential", $F = dA$. Its six
+# components are $\mathbf E$ and $\mathbf B$. They split into three "electric" and three "magnetic"
+# only because $\binom{4}{2} = 3 + 3$. The cross product and the vector curl are $n=3$ coincidences.
+# The invariant object is the antisymmetric matrix, which is the 2-form of §6.
 
 # %%
 print("n×n matrices:  n² = 1 (dilation) + [n(n+1)/2 − 1] (shear) + n(n−1)/2 (rotation)")
@@ -1681,21 +1675,21 @@ print(
 )
 
 # %% [markdown]
-# ## 8. What div and curl do *not* see — and what they still determine
+# ## 8. What div and curl do *not* see, and what they still determine
 #
 # ### Pointwise: almost everything
 #
-# Both operators kill the trace-free symmetric part $S_0$, the **rate of strain**. In $\mathbb{R}^3$
+# Both operators kill the trace-free symmetric part $S_0$, the rate of strain. In $\mathbb{R}^3$
 # that is 5 of the 9 components. So two fields can have the same divergence and the same curl at
 # every point and still have completely different derivatives.
 #
-# The cleanest example is $F(x,y) = (y, x)$. It is the gradient of $xy$, so $\operatorname{curl}F=0$.
-# It is trace-free, so $\operatorname{div}F=0$. And yet
-# $DF = \left[\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right] \ne 0$. It is pure strain: a saddle
-# that stretches along $y=x$ and compresses along $y=-x$ at the same rate. Its potential $xy$ is
-# harmonic, which by §2 is exactly the statement $\operatorname{div}=\operatorname{curl}=0$. A
-# gradient field has no spin part at all, and a *harmonic* potential removes the dilation part too,
-# leaving nothing but strain.
+# The cleanest example is $F(x,y) = (y, x)$. It is the gradient of $xy$, so
+# $\operatorname{curl}F=0$. It is trace-free, so $\operatorname{div}F=0$. And yet
+# $DF = \left[\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right] \ne 0$. It is pure strain: a
+# saddle that stretches along $y=x$ and compresses along $y=-x$ at the same rate. Its potential $xy$
+# is harmonic, which by §2 is exactly the statement $\operatorname{div}=\operatorname{curl}=0$. A
+# gradient field has no spin part at all. A *harmonic* potential removes the dilation part too, so
+# nothing but strain is left.
 
 # %%
 invisible = [
@@ -1718,8 +1712,9 @@ for Fi, name in invisible:
 # %% [markdown]
 # ### Globally: nearly everything, by Helmholtz
 #
-# Global information repairs the pointwise blindness. Helmholtz (1858) showed that on $\mathbb{R}^3$,
-# a field that decays fast enough at infinity is determined by its divergence and its curl:
+# Global information repairs the pointwise blindness. Helmholtz (1858) showed that on
+# $\mathbb{R}^3$, a field that decays fast enough at infinity is fixed by its divergence and its
+# curl:
 #
 # $$F \;=\; -\nabla\phi \;+\; \nabla\times \mathbf{A},\qquad
 # \phi(x)=\frac{1}{4\pi}\!\int\!\frac{\operatorname{div}F(y)}{\lvert x-y\rvert}dy,\quad
@@ -1728,12 +1723,12 @@ for Fi, name in invisible:
 # Two fields with the same div and curl differ by a field that is both curl-free and
 # divergence-free, so each of its components is harmonic. Add the decay condition, and Liouville's
 # theorem for harmonic functions forces it to vanish. On a general compact manifold the leftover
-# space is not zero, but it is *finite dimensional*: it is the space of harmonic forms, and by the
-# **Hodge theorem** it is isomorphic to the de Rham cohomology $H^k_{dR}(M)$. The gap between
-# "pointwise blind" and "globally determined" is exactly topology.
+# space is not zero, but it is *finite dimensional*. It is the space of harmonic forms, and by the
+# Hodge theorem it is isomorphic to the de Rham cohomology $H^k_{dR}(M)$. The gap between "pointwise
+# blind" and "globally determined" is exactly topology.
 #
 # We can watch this happen. The two "invisible" fields above are harmonic, so they *are* the
-# ambiguity — and on a domain with a hole, a genuinely nonzero example shows up.
+# ambiguity. On a domain with a hole, a genuinely nonzero example shows up.
 
 
 # %%
@@ -1771,9 +1766,9 @@ print(
 # ### The bigger picture: the linearization at a zero of $F$
 #
 # Here is one more reason to watch $DF$ rather than its two projections. At a zero of $F$, $DF$ *is*
-# the local dynamics. In the plane the classification is by trace and determinant, and only the trace
-# is the divergence. Whether an equilibrium spirals is decided by $\tau^2 - 4\Delta$, which involves
-# the strain part that neither div nor curl reports.
+# the local dynamics. In the plane the classification is by trace and determinant, and only the
+# trace is the divergence. The sign of $\tau^2 - 4\Delta$ decides whether an equilibrium spirals.
+# That quantity involves the strain part, which neither div nor curl reports.
 
 # %%
 print(
@@ -1799,23 +1794,22 @@ print(
 # %% [markdown]
 # ## 9. Coda: Jacobians of learned flows
 #
-# The same decomposition is the working vocabulary for the Jacobian of a learned map, which is worth
+# The same decomposition is the working vocabulary for the Jacobian of a learned map. That is worth
 # knowing if you work on latent-space geometry.
 #
-# * **Continuous normalizing flows.** For $\dot z = F_\theta(z)$, the instantaneous
-#   change-of-variables formula is $\frac{d}{dt}\log p(z(t)) = -\operatorname{div}F_\theta(z(t))$ —
-#   literally §4, Liouville run backwards. This identity is what makes neural ODEs tractable. You need
-#   only the *trace* of the Jacobian, one of the three summands, and you can estimate that with a
-#   single matrix-vector product using Hutchinson's estimator
-#   $\operatorname{tr}J = \mathbb{E}_v[v^{\mathsf T}Jv]$.
-# * **The other two summands are usually what interpretability work is after.** The trace-free
-#   symmetric part $S_0$ is the local uneven stretching. Its spectrum is the local condition number —
-#   what you see as the singular-value spectrum of the Jacobian, and what controls how a metric is
-#   distorted between latent and data space. The antisymmetric part $A$ is the local frame rotation:
-#   the part that moves features without changing any density or any length.
+# * Continuous normalizing flows. For $\dot z = F_\theta(z)$, the instantaneous change-of-variables
+#   formula is $\frac{d}{dt}\log p(z(t)) = -\operatorname{div}F_\theta(z(t))$. That is §4, Liouville
+#   run backwards. This identity is what makes neural ODEs tractable. You need only the *trace* of
+#   the Jacobian, one of the three summands. You can estimate that trace with a single matrix-vector
+#   product. Hutchinson's estimator gives $\operatorname{tr}J = \mathbb{E}_v[v^{\mathsf T}Jv]$.
+# * The other two summands are usually what interpretability work is after. The trace-free symmetric
+#   part $S_0$ is the local uneven stretching. Its spectrum is the local condition number. You see
+#   that spectrum as the singular values of the Jacobian, and it controls how a metric is distorted
+#   between latent and data space. The antisymmetric part $A$ is the local frame rotation. It moves
+#   features without changing any density or any length.
 # * A residual block $x \mapsto x + \varepsilon f(x)$ has Jacobian $I + \varepsilon Df$, which is
 #   exactly the $t\to 0$ flow of §5. Dilation controls the log-volume, strain controls conditioning,
-#   spin controls the frame twist.
+#   and spin controls the frame twist.
 #
 # Below: the change-of-variables identity, checked against the flow Jacobian we already computed.
 
@@ -1906,9 +1900,9 @@ print(
 # ## 10. Advanced note: why these three pieces, and why *only* div and curl
 #
 # *Everything above needs only a first course in linear algebra. This closing section names the
-# structure in the language of group representations, and uses it to prove something the earlier
-# sections could only assert: that divergence and curl are not just two natural operators built from
-# $DF$ — up to scale they are the **only** ones.*
+# structure in the language of group representations. It then proves something the earlier sections
+# asserted without proof. Divergence and curl are not two natural operators among several. Up to
+# scale, they are the only ones.*
 #
 # ### The names
 #
@@ -1920,41 +1914,43 @@ print(
 #   \underbrace{\operatorname{Sym}_0(n)}_{\dim\frac{n(n+1)}{2}-1}\;\oplus\;
 #   \underbrace{\mathfrak{so}(n)}_{\dim\frac{n(n-1)}{2}},$$
 #
-# This is the decomposition into **irreducible representations** of $SO(n)$: every rotation carries
-# each summand to itself, and no summand contains a smaller subspace with that property. That is the
+# Every rotation carries each summand to itself, and no summand holds a smaller subspace with that
+# property. A summand like that is called an irreducible representation of $SO(n)$. This is the
 # precise sense in which the three-way split is canonical rather than a convenient choice. It is the
-# *finest* split compatible with rotational symmetry, so any rotationally sensible way of taking $DF$
-# apart has to be built from these three blocks and no others.
+# *finest* split compatible with rotational symmetry. So any rotationally sensible way of taking
+# $DF$ apart has to be built from these three blocks and no others.
 #
 # In $\mathbb{R}^3$ the summands have dimensions $1,5,3$. These are the familiar spin
-# $0\oplus2\oplus1$ of a rank-2 Cartesian tensor: $\mathbf 3\otimes\mathbf 3 = \mathbf 1\oplus\mathbf
-# 5\oplus\mathbf 3$. The antisymmetric summand $\mathfrak{so}(n)$ is the same thing as
-# $\Lambda^2(\mathbb{R}^n)$, the 2-forms of §6. That is why the exterior derivative $dF^\flat$ and the
-# spin part of $DF$ are one object, and why "curl is a vector" needs $\dim\mathfrak{so}(3)=3$.
+# $0\oplus2\oplus1$ of a rank-2 Cartesian tensor, written
+# $\mathbf 3\otimes\mathbf 3 = \mathbf 1\oplus\mathbf 5\oplus\mathbf 3$. The antisymmetric summand
+# $\mathfrak{so}(n)$ is the same thing as $\Lambda^2(\mathbb{R}^n)$, the 2-forms of §6. That is why
+# the exterior derivative $dF^\flat$ and the spin part of $DF$ are one object. It is also why "curl
+# is a vector" needs $\dim\mathfrak{so}(3)=3$.
 #
 # ### The uniqueness statement
 #
-# Complete reducibility plus **Schur's lemma** turn the decomposition into a counting theorem. The
+# Complete reducibility plus Schur's lemma turn the decomposition into a counting theorem. Take the
 # space of $SO(n)$-equivariant linear maps from $\mathfrak{gl}(n)$ into a given irreducible
-# representation $W$ has dimension equal to the **multiplicity of $W$ in $\mathfrak{gl}(n)$**. So:
+# representation $W$. Its dimension equals the multiplicity of $W$ in $\mathfrak{gl}(n)$. The
+# multiplicity is how many copies of $W$ the splitting contains. So:
 #
-# * **Scalars.** The trivial representation appears in $\mathfrak{gl}(n)$ with multiplicity **1** when
-#   $n\ge3$ — only the $\mathbb{R}I$ line. So up to a constant, $\operatorname{tr}$ is the *only*
-#   rotation-invariant linear functional of $DF$: **divergence is the unique first-order rotationally
-#   invariant scalar you can build from a vector field.**
-# * **Vectors.** The defining representation $\mathbb{R}^3$ appears in $\mathfrak{gl}(3)$ with
-#   multiplicity **1** — only $\mathfrak{so}(3)$. So **curl is the unique first-order equivariant
-#   vector**, up to scale. The factor of 2 in $\operatorname{curl}=2\,\mathrm{vee}(A)$ is exactly that
-#   "up to scale" freedom, and §5 shows why $\tfrac12$ is the physically meaningful choice.
-# * **$n=2$ is the exception.** $SO(2)$ is abelian and fixes $\mathfrak{so}(2)$ pointwise, so the
-#   trivial representation appears with multiplicity **2**. There are two invariant scalars in the
-#   plane: divergence *and* the scalar curl. (They are $SO(2)$-invariant but not $O(2)$-invariant — a
-#   reflection flips the sign of the scalar curl, which is what "pseudoscalar" means.)
+# * Scalars. When $n\ge3$, the trivial representation appears in $\mathfrak{gl}(n)$ with
+#   multiplicity 1, on the $\mathbb{R}I$ line alone. So up to a constant, $\operatorname{tr}$ is the
+#   *only* rotation-invariant linear functional of $DF$. Divergence is the one first-order
+#   rotationally invariant scalar you can build from a vector field.
+# * Vectors. The defining representation $\mathbb{R}^3$ appears in $\mathfrak{gl}(3)$ with
+#   multiplicity 1, in $\mathfrak{so}(3)$ alone. So curl is the one first-order equivariant vector,
+#   up to scale. The factor of 2 in $\operatorname{curl}=2\,\mathrm{vee}(A)$ is exactly that "up to
+#   scale" freedom. §5 shows why $\tfrac12$ is the physically meaningful choice.
+# * $n=2$ is the exception. $SO(2)$ is abelian and fixes $\mathfrak{so}(2)$ pointwise, so the trivial
+#   representation appears with multiplicity 2. There are two invariant scalars in the plane,
+#   divergence *and* the scalar curl. They are $SO(2)$-invariant but not $O(2)$-invariant, because a
+#   reflection flips the sign of the scalar curl. That sign flip is what "pseudoscalar" means.
 #
-# All three multiplicities can be measured. Averaging the conjugation action over the group,
-# $P(J)=\big\langle RJR^{\mathsf T}\big\rangle_{R\in SO(n)}$, gives a projection onto the invariant
-# subspace, so **the rank of $P$ is the multiplicity of the trivial representation**. We build $P$ by
-# Monte-Carlo averaging over random rotations and read off its rank.
+# All three multiplicities can be measured. Average the conjugation action over the group,
+# $P(J)=\big\langle RJR^{\mathsf T}\big\rangle_{R\in SO(n)}$. That average is a projection onto the
+# invariant subspace, so the rank of $P$ is the multiplicity of the trivial representation. We build
+# $P$ by Monte-Carlo averaging over random rotations and read off its rank.
 
 
 # %%
@@ -2002,10 +1998,10 @@ print(
 
 # %% [markdown]
 # Now the vector statement. A first-order equivariant vector built from $DF$ is a linear map
-# $L:\mathfrak{gl}(3)\to\mathbb{R}^3$ with $L(RJR^{\mathsf T}) = R\,L(J)$ for every rotation. That is
-# a linear condition on the 27 entries of $L$, and the dimension of its solution space is the
-# multiplicity we want. We solve it numerically and check that the answer is one-dimensional, spanned
-# by $\mathrm{vee}\circ\operatorname{skew}$.
+# $L:\mathfrak{gl}(3)\to\mathbb{R}^3$ with $L(RJR^{\mathsf T}) = R\,L(J)$ for every rotation. That
+# is a linear condition on the 27 entries of $L$, and the dimension of its solution space is the
+# multiplicity we want. We solve it numerically. Then we make sure that the answer is
+# one-dimensional, spanned by $\mathrm{vee}\circ\operatorname{skew}$.
 
 # %%
 n = 3
@@ -2073,32 +2069,31 @@ print(
 # %% [markdown]
 # ## Appendix A. Autodiff notes: forward mode, reverse mode, and what each costs
 #
-# Two facts about AD shaped the code above. Both are worth stating plainly, because they decide what
-# is cheap when $n$ is large — the regime that matters if you are differentiating a network rather
-# than a three-component field.
+# Two facts about AD shaped the code above. Both decide what is cheap when $n$ is large. That is the
+# case that matters if you differentiate a network rather than a three-component field.
 #
-# **Reverse mode** (`ag_jacobian`, `ag_grad`) runs the function once, records the graph, then walks
-# it backwards once **per output component**. So a full $n\times n$ Jacobian costs $n$ backward
-# sweeps. It is the right choice for a scalar output: the gradient of a loss costs a single sweep no
-# matter how large $n$ is, which is the whole reason backpropagation is affordable.
+# Reverse mode (`ag_jacobian`, `ag_grad`) runs the function once and records the graph. Then it
+# walks that graph backwards once per output component. So a full $n\times n$ Jacobian costs $n$
+# backward sweeps. It is the right choice for a scalar output. The gradient of a loss costs a single
+# sweep no matter how large $n$ is, which is the whole reason backpropagation is affordable.
 #
-# **Forward mode** (`make_jvp`) carries a directional derivative alongside the value, one sweep **per
-# input direction**, and returns $Jv$ without ever building $J$. For $F:\mathbb{R}^n\to
-# \mathbb{R}^n$ the full Jacobian costs $n$ sweeps either way — but the *trace* does not.
+# Forward mode (`make_jvp`) carries a directional derivative alongside the value, one sweep per
+# input direction. It returns $Jv$ without ever building $J$. For $F:\mathbb{R}^n\to\mathbb{R}^n$
+# the full Jacobian costs $n$ sweeps either way. The *trace* does not.
 #
 # That asymmetry is the practical point of §9. Divergence is a trace, so:
 #
 # | what you want | cost |
 # |---|---|
 # | the whole Jacobian $DF$ | $n$ sweeps, $n^2$ storage |
-# | $\operatorname{div}F$ exactly | $n$ JVPs, $O(n)$ storage — never form $J$ |
+# | $\operatorname{div}F$ exactly | $n$ JVPs, $O(n)$ storage, never forming $J$ |
 # | $\operatorname{div}F$ stochastically | $m$ JVPs for error $O(1/\sqrt{m})$, $m$ independent of $n$ |
-# | $\operatorname{curl}F$ in $\mathbb{R}^3$ | 3 sweeps; it needs off-diagonal entries, so no trace trick |
+# | $\operatorname{curl}F$ in $\mathbb{R}^3$ | 3 sweeps. It needs off-diagonal entries, so no trace trick |
 #
-# Curl gets no such shortcut. It reads off-diagonal entries rather than a trace, and there is no
-# unbiased one-sample estimator of an off-diagonal block the way Hutchinson gives one for a trace. In
-# the language of §1: the dilation piece is a *scalar* contraction, so one random probe can estimate
-# it. The spin piece is not.
+# Curl gets no such shortcut. It reads off-diagonal entries rather than a trace. There is no
+# unbiased one-sample estimator of an off-diagonal block, the way Hutchinson gives one for a trace.
+# In the language of §1, the dilation piece is a *scalar* contraction, so one random probe can
+# estimate it. The spin piece is not a scalar contraction.
 #
 # Below, the three costs measured on the running field.
 
@@ -2170,71 +2165,97 @@ print("and a single random probe reports a scalar contraction, not a matrix bloc
 #
 # | question | answer | where it lives in $DF$ |
 # |---|---|---|
-# | What is $\operatorname{grad}f$? | the vector representing $Df$ under an inner product | not a part of $DF$ — it *builds* fields with $A=0$ |
+# | What is $\operatorname{grad}f$? | the vector representing $Df$ under an inner product | not a part of $DF$. It *builds* fields with $A=0$ |
 # | What is $\operatorname{div}F$? | $\operatorname{tr}DF$ | the isotropic part $\tfrac{\operatorname{tr}J}{n}I$ |
-# | What is $\operatorname{curl}F$? | $2\,\mathrm{vee}(\operatorname{skew}DF)$, i.e. $dF^\flat$ | the antisymmetric part $A$ |
-# | What do they miss? | the rate of strain $S_0$ | the trace-free symmetric part — 5 of 9 components in $\mathbb{R}^3$ |
+# | What is $\operatorname{curl}F$? | $2\,\mathrm{vee}(\operatorname{skew}DF)$, that is, $dF^\flat$ | the antisymmetric part $A$ |
+# | What do they miss? | the rate of strain $S_0$ | the trace-free symmetric part, 5 of 9 components in $\mathbb{R}^3$ |
 # | Why is $\operatorname{div}$ a trace? | $\left.\tfrac{d}{dt}\right\rvert_0\det D\varphi_t=\operatorname{tr}DF$ | volume rate (Liouville) |
-# | Why the $\tfrac12$ in curl? | $A$ *is* the angular velocity; curl is $2A$ | mean spin of material line elements |
-# | What structure does each need? | $\operatorname{grad}$, $\operatorname{curl}$: an inner product ($+$ an orientation for a vector curl). $\operatorname{div}$: only a volume | trace survives any change of frame; transpose does not |
+# | Why the $\tfrac12$ in curl? | $A$ *is* the angular velocity, and curl is $2A$ | mean spin of material line elements |
+# | What structure does each need? | $\operatorname{grad}$, $\operatorname{curl}$: an inner product ($+$ an orientation for a vector curl). $\operatorname{div}$: only a volume | the trace survives any change of frame, but the transpose does not |
 # | Why is curl a vector only in 3D? | antisymmetric $n\times n$ matrices number $\binom{n}{2}$, and $\binom{n}{2}=n$ only at $n=3$ | the hat/vee bijection |
 # | Why is $\operatorname{curl}\operatorname{grad}=0$? | $D(\nabla f)=\operatorname{Hess}f$ is symmetric | a gradient field has no antisymmetric part |
 # | Why is $\Delta=\operatorname{div}\operatorname{grad}$? | $\operatorname{tr}\operatorname{Hess}f$ | the same trace, one step further along |
 # | What is the invariant statement? | $df$, $dF^\flat=2A$, and $d\,\iota_F\mu=(\operatorname{div}F)\mu$ | one operator $d$, three degrees |
 #
-# The single sentence: **$DF(p)$ is a square matrix acting on the tangent space; every square matrix
-# splits into dilation $+$ strain $+$ spin; divergence reads the first part and curl the third, while
-# gradient is the operator that manufactures the fields whose third part is zero.** That is a full
-# account of $DF$ only when the strain vanishes, and a full account of $F$ only once you add global
-# (topological) information. And §10 shows there is no fourth operator waiting to be found.
+# The whole notebook in four sentences. $DF(p)$ is a square matrix acting on the tangent space.
+# Every square matrix splits into dilation plus strain plus spin. Divergence reads the first part
+# and curl reads the third. Gradient is the operator that manufactures the fields whose third part
+# is zero.
+#
+# That is a full account of $DF$ only when the strain vanishes. It is a full account of $F$ only
+# once you add global, topological information. And §10 shows there is no fourth operator waiting to
+# be found.
+#
+# ### Notes
+# > This is the second version of `Div_Curl_and_the_Jacobian`. The mathematics, the section
+# > numbering and the prose are the same. What changes is that every numerical derivative here is
+# > computed by automatic differentiation. It uses the
+# > [`autograd`](https://github.com/HIPS/autograd) library instead of finite differences. Read the
+# > two side by side. The first shows that the claims survive contact with a difference quotient.
+# > This one shows what they look like when the derivatives are exact to machine precision. It also
+# > adds three things that become possible only once you can differentiate arbitrary code:
+# >
+# > * Clairaut's theorem becomes a real measurement (§2). The finite-difference Hessian was
+# >   symmetric by construction. The AD Hessian is not, so its antisymmetric part is a genuine
+# >   observation.
+# > * You can find the flow Jacobian by differentiating the ODE solver itself (§4). Compare that
+# >   against integrating the variational equation. The two routes are
+# >   *discretize-then-differentiate* and *differentiate-then-discretize*.
+# > * You can compute divergence without ever forming a Jacobian (§9), through Jacobian-vector
+# >   products. That is exactly how continuous normalizing flows compute it at scale.
+#
 #
 # ## References
 #
-# **The forms picture**
+# ### The forms picture
 #
-# - M. Spivak, *Calculus on Manifolds*, Benjamin, 1965. Chapter 4 (fields, forms, the Poincaré lemma,
-#   Stokes' theorem for chains) and Chapter 5 (integration on manifolds; the final section derives
-#   Green's, Gauss's and Stokes's classical theorems as one theorem). Spivak's preface is explicit
-#   that div/grad/curl are dimension-3 disguises of $d$.
+# - M. Spivak, *Calculus on Manifolds*, Benjamin, 1965. Chapter 4 covers fields, forms, the Poincaré
+#   lemma and Stokes' theorem for chains. Chapter 5 covers integration on manifolds, and its final
+#   section derives Green's, Gauss's and Stokes's classical theorems as one theorem. Spivak's preface
+#   states that div, grad and curl are dimension-3 disguises of $d$.
 # - H. Flanders, *Differential Forms with Applications to the Physical Sciences*, Academic Press, 1963
-#   — the same programme aimed at physicists; §2.6–2.8 do the $\mathbb{R}^3$ dictionary carefully.
-# - V. I. Arnold, *Mathematical Methods of Classical Mechanics*, 2nd ed., Springer, 1989 — Ch. 7 on
-#   forms, §16 on Liouville's theorem; the cleanest statement of $\mathcal{L}_F\mu=(\operatorname{div}F)\mu$.
-# - T. Frankel, *The Geometry of Physics*, 3rd ed., CUP, 2011 — §2.9, §4.3 for what needs a metric and
-#   what does not.
-# - T. Needham, *Visual Differential Geometry and Forms*, Princeton, 2021 — the picture-first treatment
-#   of $d$ and of curl as a 2-form.
+#   The same programme, aimed at physicists. §2.6–2.8 do the $\mathbb{R}^3$ dictionary carefully.
+# - V. I. Arnold, *Mathematical Methods of Classical Mechanics*, 2nd ed., Springer, 1989. Ch. 7
+#   covers forms and §16 covers Liouville's theorem. It has the cleanest statement of
+#   $\mathcal{L}_F\mu=(\operatorname{div}F)\mu$.
+# - T. Frankel, *The Geometry of Physics*, 3rd ed., CUP, 2011. See §2.9 and §4.3 for what needs a
+#   metric and what does not.
+# - T. Needham, *Visual Differential Geometry and Forms*, Princeton, 2021. The picture-first
+#   treatment of $d$ and of curl as a 2-form.
 #
-# **The originals**
+# ### The originals
 #
 # - J. C. Maxwell, "On the mathematical classification of physical quantities", *Proc. London Math.
-#   Soc.* **s1-3** (1871), 224–233 — where the names *curl*, *convergence* and *slope* were coined, and
-#   where the vector/pseudo-vector distinction is first argued.
+#   Soc.* **s1-3** (1871), 224–233. This is where the names *curl*, *convergence* and *slope* were
+#   coined, and where the vector versus pseudo-vector distinction is first argued.
 # - G. G. Stokes, "On the theories of the internal friction of fluids in motion…", *Trans. Camb. Phil.
-#   Soc.* **8** (1845), 287–319 — §1 contains the decomposition of relative motion near a point into
-#   dilation, strain and rigid rotation (the Cauchy–Stokes decomposition of §5).
+#   Soc.* **8** (1845), 287–319. §1 splits the relative motion near a point into dilation, strain
+#   and rigid rotation. That is the Cauchy–Stokes decomposition of §5.
 # - H. Helmholtz, "Über Integrale der hydrodynamischen Gleichungen, welche den Wirbelbewegungen
-#   entsprechen", *J. reine angew. Math.* **55** (1858), 25–55; English translation by P. G. Tait,
-#   *Phil. Mag.* **33** (1867), 485–512 — the decomposition and the vortex theorems.
+#   entsprechen", *J. reine angew. Math.* **55** (1858), 25–55. English translation by P. G. Tait,
+#   *Phil. Mag.* **33** (1867), 485–512. This gives the decomposition and the vortex theorems.
 # - J. Liouville, "Sur la théorie de la variation des constantes arbitraires", *J. Math. Pures Appl.*
-#   **3** (1838), 342–349 — the formula of §4.
-# - G. K. Batchelor, *An Introduction to Fluid Dynamics*, CUP, 1967 — §2.3, "Analysis of the relative
-#   motion near a point", the modern textbook form of Stokes 1845 with the paddle-wheel reading.
+#   **3** (1838), 342–349. This gives the formula of §4.
+# - G. K. Batchelor, *An Introduction to Fluid Dynamics*, CUP, 1967. See §2.3, "Analysis of the
+#   relative motion near a point". It is the modern textbook form of Stokes 1845, with the
+#   paddle-wheel reading.
 #
-# **The coda**
+# ### The coda
 #
 # - R. T. Q. Chen, Y. Rubanova, J. Bettencourt, D. Duvenaud, "Neural Ordinary Differential Equations",
-#   *NeurIPS* 2018 — the instantaneous change-of-variables formula $\frac{d\log p}{dt}=-\operatorname{tr}\frac{\partial f}{\partial z}$.
+#   *NeurIPS* 2018. This gives the instantaneous change-of-variables formula
+#   $\frac{d\log p}{dt}=-\operatorname{tr}\frac{\partial f}{\partial z}$.
 # - W. Grathwohl, R. T. Q. Chen, J. Bettencourt, I. Sutskever, D. Duvenaud, "FFJORD: Free-form
-#   Continuous Dynamics for Scalable Reversible Generative Models", *ICLR* 2019 — Hutchinson's
-#   estimator applied to that trace.
+#   Continuous Dynamics for Scalable Reversible Generative Models", *ICLR* 2019. This applies
+#   Hutchinson's estimator to that trace.
 # - M. F. Hutchinson, "A stochastic estimator of the trace of the influence matrix for Laplacian
 #   smoothing splines", *Comm. Statist. Simulation Comput.* **18** (1989), 1059–1076.
 #
-# **In this repository**
+# ### In this repository
 #
-# - `GeometricLinearAlgebra/04_Volume_Determinant_Trace.py` — the linear case:
+# - `GeometricLinearAlgebra/04_Volume_Determinant_Trace.py` covers the linear case,
 #   $\operatorname{tr}T=\frac{d}{dt}\big\rvert_0\det(I+tT)$ and $\det e^{tT}=e^{t\operatorname{tr}T}$.
-# - `LieGroups/VectorField_View_Lie_Theory.py` — flows, the Jacobi–Lie bracket, and $\exp$ as a flow.
-# - `LieGroups/SO3_Lie_Theory.py` — the hat map from $\mathbb{R}^3$ to antisymmetric matrices, used here to turn $A$
-#   into $\tfrac12\operatorname{curl}F$.
+# - `LieGroups/VectorField_View_Lie_Theory.py` covers flows, the Jacobi–Lie bracket, and $\exp$ as a
+#   flow.
+# - `LieGroups/SO3_Lie_Theory.py` covers the hat map from $\mathbb{R}^3$ to antisymmetric matrices,
+#   used here to turn $A$ into $\tfrac12\operatorname{curl}F$.

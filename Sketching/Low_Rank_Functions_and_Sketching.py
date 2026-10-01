@@ -306,6 +306,22 @@ for stable in (False, True):
     )
     print(f"   stable = {stable!s:5}:  error / optimal = {ratio:8.2f}")
 
+# Where the naive version bottoms out: about σ₁·ε^(1/(2q+1)), worsening as q grows.
+eps_m = np.finfo(float).eps
+print("\nnaive power iteration's error floor (k + p = 40, median of 5 sketches):")
+for q in (1, 2, 3):
+    floors = []
+    for sd in range(5):
+        Qn = A_fast @ np.random.default_rng(sd).normal(size=(n, 40))
+        for _ in range(q):
+            Qn = A_fast @ (A_fast.T @ Qn)
+        Qn, _ = np.linalg.qr(Qn)
+        floors.append(np.linalg.norm(A_fast - Qn @ (Qn.T @ A_fast), 2))
+    print(
+        f"   q = {q}:  floor {np.median(floors):.1e}"
+        f"    σ₁·ε^(1/(2q+1)) = {s_fast[0] * eps_m ** (1 / (2 * q + 1)):.1e}"
+    )
+
 # %% [markdown]
 # Three lessons, in order of how often they bite.
 #
@@ -313,10 +329,12 @@ for stable in (False, True):
 #   the random sample finds the dominant subspace on the first try.
 # * **With slow decay, power iteration earns its keep.** For $\lvert x-y\rvert$ plus noise, $q=0$ at
 #   $k=40$ is ~2× worse than optimal; one power iteration fixes it.
-# * **Done naively, power iteration destroys accuracy.** Multiplying by $AA^{\mathsf T}$ without
-#   re-orthonormalizing squares the dynamic range each time, and in floating point everything below
-#   about $\sigma_1\sqrt{\varepsilon_{\text{mach}}}$ is rounded away. The fast-decay matrix — the case
-#   that needed no help — is made ~300× *worse*. Halko, Martinsson and Tropp flag exactly this (their
+# * **Done naively, power iteration destroys accuracy.** After $q$ un-orthonormalized applications of
+#   $AA^{\mathsf T}$, the component of the sketch along the $j$-th singular direction is scaled by
+#   $\sigma_j^{2q+1}$, so every direction with $(\sigma_j/\sigma_1)^{2q+1} < \varepsilon_{\text{mach}}$ is
+#   rounded away: the attainable error floors at about $\sigma_1\,\varepsilon_{\text{mach}}^{1/(2q+1)}$
+#   — $\approx 5\times10^{-2}$ here for $q=2$ — and it gets *worse* as $q$ grows. The fast-decay matrix,
+#   the case that needed no help, is made ~300× *worse*. Halko, Martinsson and Tropp flag exactly this (their
 #   §4.5, Algorithm 4.4); it is the most common error in hand-rolled implementations.
 
 # %%

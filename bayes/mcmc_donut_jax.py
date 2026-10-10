@@ -431,18 +431,18 @@ def chain_diagnostics(positions, burn_in=0):
     if positions.ndim == 2:  # one chain: use its two halves as two chains
         half = len(positions) // 2
         positions = np.stack([positions[:half], positions[half : 2 * half]], axis=1)
-        positions = positions.transpose(1, 0, 2)  # (chain, draw, 2), as ArviZ expects
-        idata = az.from_dict(
-            {
-                "posterior": {
-                    "x": positions[..., 0],
-                    "y": positions[..., 1],
-                    "r": np.linalg.norm(positions, axis=-1),
-                }
+    positions = positions.transpose(1, 0, 2)  # (chain, draw, 2), as ArviZ expects
+    idata = az.from_dict(
+        {
+            "posterior": {
+                "x": positions[..., 0],
+                "y": positions[..., 1],
+                "r": np.linalg.norm(positions, axis=-1),
             }
-        )
-        summary = az.summary(idata)
-        print(summary[["mean", "sd", "ess_bulk", "ess_tail", "r_hat"]])
+        }
+    )
+    summary = az.summary(idata)
+    print(summary[["mean", "sd", "ess_bulk", "ess_tail", "r_hat"]])
     return summary
 
 
@@ -459,11 +459,11 @@ if __name__ == "__main__":
     chain_diagnostics(positions, burn_in)
 
     # now run the vmap parallel version: positions has shape (num_steps, num_chains, 2)
-    # default step_size=0.01 will take very small steps try different ones 0.2 is a good
-    # one from a coverage point of view
+    # default step_size=0.01 takes very small steps. The step size sweep below finds
+    # 3.0 mixes the angle best (9% acceptance); 0.5 mixes the radius best
     # can go to 128 chains, but easier to see at first with a few
     vstates = run_chain_vmap(
-        jr.key(0), donut_log_density, start, step_size=0.5, num_chains=128
+        jr.key(0), donut_log_density, start, step_size=3.0, num_chains=128
     )
     vpositions = vstates.position
     print(
@@ -576,6 +576,13 @@ if __name__ == "__main__":
 # %% [markdown]
 # ### 128 chains at step_size=0.2
 #
+# Note: we tried several step sizes while working on this file. This cell and
+# the next one use step_size=0.2 as a worked example. Their numbers apply only
+# to that one run, with step_size=0.2, 10,000 steps, 128 chains, and
+# `jr.key(0)`. `__main__` may now use a different step size (it uses 3.0 at
+# the time of writing), so running the script prints different numbers. See
+# "Tuning the step size" below for the comparison across step sizes.
+#
 # Running `run_chain_vmap` with step_size=0.2 and num_chains=128, and dropping
 # 1,000 burn-in steps, gave:
 #
@@ -606,9 +613,8 @@ if __name__ == "__main__":
 # A random walk with steps of about 0.2 needs about (16.3 / 0.2)² ≈ 6,600 moves
 # to spread over a distance that long. With 68% of proposals accepted, that is
 # about 10,000 steps. So in 9,000 draws, each chain goes about once around the
-# ring. For r_hat to approach 1.01, each chain needs many circuits. Larger
-# steps do not help much, because a step much larger than the ring's width
-# (σ ≈ 0.18) usually lands off the ring and is rejected.
+# ring. For r_hat to approach 1.01, each chain needs many circuits. A larger
+# step is the cheapest fix, as the next cell shows.
 #
 # Note: this is the main weakness of random-walk Metropolis. The distance it
 # covers grows only with the square root of the number of steps, so traveling
@@ -619,6 +625,9 @@ if __name__ == "__main__":
 
 # %% [markdown]
 # ### The simple fix for this toy problem: get more samples
+#
+# This cell continues the step_size=0.2 example. Its numbers apply only to
+# runs at that step size, not to the current `__main__`.
 #
 # About 10 times longer is enough. Longer runs with 128 chains at
 # step_size=0.2 gave:
@@ -649,6 +658,110 @@ if __name__ == "__main__":
 #   longer works here because 2 seconds is nothing. When each density
 #   evaluation is expensive, the better fix is a gradient-based sampler such
 #   as NUTS, which moves along the ring in long paths instead of diffusing.
+
+# %% [markdown]
+# ### Tuning the step size
+#
+# The step size has the largest effect on mixing, and it costs nothing to
+# change. `step_size_sweep` below, with 128 chains, 10,000 steps, and 1,000
+# burn-in steps, gave:
+#
+# ```
+#  step  accept  r_hat x,y  ess_bulk x  ess_bulk r    sd r
+#  0.10    0.83       1.32         312      60,245  0.1809
+#  0.20    0.68       1.10         884     156,370  0.1813
+#  0.35    0.51       1.05       3,207     250,433  0.1811
+#  0.50    0.40       1.03       3,043     261,926  0.1811
+#  0.75    0.29       1.02       8,269     219,622  0.1810
+#  1.00    0.23       1.01      11,786     176,596  0.1812
+#  2.00    0.13       1.00      29,643      97,110  0.1812
+#  3.00    0.09       1.00      35,744      66,492  0.1815
+#  5.00    0.05       1.01      24,127      34,328  0.1810
+#  8.00    0.02       1.01      11,006      15,647  0.1836
+# 12.00    0.01       1.02       5,307       6,846  0.1830
+# ```
+#
+# The usual rule of thumb for random-walk Metropolis is to tune the step size
+# until about 23% to 44% of proposals are accepted. The 23.4% value is the
+# optimum that Roberts, Gelman, and Gilks (1997) proved for targets in many
+# dimensions. In one dimension the optimum is about 44%. A high acceptance rate
+# means that the steps are too small and the chain crawls. A low acceptance
+# rate means that most proposals are rejected and the chain stands still.
+#
+# On the donut, the rule of thumb is correct for the radius and wrong for the
+# angle. The radius ESS peaks at step 0.5, with 40% acceptance, which is in
+# the range. The x ESS keeps rising until step 3, with only 9%
+# acceptance, where it is 40 times the value at step 0.2. Step 3 runs at 10,000
+# steps better than step 0.2 runs at 100,000 steps.
+#
+# The rule assumes that one length scale describes the target, as in a
+# Gaussian. The donut has two lengths: the width of the ring (σ ≈ 0.18) and its
+# radius (2.6). The acceptance rate depends on the width, because a proposal
+# that leaves the band is rejected. Mixing in the angle depends on the radius.
+# A step near the radius usually misses the ring, but when it lands, it lands
+# on a random part of the ring. Each accepted move is then almost an
+# independent draw of the angle. Steps much larger than the diameter (5.2)
+# overshoot the ring, so the angle ESS falls again past step 3.
+#
+# The lesson is general. An acceptance rate is a convenient target, but it is
+# not the quantity you want to make large. The ESS of the hard direction is. If
+# a target has very different scales in different directions, a single
+# isotropic step size (the same in every direction) cannot suit all of them.
+# Adaptive samplers learn a mass matrix (a scale for each direction) during
+# warmup, which fixes scales that line up with fixed directions. On the ring,
+# the narrow direction turns as you go around, so no single matrix fits. NUTS
+# handles it because it uses the gradient to follow the ring.
+
+# %%
+
+
+def step_size_sweep(
+    step_sizes=(0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0),
+    num_steps=10_000,
+    num_chains=128,
+    burn_in=1_000,
+):
+    """Run run_chain_vmap at each step size and print one row of diagnostics.
+
+    Every run uses the same key and starts at the origin, so the rows differ
+    only in step size. The acceptance rate is the fraction of steps where the
+    position changed, because State does not record the accept decision.
+    """
+    import contextlib
+    import io
+
+    start = jnp.array([0.0, 0.0])
+    print(" step  accept  r_hat x,y  ess_bulk x  ess_bulk r    sd r")
+    rows = []
+    for step_size in step_sizes:
+        states = run_chain_vmap(
+            jr.key(0),
+            donut_log_density,
+            start,
+            num_steps=num_steps,
+            step_size=step_size,
+            num_chains=num_chains,
+        )
+        positions = np.asarray(states.position)[burn_in:]
+        accept = np.mean(np.any(np.diff(positions, axis=0) != 0, axis=-1))
+        with contextlib.redirect_stdout(io.StringIO()):  # silence the full table
+            summary = chain_diagnostics(positions)
+        rhat_xy = max(summary.loc["x", "r_hat"], summary.loc["y", "r_hat"])
+        ess_x, ess_r = summary.loc["x", "ess_bulk"], summary.loc["r", "ess_bulk"]
+        sd_r = summary.loc["r", "sd"]
+        print(
+            f"{step_size:5.2f}  {accept:6.2f}  {rhat_xy:9.2f}  {ess_x:10,.0f}"
+            f"  {ess_r:10,.0f}  {sd_r:6.4f}"
+        )
+        rows.append((step_size, accept, rhat_xy, ess_x, ess_r, sd_r))
+    return rows
+
+
+# %%
+# about 15 s; run the script with --sweep, or call step_size_sweep() directly
+if __name__ == "__main__" and "--sweep" in sys.argv:
+    print("\nstep size sweep")
+    step_size_sweep()
 
 # %% [markdown]
 # ### float32 and long runs

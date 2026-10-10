@@ -236,6 +236,7 @@ def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
     The step shown is tied to the clock, not the frame count, so a slow frame
     skips ahead instead of stretching the run. After the last step the final
     picture stays up until the window is closed or Esc is pressed.
+    Space pauses and resumes the animation, and Enter restarts it from step 1.
     """
     import numpy as np
     import pygame
@@ -297,21 +298,34 @@ def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
     # new segments, instead of redrawing up to num_steps * num_chains points.
     trails = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
     drawn = 0  # index of the last step already on the trails surface
-    shown_in_title = -1
+    shown_in_title = None
 
-    start_ms = pygame.time.get_ticks()
+    # Keys: space pauses and resumes, Enter restarts, Escape quits.
+    # elapsed_ms advances only while not paused, so a pause freezes the pacing.
+    elapsed_ms = 0
+    paused = False
     running = True
     while running:
-        clock.tick(60)
+        dt = clock.tick(60)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_SPACE:
+                    paused = not paused
+                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                    elapsed_ms = 0
+                    paused = False
+                    trails.fill((0, 0, 0, 0))
+                    drawn = 0
+        if not paused:
+            elapsed_ms += dt
 
         # Which step should be showing now, from elapsed time
-        elapsed = (pygame.time.get_ticks() - start_ms) / 1000
+        elapsed = elapsed_ms / 1000
         target = min(num_steps - 1, int(elapsed / duration * (num_steps - 1)))
 
         if target > drawn:
@@ -328,12 +342,13 @@ def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
 
         label = (
             f"step {drawn + 1:,} / {num_steps:,}    t = {min(elapsed, duration):4.1f} s"
+            + ("    [paused]" if paused else "")
         )
         if font is not None:
             screen.blit(font.render(label, True, TEXT_COLOR), (10, 10))
-        elif drawn != shown_in_title:
+        elif (drawn, paused) != shown_in_title:
             pygame.display.set_caption(f"MCMC donut: {num_chains} chains    {label}")
-            shown_in_title = drawn
+            shown_in_title = (drawn, paused)
 
         pygame.display.flip()
 

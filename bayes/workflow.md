@@ -35,6 +35,8 @@ For model evaluation/prior predictive check/modification cycle - PyMC /
 PyTensor - Pyro - Tensor Flow Probabilty (tensor friendly
 probability?) - Numpyro - BlackJAX
 
+emcee  - used a lot in astrophyiscs
+
 Fit Model/adddress computational issues: - Bayeux +BlackJAX + JAXopt
 
 For Validate Computation/Eval and use model/Compare Model - ArviZ

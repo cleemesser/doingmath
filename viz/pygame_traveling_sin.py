@@ -1,3 +1,4 @@
+# tips: can do SDL_VIDEO_DRIVER=dummy in environment and it will render headless
 import pygame
 import math
 import sys

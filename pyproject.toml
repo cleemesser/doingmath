@@ -66,6 +66,8 @@ dependencies = [
     # "passagemath-standard>=10.8.10", # might leave this out an just include for sage use
     "pydantic-ai>=2.40.0",# for marimo AI integration
     "pygame>=2.6.1",
+    "numpyro>=0.22.0",
+    "bayeux-ml>=0.1.15",
 ]
 
 [project.optional-dependencies]

@@ -65,6 +65,7 @@ dependencies = [
     "pydantic-ai>=2.40.0",
     # "passagemath-standard>=10.8.10", # might leave this out an just include for sage use
     "pydantic-ai>=2.40.0",# for marimo AI integration
+    "pygame>=2.6.1",
 ]
 
 [project.optional-dependencies]
@@ -118,6 +119,7 @@ explicit = true
 [tool.uv.workspace]
 members = [
     "ext/neural_signal_analysis_notes",
+    "ext/sage",
 ]
 
 [tool.pytest.ini_options]

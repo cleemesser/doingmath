@@ -55,23 +55,20 @@ The basics are to use:
 - jupyter notebooks
 
 
-### example courses and demos
-- [Learn Multibody Mechanics by JK
-  Moore](https://moorepants.github.io/learn-multibody-dynamics/introduction.html)
-- [DTU math1a demos](https://math1a.compute.dtu.dk/SymPy/sympydemos.html) from
-     the [dtu math1a course](https://math1a.compute.dtu.dk) :
-     (google-this sympy demo site:https://math1a.compute.dtu.dk/SymPy/  )
 #### Future directions
+- [MyST](https://mystmd.org/overview/ecosystem) is probably what I want to use,
+  but consider quarto as a option
+- [jupyter_myst](https://github.com/jupyter-book/jupyterlab-myst) plugin might
+  make to make integrating results into text better
+  - there is MyST Markdown extension and Jupyter extension for VS Code
+
 - [quarto](https://quarto.org/) (can use jupyter as one of its formats too)
   - observable notebook
 - marimo notebooks: reactive design, not so nice to write with but not terrible
   with vscode: reactive approach limits size/scope of notebook but makes web
   publication easier: matplotlib, altar and plotly for visualization
 - wigglystuff tangleLatex widget is pretty great for integrated math widgets
-
-- [jupyter_myst](https://github.com/jupyter-book/jupyterlab-myst) plugin might
-  make to make integrating results into text better
-  - there is MyST Markdown extension and Jupyter extension for VS Code
+- typst as a replacement for the TeX engine? rust is fast
 
 #### Want to use latex command definition in a notebook?
 - it is possible to define new commands but..
@@ -91,3 +88,9 @@ import marimo as mo
 
 mo.latex(filename="macros.tex")
 ```
+### example courses and demos
+- [Learn Multibody Mechanics by JK
+  Moore](https://moorepants.github.io/learn-multibody-dynamics/introduction.html)
+- [DTU math1a demos](https://math1a.compute.dtu.dk/SymPy/sympydemos.html) from
+     the [dtu math1a course](https://math1a.compute.dtu.dk) :
+     (google-this sympy demo site:https://math1a.compute.dtu.dk/SymPy/  )

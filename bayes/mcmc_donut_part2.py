@@ -8,7 +8,7 @@
 #
 # | sampler                  | what it is                                          |
 # |--------------------------|-----------------------------------------------------|
-# | naive JAX Metropolis     | `make_metropolis_step` from part 1, step size 0.2   |
+# | naive JAX Metropolis     | `make_metropolis_step` from part 1, step size 0.5   |
 # | BlackJAX NUTS            | NUTS built from BlackJAX parts, in JAX              |
 # | NumPyro NUTS             | NumPyro's NUTS, given the log density directly      |
 # | nutpie (PyMC)            | a Rust NUTS sampler; PyMC model compiled with numba |
@@ -97,7 +97,7 @@ print(f"exact E[r] = {EXACT_R_MEAN:.4f}, sd(r) = {EXACT_R_SD:.4f}")
 # %%
 
 
-def run_metropolis(num_steps=100_000, burn_in=1_000, step_size=0.2):
+def run_metropolis(num_steps=100_000, burn_in=1_000, step_size=0.5):
     t = time.time()
     step = make_metropolis_step(donut_log_density, step_size)
     vinit = State(STARTS, jax.vmap(donut_log_density)(STARTS))
@@ -466,9 +466,9 @@ def pygame_viz_samplers(results, scores, duration=30.0, pace="draws"):
 #
 # ```
 # sampler                  draws      evals  r_hat  ESS x,y  ESS/1k    E[r]   sd(r)  |dir|  ok
-# naive JAX Metropolis     9,000    160,000  1.101      108    0.68  2.6121  0.1818  0.110  NO
-# naive JAX Metropolis    29,000    480,000  1.033      503    1.05  2.6129  0.1821  0.038  NO
-# naive JAX Metropolis    99,000  1,600,000  1.008    1,731    1.08  2.6129  0.1812  0.033  yes
+# naive JAX Metropolis     9,000    160,000  1.033      608    3.80  2.6139  0.1818  0.054  NO
+# naive JAX Metropolis    29,000    480,000  1.011    2,017    4.20  2.6119  0.1814  0.028  NO
+# naive JAX Metropolis    99,000  1,600,000  1.002    6,706    4.19  2.6126  0.1812  0.012  yes
 # BlackJAX NUTS              100    337,567  1.031      506    1.50  2.6104  0.1856  0.060  NO
 # BlackJAX NUTS              250    416,257  1.013    1,182    2.84  2.6123  0.1831  0.034  NO
 # BlackJAX NUTS              500    540,437  1.005    2,442    4.52  2.6129  0.1836  0.016  yes
@@ -491,9 +491,10 @@ def pygame_viz_samplers(results, scores, duration=30.0, pace="draws"):
 #
 # **Less work, by a smaller factor.** Each NUTS draw costs 20 to 30 leapfrog
 # steps, plus the warmup. Counting evaluations, NUTS reaches r_hat ≤ 1.01
-# with 250,000 to 800,000 evaluations against 1.6 million, and gets 4 to 8
-# times more ESS per evaluation. A gradient costs a few density
-# evaluations, so the real compute advantage is smaller still.
+# with 250,000 to 800,000 evaluations against 1.6 million (Metropolis misses
+# by 0.001 at 480,000). At 500 or more draws NUTS gets 1 to 2 times more ESS
+# per evaluation. A gradient costs a few density evaluations, so in real
+# compute a well-tuned Metropolis is about even with NUTS on this target.
 #
 # **Warmup dominates short runs.** At 100 draws, more than 80% of the NUTS
 # evaluations are warmup. Below about 250 draws, adding draws is cheap compared

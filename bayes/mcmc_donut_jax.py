@@ -8,6 +8,8 @@ import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
 
+RADIUS = 2.6  # default radius for donut
+SIGMA2 = 0.033
 # %% [markdown]
 # $$
 # log[P(x')] - log[P(x)] > log U \implies P(x')/P(x) > U
@@ -58,6 +60,7 @@ def run_chain(key, log_density, initial_position, num_steps=10_000, step_size=0.
     initial_state = State(initial_position, log_density(initial_position))
     keys = jr.split(key, num_steps)
     # draws
+    # insert here what the scan -> for loop equivalent
     _, states = jax.lax.scan(
         step,
         initial_state,
@@ -446,24 +449,37 @@ def chain_diagnostics(positions, burn_in=0):
     return summary
 
 
+# %% [markdown]
+# ## trying the naive Monte Carlo Algorithm
+# For these visualizations, we will start in the middle of the donut. This is not the most efficient hcoice, but it is good because it shows that the algorithm can find the high probability region
+# %%
 if __name__ == "__main__":
     # start = jnp.array([2.6, 0.0])  # on the ring, so the chain needs no burn-in
     start = jnp.array([0.0, 0.0])  # at the origin, so the chain needs burn-in
     burn_in = 1_000
-
+    STEP_SIZE = 0.01
     # first run the simple chain: positions has shape (num_steps, 2)
-    states = run_chain(jr.key(0), donut_log_density, start)
+    states = run_chain(jr.key(0), donut_log_density, start, step_size=STEP_SIZE)
     positions = states.position
     print(f"single chain, positions {positions.shape}, burn-in {burn_in}")
     print_chain_stats(positions, burn_in)
     chain_diagnostics(positions, burn_in)
+    # %%
+    if "--viz" in sys.argv:
+        print(f"starting visualization of naive MCMC chain, step size = {STEP_SIZE}")
+        pygame_viz_donut(positions, RADIUS, SIGMA2)
 
+    # %% [markdown]
     # now run the vmap parallel version: positions has shape (num_steps, num_chains, 2)
-    # default step_size=0.01 takes very small steps. The step size sweep below finds
-    # 3.0 mixes the angle best (9% acceptance); 0.5 mixes the radius best
-    # can go to 128 chains, but easier to see at first with a few
+    # default step_size=0.01 takes very small steps. We will show that we can do better.
+    # Because we are using JAX, it is easy to do our run in parallel. In the next simulation,
+    # we will increase the step size and do a few in parallel.
+
+    # %%
+    STEP_SIZE = 0.05
+    NUM_CHAINS = 5
     vstates = run_chain_vmap(
-        jr.key(0), donut_log_density, start, step_size=3.0, num_chains=128
+        jr.key(0), donut_log_density, start, step_size=0.05, num_chains=5
     )
     vpositions = vstates.position
     print(
@@ -476,9 +492,19 @@ if __name__ == "__main__":
     # pygame_viz_donut(positions, 2.6, 0.33)
     if "--viz" in sys.argv:
         print()
-        print("starting visualization")
-        pygame_viz_chains(vpositions, 2.6, 0.033, duration=30.0)
+        print(f"starting visualization {STEP_SIZE=}, {NUM_CHAINS=}")
+        pygame_viz_chains(vpositions, RADIUS, SIGMA2, duration=30.0)
 
+    # %% [markdown]
+    # So from what we have seen so far, we can guess that increasing the step
+    # size further could be helpful. Interestingly, different step sizes are
+    # best depending on whether we want to most efficiently sample the dimensio
+    # in the radius direction or same the amount around the the donut we go,
+    # i.e., the angle dimension. The step size sweep below finds 3.0 mixes the
+    # angle best (9% acceptance); 0.5 mixes the radius best can go to 128
+    # chains,
+
+    # [Consider adding simulations at 0.5 and 3.0 here]
 
 # %% [markdown]
 # ### Evaluating the quality of a sampling run

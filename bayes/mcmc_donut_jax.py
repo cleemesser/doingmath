@@ -135,111 +135,44 @@ def run_chain_vmap(
     return states
 
 
-def pygame_viz_donut(positions, radius, sigma2):
-    import pygame
+def pygame_viz_donut(positions, radius, sigma2, duration=30.0):
+    """Animate a single chain. positions has shape (num_steps, 2), from run_chain.
 
-    # Initialize Pygame
-    pygame.init()
-    WIDTH, HEIGHT = 600, 600
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mathematical Visualization: MCMC donut distribution")
-    clock = pygame.time.Clock()
-
-    # Colors
-    BACKGROUND = (22, 22, 29)
-    AXIS_COLOR = (100, 100, 110)
-    GRID_COLOR = (40, 40, 50)
-    PLOT_COLOR = (0, 255, 200)
-
-    # Math Grid Config
-    SCALE = 50  # Pixels per 1 mathematical unit
-    CENTER_X = WIDTH // 2
-    CENTER_Y = HEIGHT // 2
-
-    def to_screen(x, y):
-        """Converts Cartesian math coordinates to Pygame screen space."""
-        return (CENTER_X + int(x * SCALE), CENTER_Y - int(y * SCALE))
-
-    # Main Loop
-    time_offset = 0.0
-    point_mark = 0
-
-    POINTS_PER_STEP = len(positions) // (100)
-    point_max = len(positions) / POINTS_PER_STEP
-    running = True
-
-    while running:
-        clock.tick(60)  # Caps framework at 60 FPS
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        # Clear screen
-        screen.fill(BACKGROUND)
-
-        # 1. Draw Grid Lines
-        for x_val in range(-int(CENTER_X / SCALE) - 1, int(CENTER_X / SCALE) + 1):
-            pt1 = to_screen(x_val, -HEIGHT)
-            pt2 = to_screen(x_val, HEIGHT)
-            pygame.draw.line(screen, GRID_COLOR, (pt1[0], 0), (pt1[0], HEIGHT), 1)
-
-        for y_val in range(-int(CENTER_Y / SCALE) - 1, int(CENTER_Y / SCALE) + 1):
-            pt1 = to_screen(-WIDTH, y_val)
-            pt2 = to_screen(WIDTH, y_val)
-            pygame.draw.line(screen, GRID_COLOR, (0, pt1[1]), (WIDTH, pt1[1]), 1)
-
-        # 2. Draw Main Cartesian Axes
-        pygame.draw.line(
-            screen, AXIS_COLOR, (0, CENTER_Y), (WIDTH, CENTER_Y), 2
-        )  # X-axis
-        pygame.draw.line(
-            screen, AXIS_COLOR, (CENTER_X, 0), (CENTER_X, HEIGHT), 2
-        )  # Y-axis
-
-        # 2.5 draw circle
-        pygame.draw.circle(screen, GRID_COLOR, (CENTER_X, CENTER_Y), radius * SCALE)
-        # 3. Calculate and Plot the points
-
-        points = [
-            to_screen(xx.item(), yy.item())
-            for (xx, yy) in positions[0 : point_mark * POINTS_PER_STEP]
-        ]
-        # Loop across the pixel width of the screen to sample math points
-        # for pixel_x in range(WIDTH):
-        #     # Convert screen X back to math x
-        #     math_x = (pixel_x - CENTER_X) / SCALE
-
-        #     # Calculate Math Y
-        #     math_y = math.sin(math_x - time_offset) * 2.0  # Amplitude of 2 units
-
-        #     # Convert Math Y to Screen Y
-        #     _, pixel_y = to_screen(math_x, math_y)
-        #     points.append((pixel_x, pixel_y))
-
-        # Draw continuous curve lines between calculated points
-        if len(points) > 1:
-            pygame.draw.lines(screen, PLOT_COLOR, False, points, 3)
-
-        # Animate time forward
-        time_offset += 0.05
-        point_mark += 1
-        if point_mark >= point_max:
-            point_mark = 0
-            running = False
-        pygame.display.flip()
-
-    pygame.quit()
+    This is pygame_viz_chains with one chain, drawn in the plot color.
+    """
+    positions = np.asarray(positions)[:, None, :]  # (num_steps, 1, 2)
+    pygame_viz_chains(
+        positions, radius, sigma2, duration=duration, colors=[(0, 255, 200)]
+    )
 
 
-def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
+def pygame_viz_chains(positions, radius, sigma2, duration=30.0, colors=None):
     """Animate many chains growing in parallel; the whole run takes `duration` seconds.
 
     positions has shape (num_steps, num_chains, 2), the output of run_chain_vmap.
+    colors is one RGB color per chain. If it is None, the chains get hues
+    spread around the color wheel.
     The step shown is tied to the clock, not the frame count, so a slow frame
     skips ahead instead of stretching the run. After the last step the final
     picture stays up until the window is closed or Esc is pressed.
     Space pauses and resumes the animation, and Enter restarts it from step 1.
+
+    Each frame is built from three layers, as in mcmc_donut_part2.py:
+
+    1. `background`: an opaque surface, drawn once before the loop. It holds
+       the grid, the axes, and the ring with its +/- 2 sigma band.
+    2. `trails`: a surface made with `pygame.SRCALPHA`, so it has a per-pixel
+       alpha channel. It starts fully transparent (alpha 0). Each frame adds
+       only the new segments of each chain's path, in the chain's color at half
+       brightness. These pixels are opaque, so the segments do not blend: where
+       two paths cross, the later one covers the earlier one. This layer
+       persists across frames, so the frame cost does not grow with the
+       number of steps.
+    3. The chain heads: every frame blits `background`, then `trails`, and then
+       draws the last `tail` steps and the head of each chain at full
+       brightness. In the blit, transparent pixels let the grid show through.
+       The heads are redrawn every frame, so they move without leaving marks,
+       and only the dim trails persist.
     """
     import numpy as np
     import pygame
@@ -275,12 +208,17 @@ def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
     pixels[..., 0] = CENTER_X + (positions[..., 0] * SCALE).astype(int)
     pixels[..., 1] = CENTER_Y - (positions[..., 1] * SCALE).astype(int)
 
-    # One hue per chain, spread around the color wheel
-    colors = []
-    for c in range(num_chains):
-        color = pygame.Color(0)
-        color.hsva = (360 * c / num_chains, 65, 100, 100)
-        colors.append(color)
+    # One hue per chain, spread around the color wheel, unless colors are given
+    if colors is None:
+        colors = []
+        for c in range(num_chains):
+            color = pygame.Color(0)
+            color.hsva = (360 * c / num_chains, 65, 100, 100)
+            colors.append(color)
+    colors = [pygame.Color(color) for color in colors]
+    dim_colors = [pygame.Color(c.r // 2, c.g // 2, c.b // 2) for c in colors]
+    # The bright tail covers the last 1% of the run, so it shows the recent moves
+    tail = max(2, num_steps // 100)
 
     # Static background: grid, axes, and the ring with a +/- 2 sigma band
     background = pygame.Surface((WIDTH, HEIGHT))
@@ -334,13 +272,18 @@ def pygame_viz_chains(positions, radius, sigma2, duration=30.0):
         if target > drawn:
             for c in range(num_chains):
                 pygame.draw.lines(
-                    trails, colors[c], False, pixels[drawn : target + 1, c], 1
+                    trails, dim_colors[c], False, pixels[drawn : target + 1, c], 1
                 )
             drawn = target
 
         screen.blit(background, (0, 0))
         screen.blit(trails, (0, 0))
+        lo = max(0, drawn - tail)
         for c in range(num_chains):
+            if drawn > lo:
+                pygame.draw.lines(
+                    screen, colors[c], False, pixels[lo : drawn + 1, c], 1
+                )
             pygame.draw.circle(screen, colors[c], pixels[drawn, c], 3)
 
         label = (

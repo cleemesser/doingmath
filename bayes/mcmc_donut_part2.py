@@ -325,6 +325,31 @@ def text_surface(lines, fontsize=11, color="#c8c8d2"):
 
 
 def pygame_viz_samplers(results, scores, duration=30.0, pace="draws"):
+    """Animate the samplers side by side, one panel each, for `duration` seconds.
+
+    Each frame builds a panel from three layers:
+
+    1. `background`: an opaque surface, drawn once before the loop. It holds
+       the grid, the axes, the two circles at radius +/- 2 sigma, and the label.
+    2. `dots`: a surface made with `pygame.SRCALPHA`, so it has a per-pixel
+       alpha channel. It starts fully transparent (alpha 0). Each new draw is
+       written into it with `set_at`, in the chain's color at half brightness.
+       That color has alpha 255, so a pixel is either transparent or opaque.
+       The dots do not blend: when two draws hit the same pixel, the second
+       replaces the first. The soft look comes from dim colors on a dark
+       background and from 16 hues that interleave pixel by pixel. This layer
+       persists across frames, so writing a draw costs one `set_at`, and the
+       frame cost does not grow with the number of draws.
+    3. The chain heads: every frame copies `background`, blits `dots` onto it,
+       and then draws the tail and the head of each chain at full brightness.
+       In the blit, transparent pixels let the grid show through, and opaque
+       pixels cover it. The heads go on the copy, so they move without leaving
+       marks, and only the dim dots persist.
+
+    The label is rendered by `text_surface` on a transparent matplotlib figure.
+    Its antialiased glyph edges have partial alpha, so they blend smoothly into
+    the background.
+    """
     import pygame
 
     pygame.init()

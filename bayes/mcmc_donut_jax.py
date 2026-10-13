@@ -419,14 +419,14 @@ if __name__ == "__main__":
     # we will increase the step size and do a few in parallel.
 
     # %%
-    STEP_SIZE = 0.05
+    STEP_SIZE = 0.1
     NUM_CHAINS = 5
     vstates = run_chain_vmap(
         jr.key(0), donut_log_density, start, step_size=0.05, num_chains=5
     )
     vpositions = vstates.position
     print(
-        f"\n{vpositions.shape[1]} chains (vmap), positions {vpositions.shape}, burn-in {burn_in}"
+        f"\n{vpositions.shape[1]} chains (vmap), positions {vpositions.shape}, burn-in {burn_in}, step size:{STEP_SIZE}"
     )
     print_chain_stats(vpositions, burn_in)
     chain_diagnostics(vpositions, burn_in)

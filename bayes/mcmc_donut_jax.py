@@ -135,7 +135,7 @@ def run_chain_vmap(
     return states
 
 
-def pygame_viz_donut(positions, radius, sigma2, duration=30.0):
+def pygame_viz_donut_single_chain(positions, radius, sigma2, duration=30.0):
     """Animate a single chain. positions has shape (num_steps, 2), from run_chain.
 
     This is pygame_viz_chains with one chain, drawn in the plot color.
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     # %%
     if "--viz" in sys.argv:
         print(f"starting visualization of naive MCMC chain, step size = {STEP_SIZE}")
-        pygame_viz_donut(positions, RADIUS, SIGMA2)
+        pygame_viz_donut_single_chain(positions, RADIUS, SIGMA2)
 
     # %% [markdown]
     # now run the vmap parallel version: positions has shape (num_steps, num_chains, 2)
@@ -432,7 +432,6 @@ if __name__ == "__main__":
     chain_diagnostics(vpositions, burn_in)
 
     # optional viz: run with --viz to watch the vmap chains grow (30 s)
-    # pygame_viz_donut(positions, 2.6, 0.33)
     if "--viz" in sys.argv:
         print()
         print(f"starting visualization {STEP_SIZE=}, {NUM_CHAINS=}")

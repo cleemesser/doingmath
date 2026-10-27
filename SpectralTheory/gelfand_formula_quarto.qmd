@@ -1,0 +1,952 @@
+---
+title: "Gelfand's Formula: Where the Spectral Radius Comes From"
+subtitle: "Quarto version — results rendered as LaTeX with sympy"
+format:
+  html:
+    toc: true
+    embed-resources: true
+    html-math-method: mathjax
+  typst:
+    toc: false
+jupyter: python3
+fig-width: 9
+fig-height: 3.6
+---
+
+<!--
+Quarto translation of gelfand_formula.typ (the Typst + Calepin notebook). The mathematics and
+numerics are the same; the difference is how results reach the page. Instead of print(), every
+computed value is converted to LaTeX by sympy and spliced into the prose, either inline with a
+Quarto inline Python expression or as a Markdown table / display equation returned from a cell.
+
+  uv run quarto render SpectralTheory/gelfand_formula_quarto.qmd               # HTML and Typst-PDF
+  uv run quarto render SpectralTheory/gelfand_formula_quarto.qmd --to html
+
+Norms are written \lVert ... \rVert, never \| or |, because a bare pipe inside a Markdown table
+cell is read as a column separator (see CLAUDE.md).
+-->
+
+The spectral radius of a square matrix $A$ is the largest eigenvalue modulus,
+$\rho(A) = \max_{\lambda \in \sigma(A)} \lvert\lambda\rvert$. Gelfand's formula says that this
+purely algebraic quantity can be read off from the *growth of the powers* of $A$, measured in any
+norm:
+
+$$
+\rho(A) = \lim_{k \to \infty} \lVert A^k \rVert^{1/k}.
+$$ {#eq-gelfand}
+
+For a submultiplicative norm ($\lVert AB \rVert \le \lVert A \rVert \lVert B \rVert$, which every
+induced operator norm satisfies) there is also a bound at every finite $k$:
+
+$$
+\rho(A) \le \lVert A^k \rVert^{1/k} \quad \text{for all } k \ge 1,
+$$ {#eq-bound}
+
+because $\rho(A)^k = \rho(A^k) \le \lVert A^k \rVert$: if $A^k v = \lambda^k v$ then
+$\lvert\lambda^k\rvert \lVert v \rVert = \lVert A^k v \rVert \le \lVert A^k \rVert \lVert v \rVert$.
+
+The notebook works through examples in order of difficulty. Each one isolates one reason why
+$\lVert A^k \rVert^{1/k}$ can differ from $\rho(A)$ at finite $k$, and shows the $k$-th root
+removing it.
+
+1. A scalar, then normal matrices: no gap at all.
+2. A Jordan block: a *polynomial* factor $k^{m-1}$.
+3. A non-normal but diagonalizable matrix: a *constant* factor (the eigenvector conditioning).
+4. Different norms, including one that is not submultiplicative.
+5. Subadditivity (Fekete's lemma): why the limit exists, and why it is an infimum.
+6. Gelfand's own proof: the resolvent and its radius of convergence.
+7. Practice: estimating $\rho$ by repeated squaring, and its failure modes.
+8. The dual view: a norm adapted to $A$ (a Lyapunov norm) in which $\lVert A \rVert$ is close to
+   $\rho(A)$.
+
+## Setup
+
+The helpers compute $\lVert A^k \rVert^{1/k}$ by multiplying by $A$ one step at a time and
+renormalizing after each step, so that $A^k$ never overflows or underflows. Write
+$M_k = A^k / S_k$ with $S_k = \lVert A^k \rVert$. Then $M_k = (M_{k-1} A) / s_k$ with
+$s_k = \lVert M_{k-1} A \rVert$, so $\log S_k = \sum_{i \le k} \log s_i$, and the estimate is
+$\exp(\log S_k / k)$.
+
+A second group of helpers turns results into LaTeX. `tex` sends every value through sympy
+(`sp.Float`, `sp.Matrix`, or a symbolic expression) and `sp.latex`. `m` and `eq` wrap the result
+as inline or display math, `ok` asserts a check and renders it as $\checkmark$, and `table`
+builds a Markdown table whose cells are math.
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import sympy as sp
+from IPython.display import Markdown
+from scipy.linalg import solve_discrete_lyapunov
+
+plt.rcParams.update(
+    {
+        "figure.facecolor": "#0f0f0f",
+        "axes.facecolor": "#1a1a2e",
+        "axes.edgecolor": "#444",
+        "axes.labelcolor": "#ccc",
+        "text.color": "#eee",
+        "xtick.color": "#aaa",
+        "ytick.color": "#aaa",
+        "grid.color": "#333",
+        "grid.linestyle": "--",
+        "grid.alpha": 0.5,
+        "font.family": "monospace",
+        "legend.facecolor": "#1a1a2e",
+        "legend.edgecolor": "#444",
+    }
+)
+
+BLUE = "#4fc3f7"
+ORANGE = "#ffb74d"
+GREEN = "#81c784"
+RED = "#ef5350"
+PURPLE = "#ce93d8"
+GRAY = "#9e9e9e"
+
+
+def op2(M):
+    """Spectral norm (largest singular value), the default norm here."""
+    return np.linalg.norm(M, 2)
+
+
+def rho(A):
+    """Spectral radius from the eigenvalues: the reference answer."""
+    return np.max(np.abs(np.linalg.eigvals(A)))
+
+
+def gelfand_sequence(A, kmax, norm=op2):
+    """Return ||A^k||^(1/k) for k = 1..kmax, renormalizing every step."""
+    M = np.eye(A.shape[0], dtype=A.dtype)
+    log_S = 0.0
+    out = np.empty(kmax)
+    for k in range(1, kmax + 1):
+        M = M @ A
+        s = norm(M)
+        log_S += np.log(s)
+        M = M / s
+        out[k - 1] = np.exp(log_S / k)
+    return out
+
+
+ks = np.arange(1, 201)
+
+
+# ---- results -> LaTeX, via sympy ---------------------------------------
+def tex(x, digits=4):
+    """LaTeX, via sympy, for a sympy object, number, bool or numpy array."""
+    if isinstance(x, (sp.Basic, sp.MatrixBase)):
+        return sp.latex(x, ln_notation=True)
+    if isinstance(x, (bool, np.bool_)):
+        return r"\checkmark" if x else r"\times"
+    if isinstance(x, (int, np.integer)):
+        return sp.latex(sp.Integer(int(x)))
+    if isinstance(x, (float, np.floating)):
+        return (
+            r"\infty"
+            if np.isinf(x)
+            else sp.latex(sp.Float(float(x), digits))
+        )
+    if isinstance(x, np.ndarray):
+        entries = sp.Matrix(np.atleast_2d(x)).applyfunc(
+            lambda v: sp.Float(float(v), digits)
+        )
+        return sp.latex(entries)
+    raise TypeError(f"no LaTeX rule for {type(x).__name__}")
+
+
+def _join(parts, digits):
+    # Strings are LaTeX source and pass through; anything else goes through
+    # tex(). Joining with a space keeps a trailing control word (\qquad) off
+    # the next letter.
+    return " ".join(
+        p if isinstance(p, str) else tex(p, digits) for p in parts
+    )
+
+
+def m(*parts, digits=4):
+    """Inline math built from LaTeX strings and Python values."""
+    return Markdown(f"${_join(parts, digits)}$")
+
+
+def eq(*parts, digits=4):
+    """Display math built from LaTeX strings and Python values."""
+    return Markdown(f"$$\n{_join(parts, digits)}\n$$")
+
+
+def ok(condition):
+    """Assert a numerical check and render it as a check mark."""
+    assert condition
+    return m(True)
+
+
+def table(header, rows, digits=4):
+    """Markdown table: strings verbatim, other values as $tex(value)$."""
+    cell = lambda v: v if isinstance(v, str) else f"${tex(v, digits)}$"
+    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    lines += [
+        "| " + " | ".join(cell(v) for v in row) + " |" for row in rows
+    ]
+    return Markdown("\n".join(lines))
+```
+
+## Example 1: a scalar, and normal matrices
+
+For a $1 \times 1$ matrix $A = (a)$,
+$\lVert A^k \rVert^{1/k} = \lvert a^k \rvert^{1/k} = \lvert a \rvert$ at every $k$. There is nothing
+to converge.
+
+The same is true for any *normal* matrix ($AA^* = A^*A$) in the spectral norm. A normal matrix is
+unitarily diagonalizable, $A = U \Lambda U^*$, and the spectral norm is unitarily invariant, so
+$\lVert A^k \rVert_2 = \lVert \Lambda^k \rVert_2 = \rho(A)^k$ exactly. Two examples are a diagonal
+matrix and a rotation scaled by $r$, whose eigenvalues are $r e^{\pm i\theta}$:
+
+$$
+D = \begin{pmatrix} 0.9 & 0 \\ 0 & -0.5 \end{pmatrix}, \qquad
+R = r \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}.
+$$
+
+```{python}
+a = -0.8
+scalar_exact = np.allclose(gelfand_sequence(np.array([[a]]), 50), abs(a))
+
+D = np.diag([0.9, -0.5])
+r, theta = 0.9, 0.7
+R = r * np.array(
+    [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
+)
+
+rows = []
+for name, A in [("D", D), ("R", R)]:
+    normal = np.allclose(A @ A.T, A.T @ A)
+    exact = np.allclose(gelfand_sequence(A, 200), rho(A))
+    assert normal and exact
+    rows.append([f"${name}$", A, normal, rho(A), op2(A), exact])
+
+table(
+    [
+        "",
+        "matrix",
+        "normal",
+        r"$\rho(A)$",
+        r"$\lVert A \rVert_2$",
+        r"$\lVert A^k \rVert_2^{1/k} = \rho$ for $k \le 200$",
+    ],
+    rows,
+)
+```
+
+For the scalar $a =$ `{python} m(a)` the check $\lVert a^k \rVert^{1/k} = \lvert a \rvert$ for
+$k \le 50$ passes: `{python} ok(scalar_exact)`. So for normal matrices @eq-bound is an equality at
+every $k$, and $\lVert A \rVert_2$ is already the spectral radius. Every gap in the examples below
+comes from non-normality.
+
+## Example 2: a Jordan block, where the gap is a polynomial in $k$
+
+The simplest non-normal matrix is a $2 \times 2$ Jordan block. Its powers have a closed form,
+because $J = \lambda I + N$ with $N^2 = 0$ and $\lambda I$ commuting with $N$:
+$J^k = (\lambda I + N)^k = \lambda^k I + k\lambda^{k-1} N$. Rather than typing the result, let
+sympy compute $J^k$ for a symbolic exponent $k$, for the $2 \times 2$ block and the
+$3 \times 3$ block $J_3$:
+
+```{python}
+k_sym, lam_sym = sp.symbols("k lambda", positive=True)
+
+
+def jordan_block_sym(m):
+    return sp.Matrix(
+        m, m, lambda i, j: lam_sym if i == j else (1 if j == i + 1 else 0)
+    )
+
+
+Jk_sym = sp.simplify(jordan_block_sym(2) ** k_sym)
+J3k_sym = sp.simplify(jordan_block_sym(3) ** k_sym)
+eq(r"J^k =", Jk_sym, r",\qquad J_3^k =", J3k_sym)
+```
+
+Both eigenvalues equal $\lambda$, so $\rho(J) = \lvert\lambda\rvert$. The off-diagonal entry
+`{python} m(Jk_sym[0, 1])` grows before it decays. Setting its $k$-derivative to zero, sympy finds
+the peak at
+
+```{python}
+corner = Jk_sym[0, 1]
+k_peak = sp.solve(sp.diff(corner, k_sym), k_sym)[0]
+
+lam = 0.9
+J = np.array([[lam, 1.0], [0.0, lam]])
+norms = np.array([op2(np.linalg.matrix_power(J, k)) for k in ks[:60]])
+
+# The sympy closed form, evaluated numerically, vs. repeated multiplication.
+Jk_num = sp.lambdify((lam_sym, k_sym), Jk_sym, "numpy")
+closed_form_ok = all(
+    np.allclose(
+        np.array(Jk_num(lam, k), dtype=float), np.linalg.matrix_power(J, k)
+    )
+    for k in range(1, 61)
+)
+eq(
+    r"k^* =",
+    k_peak,
+    r"\approx",
+    float(k_peak.subs(lam_sym, lam)),
+    r"\quad (\lambda = 0.9).",
+)
+```
+
+The lambdified closed form matches `matrix_power` for $k = 1, \dots, 60$:
+`{python} ok(closed_form_ok)`. The largest value is
+`{python} m(r"\lVert J^k \rVert_2 \approx", norms.max(), digits=2)` at
+`{python} m(r"k =", int(ks[np.argmax(norms)]))`. So $\lVert J^k \rVert$ shows a *transient hump*
+even though every eigenvalue is inside the unit disc.
+
+For a block of size $m$ the same binomial expansion stops at $N^{m-1}$ (the $J_3^k$ above shows
+the $\binom{k}{2}$ term):
+
+$$
+(\lambda I + N)^k = \sum_{j=0}^{m-1} \binom{k}{j} \lambda^{k-j} N^j,
+$$
+
+so the largest entry grows like $k^{m-1} \lvert\lambda\rvert^k$, and
+
+$$
+\lVert J^k \rVert^{1/k} \approx \lvert\lambda\rvert \cdot (C k^{m-1})^{1/k} \to \lvert\lambda\rvert,
+$$
+
+since $C^{1/k} \to 1$ and $k^{(m-1)/k} = e^{(m-1)\ln k / k} \to 1$. The relative error decays like
+$(m-1)\ln k / k$, which is *slow*.
+
+```{python}
+#| label: fig-jordan
+#| fig-cap: "Left: transient growth of $\\lVert J^k \\rVert_2$ before the decay set by $\\rho^k$. Right: relative error of the Gelfand estimate for Jordan blocks of size $m$; dotted lines are $(m-1)\\ln k / k$."
+def jordan_block(lam, m):
+    return lam * np.eye(m) + np.eye(m, k=1)
+
+
+fig, (ax0, ax1) = plt.subplots(1, 2)
+ax0.plot(ks[:60], norms, color=BLUE, label=r"$\|J^k\|_2$")
+ax0.plot(
+    ks[:60], lam ** ks[:60], color=ORANGE, ls="--", label=r"$\rho(J)^k$"
+)
+ax0.set_xlabel("k")
+ax0.set_title("transient growth, then decay")
+ax0.legend()
+ax0.grid(True)
+
+for m_, color in zip([1, 2, 3, 4], [GREEN, BLUE, PURPLE, RED]):
+    seq = gelfand_sequence(jordan_block(lam, m_), len(ks))
+    ax1.semilogy(ks, seq / lam - 1 + 1e-17, color=color, label=f"m = {m_}")
+    if m_ > 1:
+        ax1.semilogy(
+            ks, (m_ - 1) * np.log(ks) / ks, color=color, ls=":", lw=1
+        )
+ax1.set_xlabel("k")
+ax1.set_title(r"relative error $\|J^k\|^{1/k}/\rho - 1$")
+ax1.set_ybound(1e-3, 3)
+ax1.legend(loc="upper right")
+ax1.grid(True)
+fig.tight_layout()
+```
+
+The dotted curves in @fig-jordan are $(m-1)\ln k / k$. They track the slope of each solid curve:
+on these axes the error falls by roughly one decade per decade of $k$, minus a logarithm. The
+$m = 1$ block is the scalar $\lambda$ and has zero error, so it does not appear on the log axis.
+
+## Example 3: a non-normal, diagonalizable matrix, where the gap is a constant
+
+Now take distinct eigenvalues but a large off-diagonal coupling:
+
+$$
+A_c = \begin{pmatrix} 0.9 & c \\ 0 & 0.5 \end{pmatrix}, \qquad \rho(A_c) = 0.9 \text{ for every } c.
+$$
+
+With $c$ left symbolic, sympy diagonalizes $A_c = V \Lambda V^{-1}$ exactly:
+
+```{python}
+c_sym = sp.Symbol("c", positive=True)
+Ac_sym = sp.Matrix([[sp.Rational(9, 10), c_sym], [0, sp.Rational(1, 2)]])
+V_sym, Lam_sym = Ac_sym.diagonalize()
+assert sp.simplify(V_sym * Lam_sym * V_sym.inv() - Ac_sym) == sp.zeros(2, 2)
+eq(
+    r"V =",
+    V_sym,
+    r",\qquad \Lambda =",
+    Lam_sym,
+    r",\qquad V \Lambda V^{-1} = A_c.",
+)
+```
+
+The first column is `{python} m(V_sym[:, 0])`, which tilts toward the second,
+`{python} m(V_sym[:, 1])`, as $c$ grows. Since
+
+$$
+\lVert A_c^k \rVert = \lVert V \Lambda^k V^{-1} \rVert \le \kappa(V)\, \rho^k,
+\quad \text{hence} \quad
+\rho \le \lVert A_c^k \rVert^{1/k} \le \kappa(V)^{1/k} \rho,
+$$
+
+where $\kappa(V) = \lVert V \rVert \lVert V^{-1} \rVert$ is the condition number of the eigenvector
+matrix (numerically, with unit-length columns), the nearly parallel eigenvectors make $\kappa(V)$
+blow up. The spectral radius does not move, but $\lVert A_c \rVert_2$, the $k = 1$ estimate, grows
+like $c$. The constant $\kappa(V)$ costs a relative error of about $\ln\kappa(V)/k$, which is still
+slow, but there is no extra $\ln k$.
+
+```{python}
+cs = [0.0, 1.0, 10.0, 50.0]
+seqs, kappas, rows = {}, {}, []
+for c in cs:
+    A = np.array([[0.9, c], [0.0, 0.5]])
+    evals, V = np.linalg.eig(A)
+    kappa = np.linalg.cond(V)
+    seq = gelfand_sequence(A, len(ks))
+    lower = np.all(seq >= rho(A) - 1e-12)  # eq-bound
+    upper = np.all(
+        seq <= kappa ** (1 / ks) * rho(A) + 1e-12
+    )  # kappa(V) upper bound
+    assert lower and upper
+    seqs[c], kappas[c] = seq, kappa
+    rows.append([int(c), op2(A), kappa, seq[127], lower and upper])
+
+table(
+    [
+        "$c$",
+        r"$\lVert A_c \rVert_2$",
+        r"$\kappa(V)$",
+        r"$\lVert A_c^{128} \rVert_2^{1/128}$",
+        r"both bounds, $k \le 200$",
+    ],
+    rows,
+)
+```
+
+```{python}
+#| label: fig-nonnormal
+#| fig-cap: "Left: $\\lVert A_c^k \\rVert_2^{1/k}$ for four couplings $c$, all converging to $\\rho = 0.9$. Right: relative error against $\\ln\\kappa(V)/k$ (dotted)."
+fig, (ax0, ax1) = plt.subplots(1, 2)
+for c, color in zip(cs, [GREEN, BLUE, PURPLE, RED]):
+    ax0.plot(ks, seqs[c], color=color, label=f"c = {c:g}")
+    ax1.loglog(ks, seqs[c] / 0.9 - 1 + 1e-17, color=color)
+    if c > 0:
+        ax1.loglog(ks, np.log(kappas[c]) / ks, color=color, ls=":", lw=1)
+ax0.axhline(0.9, color=ORANGE, ls="--", lw=1, label=r"$\rho = 0.9$")
+ax0.set_ybound(0.8, 2.0)
+ax0.set_xlabel("k")
+ax0.set_title(r"$\|A_c^k\|_2^{1/k}$")
+ax0.legend()
+ax0.grid(True)
+ax1.set_ybound(1e-4, 10)
+ax1.set_xlabel("k")
+ax1.set_title(r"relative error vs. $\ln\kappa(V)/k$ (dotted)")
+ax1.grid(True)
+fig.tight_layout()
+```
+
+Both bounds hold at every $k$, and for $c = 50$ the estimate falls from
+`{python} m(op2(np.array([[0.9, 50.0], [0.0, 0.5]])), digits=3)` at $k = 1$ to
+`{python} m(seqs[50.0][127])` at $k = 128$, within a few percent of $\rho$. Example 2 and
+Example 3 between them account for the asymptotic formula
+$\lVert A^k \rVert \approx C k^{m-1} \rho^k$ in general: $m$ is the size of the largest Jordan block
+among the eigenvalues of modulus $\rho$, and $C$ absorbs the conditioning of the Jordan basis.
+
+## Example 4: every norm gives the same limit
+
+@eq-gelfand holds for *any* norm on the space of $n \times n$ matrices. In finite dimensions all
+norms are equivalent: for any two there are constants with
+$a \lVert X \rVert_\alpha \le \lVert X \rVert_\beta \le b \lVert X \rVert_\alpha$. Taking $k$-th
+roots sends $a^{1/k}$ and $b^{1/k}$ to 1, so all norms share one limit. The finite-$k$ bound
+@eq-bound, on the other hand, needs submultiplicativity.
+
+The largest-entry norm $\lVert X \rVert_{\max} = \max_{ij} \lvert x_{ij} \rvert$ is a genuine norm
+that is not submultiplicative. Take the matrix of all one-halves; sympy confirms it is idempotent
+for every symbolic power:
+
+```{python}
+B_sym = sp.ones(2, 2) / 2
+Bk_sym = sp.simplify(B_sym**k_sym)
+assert Bk_sym == B_sym
+eq(
+    r"B =",
+    B_sym,
+    r",\qquad B^k =",
+    Bk_sym,
+    r"\text{ for all } k \ge 1,"
+    r"\qquad \rho(B) =",
+    max(abs(ev) for ev in B_sym.eigenvals()),
+    ".",
+)
+```
+
+So $\lVert B^k \rVert_{\max} = 1/2 < \rho(B)$ and @eq-bound fails at every $k$. Still,
+$(1/2)^{1/k} \to 1 = \rho(B)$, as @eq-gelfand promises.
+
+```{python}
+norm_fns = {
+    "spectral": op2,
+    "max column sum": lambda M: np.linalg.norm(M, 1),
+    "max row sum": lambda M: np.linalg.norm(M, np.inf),
+    "Frobenius": lambda M: np.linalg.norm(M, "fro"),
+    "max entry (not submultiplicative)": lambda M: np.max(np.abs(M)),
+}
+
+A = np.array([[0.9, 10.0], [0.0, 0.5]])
+B = np.full((2, 2), 0.5)
+seqsA = {
+    name: gelfand_sequence(A, len(ks), f) for name, f in norm_fns.items()
+}
+seqsB = {
+    name: gelfand_sequence(B, len(ks), f) for name, f in norm_fns.items()
+}
+
+table(
+    ["norm", r"$A_{10}$, $k = 200$", r"$B$: $\min_k$", r"$B$, $k = 200$"],
+    [
+        [name, seqsA[name][-1], seqsB[name].min(), seqsB[name][-1]]
+        for name in norm_fns
+    ],
+)
+```
+
+```{python}
+#| label: fig-norms
+#| fig-cap: "Left: five norms, one limit, for $A_{10}$. Right: for $B$ the max-entry norm starts below $\\rho$ and climbs as $2^{-1/k}$."
+fig, (ax0, ax1) = plt.subplots(1, 2)
+for name, color in zip(norm_fns, [BLUE, GREEN, PURPLE, ORANGE, RED]):
+    ax0.plot(ks, seqsA[name], color=color, label=name)
+    ax1.plot(ks, seqsB[name], color=color, label=name)
+ax0.axhline(rho(A), color="w", ls="--", lw=1)
+ax0.set_ybound(0.6, 2.0)
+ax0.set_title(r"$A_{10}$: every norm $\to \rho = 0.9$")
+ax0.set_xlabel("k")
+ax0.legend(fontsize=7)
+ax0.grid(True)
+ax1.axhline(rho(B), color="w", ls="--", lw=1)
+ax1.set_title(r"$B$: max-entry norm sits below $\rho$")
+ax1.set_xlabel("k")
+ax1.grid(True)
+fig.tight_layout()
+```
+
+For $A_{10}$ the five curves differ only at small $k$; the norm-equivalence constants are washed out
+by the $k$-th root. For $B$ the four submultiplicative norms give exactly $1$ at every $k$, while
+the max-entry norm starts at $1/2$, below $\rho$, and climbs as $2^{-1/k}$.
+
+## Example 5: why the limit exists — subadditivity and Fekete's lemma
+
+For a submultiplicative norm put $a_k = \log \lVert A^k \rVert$. Then
+
+$$
+a_{j+k} = \log \lVert A^j A^k \rVert \le \log \lVert A^j \rVert + \log \lVert A^k \rVert = a_j + a_k,
+$$
+
+so the sequence $a_k$ is *subadditive*. Fekete's lemma (1923) says that for any subadditive
+sequence $a_k / k$ converges, and its limit is $\inf_k a_k / k$. So the limit in @eq-gelfand exists
+*and* is the infimum over all $k$, without any reference to eigenvalues:
+
+$$
+\lim_{k \to \infty} \lVert A^k \rVert^{1/k} = \inf_{k \ge 1} \lVert A^k \rVert^{1/k}.
+$$
+
+Fekete's argument proves that the limit exists, but not that the limit equals $\rho(A)$; that
+identification is Gelfand's theorem (Example 6). It also does not make the sequence decreasing.
+Take $S = \begin{pmatrix} 0 & 4 \\ 1/4 & 0 \end{pmatrix}$, so that $S^2 = I$ and $\rho(S) = 1$.
+sympy's closed form for $S^k$ makes the parity explicit:
+
+```{python}
+S_sym = sp.Matrix([[0, 4], [sp.Rational(1, 4), 0]])
+Sk_sym = sp.simplify(S_sym**k_sym)
+eq(r"S^k =", Sk_sym)
+```
+
+```{python}
+S = np.array([[0.0, 4.0], [0.25, 0.0]])
+seqS = gelfand_sequence(S, 20)
+
+# Monotone along k = 2^j, for many random non-normal matrices.
+rng = np.random.default_rng(0)
+monotone = True
+for _ in range(200):
+    n = rng.integers(2, 8)
+    V = rng.normal(size=(n, n))
+    A = V @ np.diag(rng.uniform(0.2, 1.5, n)) @ np.linalg.inv(V)
+    seq = gelfand_sequence(A, 256)
+    pow2 = seq[[2**j - 1 for j in range(9)]]  # k = 1, 2, 4, ..., 256
+    monotone &= bool(
+        np.all(np.diff(pow2) <= 1e-9 * pow2[:-1])
+    )  # monotone along 2^j
+    monotone &= bool(
+        seq.min() >= rho(A) * (1 - 1e-9)
+    )  # inf_k still bounded below by rho
+eq(r"\bigl(\lVert S^k \rVert_2^{1/k}\bigr)_{k=1}^{8} =", seqS[:8])
+```
+
+For even $k$, $S^k = I$ and $\lVert S^k \rVert_2 = 1$; for odd $k$, $S^k = S$ and
+$\lVert S^k \rVert_2 = 4$. The sequence is the sawtooth $4^{1/k}, 1, 4^{1/3}, 1, \dots$ above. Along
+the powers of two, however, it *is* non-increasing, because
+$\lVert A^{2k} \rVert \le \lVert A^k \rVert^2$ gives
+$\lVert A^{2k} \rVert^{1/2k} \le \lVert A^k \rVert^{1/k}$. That is why estimating by repeated
+squaring ($k = 1, 2, 4, \dots, 2^j$) can only improve at each step. Over 200 random non-normal
+matrices, the estimates at $k = 2^j$ never increase and never fall below $\rho$:
+`{python} ok(monotone)`.
+
+```{python}
+#| label: fig-sawtooth
+#| fig-cap: "The sawtooth $\\lVert S^k \\rVert_2^{1/k}$: the infimum is $\\rho(S) = 1$, but the sequence is not monotone."
+fig, ax = plt.subplots(figsize=(9, 3))
+ax.plot(
+    np.arange(1, 21),
+    seqS,
+    "o-",
+    color=BLUE,
+    ms=4,
+    label=r"$\|S^k\|_2^{1/k}$",
+)
+ax.axhline(1.0, color=ORANGE, ls="--", lw=1, label=r"$\rho(S) = 1$")
+ax.set_xticks(range(1, 21))
+ax.set_xlabel("k")
+ax.legend()
+ax.grid(True)
+fig.tight_layout()
+```
+
+## Example 6: Gelfand's proof — the resolvent and its radius of convergence
+
+Gelfand proved @eq-gelfand in a general Banach algebra (bounded operators, convolution algebras),
+where there is no Jordan form. His argument is complex analysis.
+
+**The resolvent as a power series.** For $\lvert z \rvert$ large the Neumann series gives
+
+$$
+R(z) = (zI - A)^{-1} = \sum_{k=0}^{\infty} \frac{A^k}{z^{k+1}},
+$$ {#eq-neumann}
+
+a Laurent series in $1/z$ whose coefficients are matrices.
+
+**Its radius of convergence.** By the Cauchy–Hadamard formula, @eq-neumann converges for
+$\lvert z \rvert > r$ and diverges for $\lvert z \rvert < r$, where
+$r = \limsup_{k \to \infty} \lVert A^k \rVert^{1/k}$. This is exactly the right side of
+@eq-gelfand.
+
+**Analyticity.** $R(z)$ is analytic everywhere off the spectrum $\sigma(A)$ and blows up on it,
+since $\lVert R(z) \rVert \ge 1/\operatorname{dist}(z, \sigma(A))$. A Laurent series about $\infty$
+converges on the largest punctured disc around $\infty$ in which the function is analytic, which is
+$\lvert z \rvert > \rho(A)$. Hence $r = \rho(A)$.
+
+So the spectral radius *is* a radius of convergence. Eigenvalues are the singularities of $R(z)$,
+and the growth of $\lVert A^k \rVert$ is the growth of its Laurent coefficients.
+
+```{python}
+A = np.array([[0.9, 10.0], [0.0, 0.5]])
+I2 = np.eye(2)
+
+
+def resolvent_partial_sum(A, z, K):
+    total, term = (
+        np.zeros_like(A, dtype=complex),
+        np.eye(A.shape[0], dtype=complex) / z,
+    )
+    for _ in range(K):
+        total += term
+        term = term @ A / z
+    return total
+
+
+z_out = 0.95  # rho < |z| < ||A||_2: converges, though not obviously
+converged = np.allclose(
+    resolvent_partial_sum(A, z_out, 2000), np.linalg.inv(z_out * I2 - A)
+)
+table(
+    ["$K$", r"$\lVert \sum_{k<K} A^k/z^{k+1} \rVert_2$ at $z = 0.85$"],
+    [[K, op2(resolvent_partial_sum(A, 0.85, K))] for K in (50, 100, 200)],
+    digits=3,
+)
+```
+
+At $z = 0.95$, between $\rho$ and $\lVert A \rVert_2$, 2000 terms of @eq-neumann reproduce
+$(zI - A)^{-1}$: `{python} ok(converged)`. At $z = 0.85$, inside $\rho$, the partial sums in the
+table grow without bound.
+
+The left panel of @fig-resolvent shows $\log_{10} \lVert R(z) \rVert_2$ over the complex plane for
+$A_{10}$. The eigenvalues $0.5$ and $0.9$ are the poles. The dashed circle is
+$\lvert z \rvert = \rho$, outside which @eq-neumann converges. Convergence is obvious only for
+$\lvert z \rvert > \lVert A \rVert_2 \approx$ `{python} m(op2(A), digits=3)`, far off the plot,
+where $\lVert A^k \rVert \le \lVert A \rVert^k$ bounds the terms by a geometric series. In the
+whole region between $\rho$ and $\lVert A \rVert_2$ the series converges too, though the triangle
+inequality alone cannot show it. The level sets of $\lVert R(z) \rVert$ are the *pseudospectra* of
+$A$. They spread far beyond the eigenvalues, and that spread is the same non-normality that causes
+the transient growth of $\lVert A^k \rVert$. The right panel shows the size of the terms
+$\lVert A^k \rVert / \lvert z \rvert^{k+1}$ for real $z$ on either side of $\rho$.
+
+```{python}
+#| label: fig-resolvent
+#| fig-height: 4.2
+#| fig-cap: "Left: $\\log_{10}\\lVert (zI - A)^{-1} \\rVert_2$ for $A_{10}$, with the eigenvalues and the circle $\\lvert z \\rvert = \\rho$. Right: terms of the Neumann series for real $z$."
+x = np.linspace(
+    -1.6, 1.6, 320
+)  # even count: no grid point lands on an eigenvalue
+Z = x[None, :] + 1j * x[:, None]
+M = Z[..., None, None] * I2 - A  # stack of (zI - A)
+smin = np.linalg.svd(M, compute_uv=False)[..., -1]
+logR = np.log10(1 / smin)  # ||(zI - A)^-1||_2 = 1 / sigma_min(zI - A)
+
+fig, (ax0, ax1) = plt.subplots(
+    1, 2, gridspec_kw={"width_ratios": [1, 1.25]}
+)
+extent = [x[0], x[-1], x[0], x[-1]]
+im = ax0.imshow(
+    logR, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=3
+)
+ax0.contour(x, x, logR, levels=[1, 2], colors=[GRAY], linewidths=0.6)
+t = np.linspace(0, 2 * np.pi, 400)
+ax0.plot(
+    rho(A) * np.cos(t),
+    rho(A) * np.sin(t),
+    color=BLUE,
+    ls="--",
+    label=r"$|z| = \rho$",
+)
+ev = np.linalg.eigvals(A)
+ax0.plot(
+    ev.real, ev.imag, "x", color=GREEN, ms=8, mew=2, label="eigenvalues"
+)
+ax0.set_title(
+    r"$\log_{10}\|(zI-A)^{-1}\|_2$  ($\|A\|_2 \approx 10$ is off-plot)",
+    fontsize=9,
+)
+ax0.set_xlabel("Re z")
+ax0.set_ylabel("Im z")
+ax0.legend(fontsize=7, loc="lower left")
+fig.colorbar(im, ax=ax0, fraction=0.046)
+
+powers = np.array([op2(np.linalg.matrix_power(A, k)) for k in range(150)])
+for z, color in [(0.85, RED), (0.9, ORANGE), (0.95, GREEN), (1.2, BLUE)]:
+    ax1.semilogy(
+        powers / z ** (np.arange(150) + 1), color=color, label=f"z = {z}"
+    )
+ax1.set_xlabel("k")
+ax1.set_title(
+    r"terms $\|A^k\| / |z|^{k+1}$ of the Neumann series", fontsize=9
+)
+ax1.legend(fontsize=7)
+ax1.grid(True)
+fig.tight_layout()
+```
+
+The terms decay geometrically for $\lvert z \rvert > \rho$. At $\lvert z \rvert = \rho$ they settle
+to a constant, and for $\lvert z \rvert < \rho$ they grow, whatever the transient does first. The
+same argument with Liouville's theorem also shows that the spectrum is never empty: if it were,
+$R(z)$ would be an entire function tending to $0$ at $\infty$, hence identically zero, which is
+impossible.
+
+## Example 7: estimating $\rho$ in practice by repeated squaring
+
+To estimate $\rho$ without an eigensolver one squares $j$ times to get $A^{2^j}$, using $j$ matrix
+products for $k = 2^j$. Two practical points follow from the examples above.
+
+**Overflow and underflow.** Forming $A^{128}$ directly overflows in single precision once
+$\rho \gtrsim 2$ ($2^{128} \approx 3.4 \times 10^{38}$ is the `float32` limit), and underflows to
+$0$ when $\rho$ is small. The remedy is the same renormalization as in `gelfand_sequence`. Put
+$M_0 = A / \lVert A \rVert$ and $M_{i+1} = M_i^2 / \lVert M_i^2 \rVert$. If $r_i$ denotes the
+estimate at $k = 2^i$, then $\log r_{i+1} = \log r_i + \log \lVert M_i^2 \rVert / 2^{i+1}$.
+
+```{python}
+def gelfand_by_squaring(A, j, norm=op2):
+    """||A^(2^i)||^(1/2^i) for i = 0..j, by j renormalized squarings."""
+    s = norm(A)
+    M, log_r = A / s, np.log(s)
+    out = [np.exp(log_r)]
+    for i in range(j):
+        M = M @ M
+        s = norm(M)
+        M, log_r = M / s, log_r + np.log(s) / 2 ** (i + 1)
+        out.append(np.exp(log_r))
+    return np.array(out)
+
+
+A = np.array([[0.9, 10.0], [0.0, 0.5]])
+at_powers_of_2 = gelfand_sequence(A, 128)[[2**i - 1 for i in range(8)]]
+squaring_ok = np.allclose(gelfand_by_squaring(A, 7), at_powers_of_2)
+
+rows = []
+for scale in (2.5, 0.3):
+    A32 = (scale / 0.9 * A).astype(
+        np.float32
+    )  # same shape, rho rescaled to 2.5 and 0.3
+    with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+        A128 = np.linalg.matrix_power(A32, 128)  # computed in float32
+    naive = (
+        op2(A128.astype(np.float64)) ** (1 / 128)
+        if np.all(np.isfinite(A128))
+        else np.inf
+    )
+    rows.append([float(rho(A32)), naive, gelfand_by_squaring(A32, 7)[-1]])
+
+table(
+    [
+        r"$\rho$ (`float32`)",
+        r"naive $\lVert A^{128} \rVert_2^{1/128}$",
+        "renormalized squaring",
+    ],
+    rows,
+)
+```
+
+The squaring estimates agree with `gelfand_sequence` at every $k = 2^i$: `{python} ok(squaring_ok)`.
+
+**A margin above $\rho$.** Even at $k = 128$ the estimate exceeds $\rho$ by the factor
+$(C k^{m-1})^{1/k}$, for instance $50^{1/128} \approx$ `{python} m(50 ** (1 / 128))`. A stabilizing
+clip of the form $A \leftarrow A / \max(1, \hat\rho)$, with
+$\hat\rho = \lVert A^{128} \rVert^{1/128}$, therefore also shrinks *stable* operators whose $\rho$
+lies within that margin of 1. The table scans $\rho$ toward 1 for a mildly and a strongly
+non-normal family.
+
+```{python}
+rows = []
+for c in (1.0, 50.0):
+    for r_ in (0.90, 0.95, 0.97, 0.98, 0.99):
+        A = np.array([[r_, c], [0.0, 0.5]])
+        est = gelfand_by_squaring(A, 7)[-1]
+        rows.append(
+            [r_, int(c), op2(A), est, "**yes**" if est > 1 else "no"]
+        )
+
+table(
+    [
+        r"$\rho$",
+        "$c$",
+        r"$\lVert A \rVert_2$",
+        r"$\hat\rho$ at $k = 128$",
+        "clip fires?",
+    ],
+    rows,
+)
+```
+
+With $c = 50$, operators with $\rho$ between roughly $0.97$ and $1$ are flagged, even though they
+are stable. A clip on $\lVert A \rVert_2$ would flag every operator in the table. When $n$ is small
+enough to call an eigensolver, `max(abs(eigvals(A)))` removes the margin entirely.
+
+## Example 8: the dual view — a norm adapted to $A$
+
+Fekete gives $\rho(A) = \inf_k \lVert A^k \rVert^{1/k}$ for one fixed norm. A complementary
+statement, due to Householder, fixes $k = 1$ and varies the norm: for every $\varepsilon > 0$ there
+is an induced norm with $\lVert A \rVert \le \rho(A) + \varepsilon$. In short, $\rho(A)$ is the
+infimum of $\lVert A \rVert$ over all operator norms.
+
+A constructive version uses a Lyapunov equation. If $\rho(A) < 1$, the discrete Lyapunov equation
+
+$$
+A^T P A - P = -I
+$$
+
+has a unique positive-definite solution $P$. In the norm $\lVert x \rVert_P = \sqrt{x^T P x}$,
+
+$$
+\lVert Ax \rVert_P^2 = x^T P x - x^T x \le \bigl(1 - 1/\lambda_{\max}(P)\bigr) \lVert x \rVert_P^2,
+$$
+
+so $A$ is a strict contraction, $\lVert A \rVert_P \le \sqrt{1 - 1/\lambda_{\max}(P)} < 1$.
+Applying the same construction to $A/(\rho + \varepsilon)$ gives a norm in which
+$\lVert A \rVert \le \rho + \varepsilon$. The price is the conditioning of $P$: the non-normality
+constant $C$ from Example 3 has moved into the geometry of the norm. With $P = LL^T$, the induced
+norm is $\lVert A \rVert_P = \lVert L^T A L^{-T} \rVert_2$.
+
+```{python}
+def lyapunov_norm(A):
+    """Solve A^T P A - P = -I; return ||A||_P, cond(P), and the bound
+    sqrt(1 - 1/lambda_max(P)) on ||A||_P."""
+    P = solve_discrete_lyapunov(
+        A.T, np.eye(A.shape[0])
+    )  # solves A^T P A - P + I = 0
+    assert np.allclose(A.T @ P @ A - P, -np.eye(A.shape[0]))
+    L = np.linalg.cholesky(P)
+    normP = op2(L.T @ A @ np.linalg.inv(L.T))
+    return (
+        normP,
+        np.linalg.cond(P),
+        np.sqrt(1 - 1 / np.linalg.eigvalsh(P).max()),
+    )
+
+
+A50 = np.array([[0.9, 50.0], [0.0, 0.5]])
+nP50, condP50, bound50 = lyapunov_norm(A50)
+assert nP50 <= bound50 + 1e-12 < 1
+
+J = np.array([[0.9, 1.0], [0.0, 0.9]])
+rows = []
+for eps in (0.1, 0.03, 0.01, 0.003, 0.001):
+    row = [eps, rho(A50) + eps]
+    for M_ in (A50, J):
+        nP, condP, _ = lyapunov_norm(M_ / (rho(M_) + eps))
+        assert nP * (rho(M_) + eps) <= rho(M_) + eps
+        row += [nP * (rho(M_) + eps), condP]
+    rows.append(row)
+
+# A diagonalizable matrix attains the infimum:
+# in ||x||_V = ||V^-1 x||_2 one has ||A||_V = ||Lambda||_2 = rho.
+evals, V = np.linalg.eig(A50)
+normV50, kappaV50 = op2(np.linalg.inv(V) @ A50 @ V), np.linalg.cond(V)
+
+table(
+    [
+        r"$\varepsilon$",
+        r"$\rho + \varepsilon$",
+        r"$A_{50}$: $\lVert A \rVert_{P(\varepsilon)}$",
+        r"$A_{50}$: $\kappa(P)$",
+        r"$J$: $\lVert J \rVert_{P(\varepsilon)}$",
+        r"$J$: $\kappa(P)$",
+    ],
+    rows,
+    digits=3,
+)
+```
+
+For $A_{50}$, with $\rho =$ `{python} m(rho(A50))` and
+$\lVert A \rVert_2 =$ `{python} m(op2(A50), digits=4)`, the plain Lyapunov norm ($Q = I$, no
+rescaling) gives `{python} m(r"1 - \lVert A \rVert_P =", 1 - nP50, digits=3)` with
+`{python} m(r"\kappa(P) =", condP50, digits=3)`: a contraction, but barely, since
+$1 - \lVert A \rVert_P$ is of order $1/\lambda_{\max}(P)$, which is tiny because $P$ is so
+ill-conditioned.
+
+The $\varepsilon$-scans in the table show the Householder statement at work. For both matrices
+$\lVert M \rVert_{P(\varepsilon)}$ approaches $\rho$ while $\kappa(P)$ grows, roughly like
+$1/\varepsilon$ for $A_{50}$ and like $1/\varepsilon^2$ for the Jordan block. The difference
+matters. A diagonalizable matrix *attains* the infimum: in the norm
+$\lVert x \rVert_V = \lVert V^{-1} x \rVert_2$ one has
+$\lVert A \rVert_V = \lVert \Lambda \rVert_2 = \rho(A)$. For $A_{50}$,
+`{python} m(r"\lVert V^{-1} A_{50} V \rVert_2 =", normV50)`, at the price
+`{python} m(r"\kappa(V) =", kappaV50, digits=3)` from Example 3. No norm achieves
+$\lVert J \rVert = \rho(J)$ for a Jordan block: that would give $\lVert J^k \rVert \le \rho^k$,
+contradicting the growth $\lVert J^k \rVert \approx k \rho^{k-1}$ seen in Example 2, since all
+norms are equivalent. The two routes are therefore complementary. Gelfand fixes the norm and takes
+powers, paying $(C k^{m-1})^{1/k}$. Lyapunov and Householder take one power in an adapted norm,
+paying $\kappa(P)$.
+
+## Summary
+
+- $\rho(A) \le \lVert A^k \rVert^{1/k}$ at every $k$ for submultiplicative norms. For the limit
+  $\lVert A^k \rVert^{1/k} \to \rho(A)$, any norm will do.
+- For normal matrices in the spectral norm the gap is zero. Otherwise the gap is
+  $(C k^{m-1})^{1/k}$: a constant from eigenvector conditioning (Example 3) and a polynomial from
+  Jordan blocks (Example 2). The relative error decays only like $(\ln C + (m-1)\ln k)/k$.
+- Subadditivity of $\log \lVert A^k \rVert$ makes the limit exist and equal the infimum over $k$.
+  Along $k = 2^j$ the estimates never increase.
+- Gelfand's insight: $\rho(A)$ is the radius of convergence of the resolvent's Laurent series at
+  $\infty$, so a metric quantity (coefficient growth) equals an algebraic one (location of the
+  singularities).
+- In practice: renormalize while squaring, and remember the margin above $\rho$ that remains at
+  finite $k$.
+
+## References
+
+- I. Gelfand, "Normierte Ringe," *Rec. Math. [Mat. Sbornik] N.S.* 9(51):3–24, 1941. English
+  translation in G. W. Mackey, *Commutative Banach Algebras*, Notas de Matemática 17, 1959.
+- A. Beurling, "Sur les intégrales de Fourier absolument convergentes et leur application à une
+  transformation fonctionnelle," *IX Congrès des Mathématiciens Scandinaves*, Helsingfors, 1938.
+- M. Fekete, "Über die Verteilung der Wurzeln bei gewissen algebraischen Gleichungen mit
+  ganzzahligen Koeffizienten," *Math. Z.* 17:228–249, 1923.
+- J. Hadamard, "Essai sur l'étude des fonctions données par leur développement de Taylor,"
+  *J. Math. Pures Appl.* (4) 8:101–186, 1892.
+- A. S. Householder, *The Theory of Matrices in Numerical Analysis*, Blaisdell, 1964.
+- R. A. Horn and C. R. Johnson, *Matrix Analysis*, 2nd ed., Cambridge University Press, 2013, §5.6.
+- W. Rudin, *Functional Analysis*, 2nd ed., McGraw-Hill, 1991, Ch. 10.
+- L. N. Trefethen and M. Embree, *Spectra and Pseudospectra: The Behavior of Nonnormal Matrices
+  and Operators*, Princeton University Press, 2005.

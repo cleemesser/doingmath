@@ -137,3 +137,14 @@ __marimo__/
 # direnv
 .direnv/
 .agents/
+
+# Calepin (Typst notebook) runtime and cached chunk results
+.calepin/
+
+# Quarto render outputs (re-create with `uv run quarto render <file>.qmd`)
+.quarto/
+*.quarto_ipynb
+SpectralTheory/*_quarto.html
+SpectralTheory/*_quarto.pdf
+SpectralTheory/*_quarto.typ
+SpectralTheory/*_quarto_files/

@@ -137,3 +137,6 @@ __marimo__/
 # direnv
 .direnv/
 .agents/
+
+# Calepin (Typst notebook) runtime and cached chunk results
+.calepin/

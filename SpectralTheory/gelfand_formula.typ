@@ -21,6 +21,7 @@
   echo: true,
   eval: true,
   results: "verbatim",
+  results-location: "chunk",
   fenced-chunks: true,
   fig-device-width: 9,
   fig-device-height: 3.6,
@@ -148,10 +149,9 @@ R = r * np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)
 
 for name, A in [("D", D), ("R", R)]:
     seq = gelfand_sequence(A, 200)
-    print(
-        f"{name}: normal? {np.allclose(A @ A.T, A.T @ A)}   rho = {rho(A):.4f}   "
-        f"||A||_2 = {op2(A):.4f}   ||A^k||^(1/k) == rho for all k: {np.allclose(seq, rho(A))}"
-    )
+    normal = np.allclose(A @ A.T, A.T @ A)
+    print(f"{name}: normal? {normal}  rho = {rho(A):.4f}  ||A||_2 = {op2(A):.4f}")
+    print(f"   ||A^k||^(1/k) == rho for k = 1..200: {np.allclose(seq, rho(A))}")
 ```
 
 So for normal matrices @eq-bound is an equality at every $k$, and $norm(A)_2$ is already the
@@ -213,7 +213,7 @@ for m, color in zip([1, 2, 3, 4], [GREEN, BLUE, PURPLE, RED]):
         ax1.semilogy(ks, (m - 1) * np.log(ks) / ks, color=color, ls=":", lw=1)
 ax1.set_xlabel("k")
 ax1.set_title(r"relative error $\|J^k\|^{1/k}/\rho - 1$")
-ax1.set_ylim(1e-3, 3)
+ax1.set_ybound(1e-3, 3)
 ax1.legend(loc="upper right")
 ax1.grid(True)
 fig.tight_layout()
@@ -251,18 +251,21 @@ for c, color in zip(cs, colors):
     seq = gelfand_sequence(A, len(ks))
     assert np.all(seq >= rho(A) - 1e-12)  # lower bound, eq. (2)
     assert np.all(seq <= kappa ** (1 / ks) * rho(A) + 1e-12)  # kappa(V) upper bound
-    print(f"c = {c:5.1f}: ||A||_2 = {op2(A):7.3f}   kappa(V) = {kappa:9.2f}   ||A^128||^(1/128) = {seq[127]:.4f}")
+    print(
+        f"c = {c:4.0f}:  ||A||_2 = {op2(A):6.2f}   kappa(V) = {kappa:6.1f}"
+        f"   ||A^128||^(1/128) = {seq[127]:.4f}"
+    )
     ax0.plot(ks, seq, color=color, label=f"c = {c:g}")
     ax1.loglog(ks, seq / 0.9 - 1 + 1e-17, color=color)
     if c > 0:
         ax1.loglog(ks, np.log(kappa) / ks, color=color, ls=":", lw=1)
 ax0.axhline(0.9, color=ORANGE, ls="--", lw=1, label=r"$\rho = 0.9$")
-ax0.set_ylim(0.8, 2.0)
+ax0.set_ybound(0.8, 2.0)
 ax0.set_xlabel("k")
 ax0.set_title(r"$\|A_c^k\|_2^{1/k}$")
 ax0.legend()
 ax0.grid(True)
-ax1.set_ylim(1e-4, 10)
+ax1.set_ybound(1e-4, 10)
 ax1.set_xlabel("k")
 ax1.set_title(r"relative error vs. $\ln\kappa(V)/k$ (dotted)")
 ax1.grid(True)
@@ -292,11 +295,11 @@ so @eq-bound fails at every $k$. Still, $(1\/2)^(1\/k) -> 1 = rho(B)$, as @eq-ge
 
 ```python
 norms = {
-    "spectral (2)": op2,
-    "max column sum (1)": lambda M: np.linalg.norm(M, 1),
-    "max row sum (inf)": lambda M: np.linalg.norm(M, np.inf),
+    "spectral": op2,
+    "max column sum": lambda M: np.linalg.norm(M, 1),
+    "max row sum": lambda M: np.linalg.norm(M, np.inf),
     "Frobenius": lambda M: np.linalg.norm(M, "fro"),
-    "max entry (not submult.)": lambda M: np.max(np.abs(M)),
+    "max entry*": lambda M: np.max(np.abs(M)),  # * not submultiplicative
 }
 
 A = np.array([[0.9, 10.0], [0.0, 0.5]])
@@ -307,11 +310,14 @@ fig, (ax0, ax1) = plt.subplots(1, 2)
 for (name, nrm), color in zip(norms.items(), [BLUE, GREEN, PURPLE, ORANGE, RED]):
     seqA = gelfand_sequence(A, len(ks), nrm)
     seqB = gelfand_sequence(B, len(ks), nrm)
-    print(f"{name:26s} A: k=200 -> {seqA[-1]:.4f}   B: min over k = {seqB.min():.4f}, k=200 -> {seqB[-1]:.4f}")
+    print(
+        f"{name:15s} A_10 at k=200: {seqA[-1]:.4f}"
+        f"    B: min_k {seqB.min():.4f}, at k=200 {seqB[-1]:.4f}"
+    )
     ax0.plot(ks, seqA, color=color, label=name)
     ax1.plot(ks, seqB, color=color, label=name)
 ax0.axhline(rho(A), color="w", ls="--", lw=1)
-ax0.set_ylim(0.6, 2.0)
+ax0.set_ybound(0.6, 2.0)
 ax0.set_title(r"$A_{10}$: every norm $\to \rho = 0.9$")
 ax0.set_xlabel("k")
 ax0.legend(fontsize=7)
@@ -361,7 +367,8 @@ rng = np.random.default_rng(0)
 ok = True
 for _ in range(200):
     n = rng.integers(2, 8)
-    A = rng.normal(size=(n, n)) @ np.diag(rng.uniform(0.2, 1.5, n)) @ np.linalg.inv(rng.normal(size=(n, n)))
+    V = rng.normal(size=(n, n))
+    A = V @ np.diag(rng.uniform(0.2, 1.5, n)) @ np.linalg.inv(V)
     seq = gelfand_sequence(A, 256)
     pow2 = seq[[2**j - 1 for j in range(9)]]  # k = 1, 2, 4, ..., 256
     ok &= bool(np.all(np.diff(pow2) <= 1e-9 * pow2[:-1]))  # monotone along 2^j
@@ -402,9 +409,10 @@ and the growth of $norm(A^k)$ is the growth of its Laurent coefficients.
 
 The left panel below shows $log_(10) norm(R(z))_2$ over the complex plane for $A_(10)$. The
 eigenvalues $0.5$ and $0.9$ are the poles. The dashed circle is $abs(z) = rho$, outside which
-@eq-neumann converges. The dotted circle is $abs(z) = norm(A)_2 approx 10$, outside which
-convergence is obvious from $norm(A^k) <= norm(A)^k$. Between the two circles the series converges
-too, though the triangle inequality alone cannot show it. The level sets of $norm(R(z))$ are the
+@eq-neumann converges. Convergence is obvious only for $abs(z) > norm(A)_2 approx 10$, far off the
+plot, where $norm(A^k) <= norm(A)^k$ bounds the terms by a geometric series. In the whole region
+between $rho$ and $norm(A)_2$ the series converges too, though the triangle inequality alone
+cannot show it. The level sets of $norm(R(z))$ are the
 _pseudospectra_ of $A$. They spread far beyond the eigenvalues, and that spread is the same
 non-normality that causes the transient growth of $norm(A^k)$.
 
@@ -427,9 +435,11 @@ def resolvent_partial_sum(A, z, K):
 
 z_out = 0.95  # rho < |z| < ||A||_2: converges, though not obviously
 exact = np.linalg.inv(z_out * I2 - A)
-print("partial sums -> (zI - A)^-1 at z = 0.95:", np.allclose(resolvent_partial_sum(A, z_out, 2000), exact))
-print("partial sum size at z = 0.85 (inside rho), K = 50, 100, 200:",
-      [f"{np.linalg.norm(resolvent_partial_sum(A, 0.85, K), 2):.3g}" for K in (50, 100, 200)])
+converged = np.allclose(resolvent_partial_sum(A, z_out, 2000), exact)
+print("z = 0.95: partial sums -> (zI - A)^-1:", converged)
+for K in (50, 100, 200):
+    size = op2(resolvent_partial_sum(A, 0.85, K))
+    print(f"z = 0.85: ||partial sum, K = {K:3d}||_2 = {size:.3g}")
 
 x = np.linspace(-1.6, 1.6, 320)  # even count: no grid point lands on an eigenvalue
 Z = x[None, :] + 1j * x[:, None]
@@ -438,11 +448,13 @@ smin = np.linalg.svd(M, compute_uv=False)[..., -1]
 logR = np.log10(1 / smin)  # ||(zI - A)^-1||_2 = 1 / sigma_min(zI - A)
 
 fig, (ax0, ax1) = plt.subplots(1, 2, gridspec_kw={"width_ratios": [1, 1.25]})
-im = ax0.imshow(logR, extent=[x[0], x[-1], x[0], x[-1]], origin="lower", cmap="magma", vmin=0, vmax=3)
+extent = [x[0], x[-1], x[0], x[-1]]
+im = ax0.imshow(logR, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=3)
 ax0.contour(x, x, logR, levels=[1, 2], colors=[GRAY], linewidths=0.6)
 t = np.linspace(0, 2 * np.pi, 400)
-ax0.plot(rho(A) * np.cos(t), rho(A) * np.sin(t), color=BLUE, ls="--", lw=1.2, label=r"$|z| = \rho$")
-ax0.plot(np.linalg.eigvals(A).real, np.linalg.eigvals(A).imag, "x", color=GREEN, ms=8, mew=2, label="eigenvalues")
+ax0.plot(rho(A) * np.cos(t), rho(A) * np.sin(t), color=BLUE, ls="--", label=r"$|z| = \rho$")
+ev = np.linalg.eigvals(A)
+ax0.plot(ev.real, ev.imag, "x", color=GREEN, ms=8, mew=2, label="eigenvalues")
 ax0.set_title(r"$\log_{10}\|(zI-A)^{-1}\|_2$  ($\|A\|_2 \approx 10$ is off-plot)", fontsize=9)
 ax0.set_xlabel("Re z")
 ax0.set_ylabel("Im z")
@@ -490,16 +502,17 @@ def gelfand_by_squaring(A, j, norm=op2):
 
 
 A = np.array([[0.9, 10.0], [0.0, 0.5]])
+at_powers_of_2 = gelfand_sequence(A, 128)[[2**i - 1 for i in range(8)]]
 print("squaring estimates equal gelfand_sequence at k = 2^i:",
-      np.allclose(gelfand_by_squaring(A, 7), gelfand_sequence(A, 128)[[2**i - 1 for i in range(8)]]))
+      np.allclose(gelfand_by_squaring(A, 7), at_powers_of_2))
 
 for scale in (2.5, 0.3):
     A32 = (scale / 0.9 * A).astype(np.float32)  # same shape, rho rescaled to 2.5 and 0.3
     with np.errstate(over="ignore", under="ignore", invalid="ignore"):
         A128 = np.linalg.matrix_power(A32, 128)  # computed in float32
     naive = op2(A128.astype(np.float64)) ** (1 / 128) if np.all(np.isfinite(A128)) else np.inf
-    print(f"rho = {rho(A32):.2f} in float32:  naive ||A^128||^(1/128) = {naive:.4f}   "
-          f"renormalized = {gelfand_by_squaring(A32, 7)[-1]:.4f}")
+    safe = gelfand_by_squaring(A32, 7)[-1]
+    print(f"float32, rho = {rho(A32):.2f}:  naive = {naive:.4f}   renormalized = {safe:.4f}")
 ```
 
 *A margin above $rho$.* Even at $k = 128$ the estimate exceeds $rho$ by the factor
@@ -514,7 +527,8 @@ for c in (1.0, 50.0):
     for r in (0.90, 0.95, 0.97, 0.98, 0.99):
         A = np.array([[r, c], [0.0, 0.5]])
         est = gelfand_by_squaring(A, 7)[-1]
-        print(f"{r:6.2f} | {c:5.0f} | {op2(A):8.2f} | {est:9.4f} | {'yes' if est > 1 else 'no'}")
+        fires = "yes" if est > 1 else "no"
+        print(f"{r:6.2f} | {c:5.0f} | {op2(A):8.2f} | {est:9.4f} | {fires}")
 ```
 
 With $c = 50$, operators with $rho$ between roughly $0.97$ and $1$ are flagged, even though they are
@@ -544,7 +558,7 @@ $norm(A)_P = norm(L^T A L^(-T))_2$.
 
 ```python
 def lyapunov_norm(A):
-    """Solve A^T P A - P = -I and return (||A||_P, cond(P), bound sqrt(1 - 1/lambda_max(P)))."""
+    """Solve A^T P A - P = -I; return ||A||_P, cond(P), sqrt(1 - 1/lambda_max(P))."""
     P = solve_discrete_lyapunov(A.T, np.eye(A.shape[0]))  # solves A^T P A - P + I = 0
     assert np.allclose(A.T @ P @ A - P, -np.eye(A.shape[0]))
     L = np.linalg.cholesky(P)
@@ -555,7 +569,7 @@ def lyapunov_norm(A):
 A = np.array([[0.9, 50.0], [0.0, 0.5]])
 nP, condP, bound = lyapunov_norm(A)
 print(f"A_50: rho = {rho(A):.3f}   ||A||_2 = {op2(A):.2f}   cond(P) = {condP:.3g}")
-print(f"      1 - ||A||_P = {1 - nP:.3g}  >=  1 - bound = {1 - bound:.3g}   (a contraction, but barely)")
+print(f"      1 - ||A||_P = {1 - nP:.3g} >= 1 - bound = {1 - bound:.3g}  (barely)")
 
 J = np.array([[0.9, 1.0], [0.0, 0.9]])
 for name, M in [("A_50", A), ("Jordan block, lambda = 0.9", J)]:
@@ -564,11 +578,13 @@ for name, M in [("A_50", A), ("Jordan block, lambda = 0.9", J)]:
     for eps in (0.1, 0.03, 0.01, 0.003, 0.001):
         nP, condP, _ = lyapunov_norm(M / (rho(M) + eps))
         assert nP * (rho(M) + eps) <= rho(M) + eps
-        print(f"{eps:8.3f} | {rho(M) + eps:9.4f} | {nP * (rho(M) + eps):12.4f} | {condP:9.3g}")
+        r_eps = rho(M) + eps
+        print(f"{eps:8.3f} | {r_eps:9.4f} | {nP * r_eps:12.4f} | {condP:9.3g}")
 
-# A diagonalizable matrix attains the infimum: in ||x||_V = ||V^-1 x||_2, ||A||_V = ||Lambda||_2 = rho.
+# A diagonalizable matrix attains the infimum:
+# in ||x||_V = ||V^-1 x||_2 one has ||A||_V = ||Lambda||_2 = rho.
 evals, V = np.linalg.eig(A)
-print(f"\nA_50 in the eigenvector norm: ||V^-1 A V||_2 = {op2(np.linalg.inv(V) @ A @ V):.4f} = rho,"
+print(f"\nA_50, eigenvector norm: ||V^-1 A V||_2 = {op2(np.linalg.inv(V) @ A @ V):.4f} = rho,"
       f"  kappa(V) = {np.linalg.cond(V):.0f}")
 ```
 
